@@ -1,0 +1,39 @@
+# Stage 1: Builder (reutiliza el concepto del API)
+FROM python:3.12-slim AS builder
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY pyproject.toml /app/
+RUN pip install --upgrade pip && \
+    pip install --prefix=/install .
+
+# Stage 2: Produccion
+FROM python:3.12-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/app
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpq5 \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=builder /install /usr/local
+
+COPY src /app/src
+
+RUN useradd -m appuser && chown -R appuser:appuser /app
+USER appuser
+
+# No requiere puerto expuesto ni healthcheck HTTP
+CMD ["python", "-m", "src.workers.main"]

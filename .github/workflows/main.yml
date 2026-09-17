@@ -1,0 +1,98 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: ankane/pgvector:v0.5.1
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: artistica_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python 3.12
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+        cache: 'pip'
+        
+    - name: Install dependencies
+      working-directory: ./backend
+      run: |
+        pip install --upgrade pip
+        pip install -e .[dev]
+
+    - name: Ruff Check
+      working-directory: ./backend
+      run: ruff check .
+      
+    - name: Ruff Format
+      working-directory: ./backend
+      run: ruff format --check .
+
+    - name: Run Pytest
+      working-directory: ./backend
+      env:
+        ALEMBIC_DATABASE_URL: postgresql+psycopg://postgres:password@localhost:5432/artistica_test
+        DATABASE_URL: postgresql+psycopg://postgres:password@localhost:5432/artistica_test
+        SUPABASE_URL: https://test.supabase.co
+        SUPABASE_JWT_SECRET: super_secret_jwt_for_testing
+      run: |
+        # Ejecutar migraciones en la base de datos de test temporal
+        alembic upgrade head
+        pytest
+
+  deploy:
+    needs: lint-and-test
+    runs-on: ubuntu-latest
+    # Solo despliega en Railway cuando sea push a main
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python 3.12
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+    
+    - name: Run Alembic Upgrade in Production
+      working-directory: ./backend
+      env:
+        ALEMBIC_DATABASE_URL: ${{ secrets.PROD_ALEMBIC_DATABASE_URL }}
+      run: |
+        pip install --upgrade pip
+        pip install -e .
+        alembic upgrade head
+        
+    - name: Install Railway CLI
+      run: npm i -g @railway/cli
+      
+    - name: Deploy API to Railway
+      working-directory: ./backend
+      env:
+        RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      run: railway up --service api --detach
+
+    - name: Deploy Worker to Railway
+      working-directory: ./backend
+      env:
+        RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      run: railway up --service worker --detach
