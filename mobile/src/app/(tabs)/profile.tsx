@@ -1,0 +1,106 @@
+import { Ionicons } from '@expo/vector-icons';
+import { useState } from 'react';
+import { Image, Pressable, ScrollView, Text, View } from 'react-native';
+
+const PORTFOLIO = Array.from({ length: 6 }, (_, i) => ({
+  id: String(i),
+  image: `https://picsum.photos/seed/portfolio-${i}/500/500`,
+}));
+
+export default function PerfilScreen() {
+  const [tab, setTab] = useState<'portafolio' | 'sobre-mi'>('portafolio');
+
+  return (
+    <ScrollView className="flex-1 bg-sand-100" showsVerticalScrollIndicator={false}>
+      <View className="h-56 bg-sage">
+        <Image
+          source={{ uri: 'https://picsum.photos/seed/profile-cover/800/500' }}
+          className="h-full w-full"
+        />
+      </View>
+
+      <View className="-mt-10 px-5">
+        <View className="h-20 w-20 items-center justify-center rounded-full border-4 border-sand-100 bg-accent">
+          <Text className="font-serif text-3xl text-sand-50">L</Text>
+        </View>
+
+        <View className="mt-3 flex-row items-center gap-1.5">
+          <Text className="font-serif text-3xl italic text-ink">Luna Atelier</Text>
+          <Ionicons name="checkmark-circle" size={20} color="#c2653b" />
+        </View>
+        <Text className="mt-1 text-sm font-medium text-accent-dark">Ilustradora digital</Text>
+        <Text className="mt-2 text-sm text-stone-800">
+          Creo mundos suaves para quienes todavía creen en la magia cotidiana. Comisiones abiertas
+          hasta noviembre.
+        </Text>
+
+        <View className="mt-4 flex-row justify-between rounded-2xl bg-sand-50 px-4 py-3">
+          <View className="items-center">
+            <Text className="text-base font-semibold text-ink">148</Text>
+            <Text className="text-xs text-stone-700">OBRAS</Text>
+          </View>
+          <View className="items-center">
+            <Text className="text-base font-semibold text-ink">12.4k</Text>
+            <Text className="text-xs text-stone-700">SEGUIDORES</Text>
+          </View>
+          <View className="items-center">
+            <Text className="text-base font-semibold text-ink">386</Text>
+            <Text className="text-xs text-stone-700">SIGUIENDO</Text>
+          </View>
+        </View>
+
+        <View className="mt-4 flex-row gap-3">
+          <Pressable className="flex-1 items-center rounded-full bg-accent py-3">
+            <Text className="font-semibold text-sand-50">Seguir</Text>
+          </Pressable>
+          <Pressable className="flex-1 items-center rounded-full bg-sand-50 py-3">
+            <Text className="font-semibold text-ink">Solicitar comisión</Text>
+          </Pressable>
+        </View>
+
+        <View className="mt-6 flex-row gap-6 border-b border-sand-300">
+          <Pressable onPress={() => setTab('portafolio')} className="pb-3">
+            <Text
+              className={
+                tab === 'portafolio'
+                  ? 'border-b-2 border-ink pb-3 text-sm font-semibold text-ink'
+                  : 'text-sm text-stone-700'
+              }>
+              Portafolio
+            </Text>
+          </Pressable>
+          <Pressable onPress={() => setTab('sobre-mi')} className="pb-3">
+            <Text
+              className={
+                tab === 'sobre-mi'
+                  ? 'border-b-2 border-ink pb-3 text-sm font-semibold text-ink'
+                  : 'text-sm text-stone-700'
+              }>
+              Sobre mí
+            </Text>
+          </Pressable>
+        </View>
+
+        {tab === 'portafolio' ? (
+          <View className="flex-row flex-wrap gap-2 py-4">
+            {PORTFOLIO.map((item) => (
+              <Image
+                key={item.id}
+                source={{ uri: item.image }}
+                className="aspect-square rounded-xl"
+                style={{ width: '31.5%' }}
+              />
+            ))}
+          </View>
+        ) : (
+          <View className="py-4">
+            <Text className="text-sm text-stone-800">
+              Ilustradora digital especializada en escenas íntimas y paletas suaves. Trabajo por
+              comisión desde 2019.
+            </Text>
+          </View>
+        )}
+      </View>
+    </ScrollView>
+  );
+}
