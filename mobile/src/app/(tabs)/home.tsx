@@ -4,6 +4,14 @@ import { Image, Pressable, ScrollView, Text, View } from 'react-native';
 
 import { Avatar } from '@/components/avatar';
 
+const HEADER_SHADOW = {
+  shadowColor: '#3d362f',
+  shadowOpacity: 0.08,
+  shadowRadius: 8,
+  shadowOffset: { width: 0, height: 3 },
+  elevation: 4,
+};
+
 const POSTS = [
   {
     id: '1',
@@ -42,34 +50,43 @@ export default function InicioScreen() {
 
   return (
     <View className="flex-1 bg-sand-100">
-      <View className="flex-row items-center justify-between border-b border-sand-300 px-5 pb-3 pt-14">
-        <Text className="font-serif text-3xl italic text-ink">Artistica</Text>
-        <Pressable className="h-10 w-10 items-center justify-center rounded-full bg-sand-50">
-          <Ionicons name="notifications-outline" size={20} color="#201d1a" />
-        </Pressable>
-      </View>
+      <View className="bg-sand-100 pt-14" style={HEADER_SHADOW}>
+        <View className="flex-row items-center justify-between px-5 pb-3">
+          <View className="flex-row items-center gap-2">
+            <Image
+              source={require('@/assets/images/logo-mark.png')}
+              style={{ width: 26, height: 26 }}
+              resizeMode="contain"
+            />
+            <Text className="font-serif text-3xl italic text-ink">Artística</Text>
+          </View>
+          <Pressable className="h-10 w-10 items-center justify-center rounded-full bg-sand-50">
+            <Ionicons name="notifications-outline" size={20} color="#201d1a" />
+          </Pressable>
+        </View>
 
-      <View className="flex-row gap-6 border-b border-sand-300 px-5 pt-3">
-        <Pressable onPress={() => setTab('seguidos')} className="pb-3">
-          <Text
-            className={
-              tab === 'seguidos'
-                ? 'border-b-2 border-ink pb-3 text-sm font-semibold text-ink'
-                : 'text-sm font-medium text-stone-800'
-            }>
-            Seguidos
-          </Text>
-        </Pressable>
-        <Pressable onPress={() => setTab('para-ti')} className="pb-3">
-          <Text
-            className={
-              tab === 'para-ti'
-                ? 'border-b-2 border-ink pb-3 text-sm font-semibold text-ink'
-                : 'text-sm font-medium text-stone-800'
-            }>
-            Para ti
-          </Text>
-        </Pressable>
+        <View className="flex-row gap-6 px-5">
+          <Pressable onPress={() => setTab('seguidos')} className="pb-3">
+            <Text
+              className={
+                tab === 'seguidos'
+                  ? 'border-b-2 border-accent pb-3 text-sm font-semibold text-ink'
+                  : 'text-sm font-medium text-stone-800'
+              }>
+              Seguidos
+            </Text>
+          </Pressable>
+          <Pressable onPress={() => setTab('para-ti')} className="pb-3">
+            <Text
+              className={
+                tab === 'para-ti'
+                  ? 'border-b-2 border-accent pb-3 text-sm font-semibold text-ink'
+                  : 'text-sm font-medium text-stone-800'
+              }>
+              Para ti
+            </Text>
+          </Pressable>
+        </View>
       </View>
 
       <ScrollView contentContainerClassName="gap-4 p-5" showsVerticalScrollIndicator={false}>

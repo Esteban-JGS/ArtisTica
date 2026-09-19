@@ -1,6 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LiquidGlassView } from '@sbaiahmed1/react-native-blur';
-import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import type { BottomTabBarProps } from 'expo-router/tabs';
 import { useEffect, useState } from 'react';
@@ -232,38 +231,18 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
             width: FAB_SIZE,
             height: FAB_SIZE,
             borderRadius: FAB_SIZE / 2,
-            overflow: 'hidden',
+            backgroundColor: ACCENT,
+            alignItems: 'center',
+            justifyContent: 'center',
             shadowColor: '#c2653b',
             shadowOpacity: 0.5,
             shadowRadius: 12,
             shadowOffset: { width: 0, height: 6 },
             elevation: 8,
           }}>
-          <LinearGradient
-            colors={['#d4784d', '#c2653b', '#ad5730']}
-            locations={[0, 0.52, 1]}
-            start={{ x: 0.37, y: 0.02 }}
-            end={{ x: 0.63, y: 0.98 }}
-            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
-          />
-          <View
-            pointerEvents="none"
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              height: FAB_SIZE / 2,
-              borderTopLeftRadius: FAB_SIZE / 2,
-              borderTopRightRadius: FAB_SIZE / 2,
-              backgroundColor: 'rgba(255,255,255,0.28)',
-            }}
-          />
-          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-            <Animated.View style={fabRotation}>
-              <Ionicons name={open ? 'close' : activeIcon} size={26} color="#fdf8f3" />
-            </Animated.View>
-          </View>
+          <Animated.View style={fabRotation}>
+            <Ionicons name={open ? 'close' : activeIcon} size={26} color="#fdf8f3" />
+          </Animated.View>
         </Pressable>
       </View>
     </View>
