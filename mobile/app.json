@@ -8,6 +8,7 @@
     "scheme": "artistica",
     "userInterfaceStyle": "automatic",
     "android": {
+      "package": "com.artistica.mobile",
       "adaptiveIcon": {
         "backgroundColor": "#201d1a",
         "foregroundImage": "./assets/images/android-icon-foreground.png",

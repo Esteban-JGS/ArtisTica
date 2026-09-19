@@ -1,12 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
+import { LiquidGlassView } from '@sbaiahmed1/react-native-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import type { BottomTabBarProps } from 'expo-router/tabs';
 import { Pressable, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Defs, LinearGradient as SvgLinearGradient, Path, Stop } from 'react-native-svg';
-
-import { buildLiquidBarPaths } from '@/components/notch-path';
 
 const TAB_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   home: 'home-outline',
@@ -24,10 +22,14 @@ const TAB_LABELS: Record<string, string> = {
 
 const ACCENT = '#a1512d';
 const INACTIVE = '#574e46';
-const BAR_HEIGHT = 104;
-const CORNER_RADIUS = 28;
-const CURVE_AREA_HEIGHT = 40;
+const PILL_HEIGHT = 62;
+const PILL_MARGIN_BOTTOM = 14;
+const SIDE_MARGIN = 16;
+const CENTER_GAP = 92;
 const FAB_SIZE = 58;
+// Reserved height for the whole bar: the pill's own footprint from the
+// bottom, plus room for the FAB to poke above the pills.
+const BAR_HEIGHT = PILL_MARGIN_BOTTOM + PILL_HEIGHT + FAB_SIZE / 2;
 
 type Route = BottomTabBarProps['state']['routes'][number];
 
@@ -35,7 +37,7 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const totalHeight = BAR_HEIGHT + insets.bottom;
-  const { edgePath, materialPath } = buildLiquidBarPaths(width, totalHeight);
+  const pillWidth = (width - SIDE_MARGIN * 2 - CENTER_GAP) / 2;
 
   const renderTab = (route: Route, index: number) => {
     const isFocused = state.index === index;
@@ -61,12 +63,12 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
         accessibilityState={{ selected: isFocused }}
         accessibilityLabel={label}
         android_ripple={{ color: '#e2ddd5', borderless: true }}
-        style={{ flex: 1, alignItems: 'center', gap: 6 }}>
-        <Ionicons name={TAB_ICONS[route.name] ?? 'ellipse-outline'} size={23} color={color} />
+        style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+        <Ionicons name={TAB_ICONS[route.name] ?? 'ellipse-outline'} size={22} color={color} />
         <Text
           style={{
-            fontSize: 9.5,
-            letterSpacing: 9.5 * 0.06,
+            fontSize: 9,
+            letterSpacing: 9 * 0.06,
             fontWeight: isFocused ? '700' : '600',
             color,
           }}>
@@ -79,95 +81,37 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
   const leftRoutes = state.routes.slice(0, 2);
   const rightRoutes = state.routes.slice(2);
 
+  const pillStyle = {
+    position: 'absolute' as const,
+    bottom: PILL_MARGIN_BOTTOM + insets.bottom,
+    height: PILL_HEIGHT,
+    width: pillWidth,
+    borderRadius: PILL_HEIGHT / 2,
+    overflow: 'hidden' as const,
+    shadowColor: '#3d362f',
+    shadowOpacity: 0.16,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 12,
+  };
+
   return (
     <View style={{ height: totalHeight }}>
-      <View
-        pointerEvents="none"
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          shadowColor: '#3d362f',
-          shadowOpacity: 0.18,
-          shadowRadius: 18,
-          shadowOffset: { width: 0, height: -6 },
-          elevation: 24,
-        }}>
-        <View
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            borderTopLeftRadius: CORNER_RADIUS,
-            borderTopRightRadius: CORNER_RADIUS,
-            overflow: 'hidden',
-          }}>
-          {/* A plain SVG fill, not a blurred/masked native view: it renders
-              identically everywhere and the notch is a real gap because
-              nothing is painted there — no experimental Android APIs. */}
-          <Svg width={width} height={totalHeight} style={{ position: 'absolute', top: 0, left: 0 }}>
-            <Defs>
-              <SvgLinearGradient id="materialFill" x1="0" y1="0" x2="0" y2="1">
-                <Stop offset="0" stopColor="#fffdfa" stopOpacity={0.96} />
-                <Stop offset="0.46" stopColor="#fdf8f3" stopOpacity={0.86} />
-                <Stop offset="1" stopColor="#fdf8f3" stopOpacity={0.97} />
-              </SvgLinearGradient>
-            </Defs>
-            <Path d={materialPath} fill="url(#materialFill)" />
-          </Svg>
-        </View>
-      </View>
-
-      <Svg
-        width={width}
-        height={CURVE_AREA_HEIGHT}
-        style={{ position: 'absolute', top: 0, left: 0 }}
-        pointerEvents="none">
-        <Defs>
-          <SvgLinearGradient id="edgeBright" x1="0" y1="0" x2="1" y2="0">
-            <Stop offset="0" stopColor="#ffffff" stopOpacity={0} />
-            <Stop offset="0.14" stopColor="#ffffff" stopOpacity={0.95} />
-            <Stop offset="0.86" stopColor="#ffffff" stopOpacity={0.95} />
-            <Stop offset="1" stopColor="#ffffff" stopOpacity={0} />
-          </SvgLinearGradient>
-          <SvgLinearGradient id="edgeDim" x1="0" y1="0" x2="1" y2="0">
-            <Stop offset="0" stopColor="#96785f" stopOpacity={0} />
-            <Stop offset="0.14" stopColor="#96785f" stopOpacity={0.16} />
-            <Stop offset="0.86" stopColor="#96785f" stopOpacity={0.16} />
-            <Stop offset="1" stopColor="#96785f" stopOpacity={0} />
-          </SvgLinearGradient>
-        </Defs>
-        <Path
-          d={edgePath}
-          stroke="url(#edgeDim)"
-          strokeWidth={1}
-          fill="none"
-          transform="translate(0, 1.6)"
-        />
-        <Path d={edgePath} stroke="url(#edgeBright)" strokeWidth={1.6} fill="none" />
-      </Svg>
-
-      <View
-        pointerEvents="box-none"
-        style={{
-          position: 'absolute',
-          left: 0,
-          right: 0,
-          top: 0,
-          height: BAR_HEIGHT,
-          flexDirection: 'row',
-          alignItems: 'flex-start',
-          paddingTop: 40,
-          paddingHorizontal: 12,
-        }}>
+      <LiquidGlassView
+        glassType="regular"
+        glassTintColor="#fdf8f3"
+        glassOpacity={0.55}
+        style={{ ...pillStyle, left: SIDE_MARGIN, flexDirection: 'row' }}>
         {leftRoutes.map((route, index) => renderTab(route, index))}
-        <View style={{ flex: 1 }} />
+      </LiquidGlassView>
+
+      <LiquidGlassView
+        glassType="regular"
+        glassTintColor="#fdf8f3"
+        glassOpacity={0.55}
+        style={{ ...pillStyle, right: SIDE_MARGIN, flexDirection: 'row' }}>
         {rightRoutes.map((route, index) => renderTab(route, index + leftRoutes.length))}
-      </View>
+      </LiquidGlassView>
 
       <Pressable
         onPress={() => router.push('/create')}
@@ -179,7 +123,7 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
           height: FAB_SIZE,
           borderRadius: FAB_SIZE / 2,
           left: width / 2 - FAB_SIZE / 2,
-          bottom: 54,
+          bottom: PILL_MARGIN_BOTTOM + insets.bottom + PILL_HEIGHT - FAB_SIZE / 2,
           overflow: 'hidden',
           shadowColor: '#c2653b',
           shadowOpacity: 0.55,

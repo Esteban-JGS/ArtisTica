@@ -1,4 +1,4 @@
-import { BlurView } from 'expo-blur';
+import { LiquidGlassView } from '@sbaiahmed1/react-native-blur';
 import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 
@@ -34,14 +34,17 @@ export function GlassButton({
     return (
       <Pressable onPress={onPress} style={[styles.glassWrap, style]}>
         {({ pressed }) => (
-          <View style={[styles.glass, pressed && styles.glassPressed]}>
-            <BlurView intensity={24} tint="light" style={styles.blurFill} />
-            <View pointerEvents="none" style={styles.glassTint} />
+          <LiquidGlassView
+            glassType="clear"
+            glassTintColor="#ffffff"
+            glassOpacity={0.4}
+            isInteractive={false}
+            style={[styles.glass, pressed && styles.glassPressed]}>
             <View style={styles.glassContent}>
               {icon}
               <Text style={styles.glassLabel}>{label}</Text>
             </View>
-          </View>
+          </LiquidGlassView>
         )}
       </Pressable>
     );
@@ -96,21 +99,6 @@ const styles = StyleSheet.create({
   },
   glassPressed: {
     opacity: 0.85,
-  },
-  blurFill: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-  },
-  glassTint: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(255,255,255,0.14)',
   },
   glassContent: {
     flexDirection: 'row',
