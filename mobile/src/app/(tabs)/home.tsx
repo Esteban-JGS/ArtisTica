@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Image, Pressable, Text, View } from 'react-native';
 
 import { Avatar } from '@/components/avatar';
+import { PaperTexture } from '@/components/paper-texture';
 import Animated, {
   runOnJS,
   useAnimatedScrollHandler,
@@ -27,6 +28,13 @@ const FLOATING_HEADER_HEIGHT = 168;
 // small icon pair under "Artística".
 const COLLAPSE_DISTANCE = 40;
 const MINI_TOGGLE_HEIGHT = 30;
+
+const ROLE_BADGE_COLORS: Record<string, { bg: string; fg: string }> = {
+  terracota: { bg: 'rgba(194,101,59,0.14)', fg: '#a1512d' },
+  verde: { bg: 'rgba(63,107,99,0.16)', fg: '#3f6b63' },
+  mostaza: { bg: 'rgba(217,154,63,0.2)', fg: '#93641f' },
+  taupe: { bg: 'rgba(139,130,121,0.16)', fg: '#5c534b' },
+};
 
 const POSTS = [
   {
@@ -96,6 +104,7 @@ export default function InicioScreen() {
 
   return (
     <View className="flex-1 bg-sand-100">
+      <PaperTexture />
       <Animated.ScrollView
         onScroll={scrollHandler}
         scrollEventThrottle={16}
@@ -120,8 +129,14 @@ export default function InicioScreen() {
               <View className="flex-1">
                 <View className="flex-row items-center gap-2">
                   <Text className="font-semibold text-ink">{post.name}</Text>
-                  <View className="rounded-full bg-sand-200 px-2 py-0.5">
-                    <Text className="text-xs text-stone-800">{post.role}</Text>
+                  <View
+                    className="rounded-full px-2 py-0.5"
+                    style={{ backgroundColor: ROLE_BADGE_COLORS[post.color].bg }}>
+                    <Text
+                      className="text-xs font-medium"
+                      style={{ color: ROLE_BADGE_COLORS[post.color].fg }}>
+                      {post.role}
+                    </Text>
                   </View>
                 </View>
                 <Text className="text-xs text-stone-700">
