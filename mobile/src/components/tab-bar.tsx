@@ -29,10 +29,21 @@ const TAB_LABELS: Record<string, string> = {
 };
 
 const ACCENT = '#c2653b';
+const INK = '#201d1a';
+const CREAM = '#fdf8f3';
 const FAB_SIZE = 60;
 const ITEM_HEIGHT = 46;
-const ITEM_GAP = 10;
+const ITEM_WIDTH = 172;
+const ITEM_GAP = 8;
+const GROUP_GAP = 20;
 const STACK_BOTTOM_MARGIN = 20;
+const SIDE_MARGIN = 20;
+
+function offsetForIndex(index: number) {
+  const base = FAB_SIZE + ITEM_GAP;
+  if (index === 0) return base;
+  return base + ITEM_HEIGHT + GROUP_GAP + (index - 1) * (ITEM_HEIGHT + ITEM_GAP);
+}
 
 type Route = BottomTabBarProps['state']['routes'][number];
 
@@ -40,8 +51,14 @@ type MenuItem = {
   key: string;
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
-  isActive: boolean;
+  kind: 'action' | 'active' | 'inactive';
   onPress: () => void;
+};
+
+const ITEM_COLORS: Record<MenuItem['kind'], { bg: string; fg: string }> = {
+  action: { bg: INK, fg: CREAM },
+  active: { bg: ACCENT, fg: CREAM },
+  inactive: { bg: CREAM, fg: INK },
 };
 
 function SpeedDialItem({
@@ -53,10 +70,11 @@ function SpeedDialItem({
   index: number;
   progress: SharedValue<number>;
 }) {
-  const offset = FAB_SIZE + ITEM_GAP + index * (ITEM_HEIGHT + ITEM_GAP);
+  const offset = offsetForIndex(index);
+  const colors = ITEM_COLORS[item.kind];
 
   const animatedStyle = useAnimatedStyle(() => {
-    const itemProgress = Math.min(Math.max(progress.value * 1.35 - index * 0.12, 0), 1);
+    const itemProgress = Math.min(Math.max(progress.value * 1.35 - index * 0.1, 0), 1);
     return {
       opacity: itemProgress,
       transform: [
@@ -69,7 +87,7 @@ function SpeedDialItem({
   return (
     <Animated.View
       pointerEvents="box-none"
-      style={[{ position: 'absolute', bottom: 0, alignItems: 'center', width: '100%' }, animatedStyle]}>
+      style={[{ position: 'absolute', bottom: 0, right: 0 }, animatedStyle]}>
       <Pressable
         onPress={item.onPress}
         accessibilityRole="button"
@@ -77,26 +95,20 @@ function SpeedDialItem({
         style={{
           flexDirection: 'row',
           alignItems: 'center',
-          gap: 8,
-          backgroundColor: item.isActive ? ACCENT : '#fdf8f3',
-          borderRadius: ITEM_HEIGHT / 2,
+          gap: 10,
+          width: ITEM_WIDTH,
           height: ITEM_HEIGHT,
-          paddingHorizontal: 18,
+          backgroundColor: colors.bg,
+          borderRadius: 16,
+          paddingHorizontal: 16,
           shadowColor: '#3d362f',
           shadowOpacity: 0.16,
           shadowRadius: 8,
           shadowOffset: { width: 0, height: 3 },
           elevation: 6,
         }}>
-        <Ionicons name={item.icon} size={18} color={item.isActive ? '#fdf8f3' : '#3d362f'} />
-        <Text
-          style={{
-            fontSize: 14,
-            fontWeight: '600',
-            color: item.isActive ? '#fdf8f3' : '#3d362f',
-          }}>
-          {item.label}
-        </Text>
+        <Ionicons name={item.icon} size={18} color={colors.fg} />
+        <Text style={{ fontSize: 14, fontWeight: '600', color: colors.fg }}>{item.label}</Text>
       </Pressable>
     </Animated.View>
   );
@@ -133,17 +145,17 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
       key: 'create',
       icon: 'color-palette',
       label: 'Crear obra',
-      isActive: false,
+      kind: 'action',
       onPress: () => {
         close();
         router.push('/create');
       },
     },
-    ...state.routes.map((route) => ({
+    ...state.routes.map((route): MenuItem => ({
       key: route.key,
       icon: TAB_ICONS[route.name] ?? 'ellipse',
       label: TAB_LABELS[route.name] ?? route.name,
-      isActive: route.key === activeRoute.key,
+      kind: route.key === activeRoute.key ? 'active' : 'inactive',
       onPress: () => goTo(route),
     })),
   ];
@@ -180,10 +192,9 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
         pointerEvents="box-none"
         style={{
           position: 'absolute',
-          left: 0,
-          right: 0,
+          right: SIDE_MARGIN,
           bottom: bottomOffset,
-          alignItems: 'center',
+          alignItems: 'flex-end',
         }}>
         {items.map((item, index) => (
           <SpeedDialItem key={item.key} item={item} index={index} progress={progress} />
