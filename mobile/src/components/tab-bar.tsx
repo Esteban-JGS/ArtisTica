@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { LiquidGlassView } from '@sbaiahmed1/react-native-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import type { BottomTabBarProps } from 'expo-router/tabs';
@@ -101,22 +102,31 @@ function SpeedDialItem({
         accessibilityRole="button"
         accessibilityLabel={item.label}
         style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: 10,
           width: ITEM_WIDTH,
           height: ITEM_HEIGHT,
-          backgroundColor: colors.bg,
           borderRadius: 16,
-          paddingHorizontal: 16,
+          overflow: 'hidden',
           shadowColor: '#3d362f',
           shadowOpacity: 0.16,
           shadowRadius: 8,
           shadowOffset: { width: 0, height: 3 },
           elevation: 6,
         }}>
-        <Ionicons name={item.icon} size={18} color={colors.fg} />
-        <Text style={{ fontSize: 14, fontWeight: '600', color: colors.fg }}>{item.label}</Text>
+        <LiquidGlassView
+          glassType="regular"
+          glassTintColor={colors.bg}
+          glassOpacity={0.8}
+          isInteractive={false}
+          style={{
+            flex: 1,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 10,
+            paddingHorizontal: 16,
+          }}>
+          <Ionicons name={item.icon} size={18} color={colors.fg} />
+          <Text style={{ fontSize: 14, fontWeight: '600', color: colors.fg }}>{item.label}</Text>
+        </LiquidGlassView>
       </Pressable>
     </Animated.View>
   );
