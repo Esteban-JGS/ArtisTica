@@ -2,6 +2,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { Image, Pressable, ScrollView, Text, View } from 'react-native';
 
+import { RusticTexture } from '@/components/paper-texture';
+
 const PORTFOLIO = Array.from({ length: 6 }, (_, i) => ({
   id: String(i),
   image: `https://picsum.photos/seed/portfolio-${i}/500/500`,
@@ -11,7 +13,9 @@ export default function PerfilScreen() {
   const [tab, setTab] = useState<'portafolio' | 'sobre-mi'>('portafolio');
 
   return (
-    <ScrollView className="flex-1 bg-sand-100" showsVerticalScrollIndicator={false}>
+    <View className="flex-1 bg-sand-100">
+      <RusticTexture />
+      <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
       <View className="h-56 bg-sage">
         <Image
           source={{ uri: 'https://picsum.photos/seed/profile-cover/800/500' }}
@@ -101,6 +105,7 @@ export default function PerfilScreen() {
           </View>
         )}
       </View>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }

@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 
 import { Avatar } from '@/components/avatar';
+import { RusticTexture } from '@/components/paper-texture';
 import { StatusBadge, type CommissionStatus } from '@/components/status-badge';
 
 const CHATS: {
@@ -57,6 +58,7 @@ export default function MensajesScreen() {
 
   return (
     <View className="flex-1 bg-sand-100">
+      <RusticTexture />
       <View className="flex-row items-center justify-between px-5 pb-3 pt-14">
         <Text className="font-serif text-3xl italic text-ink">Mensajes</Text>
         <Pressable className="h-10 w-10 items-center justify-center rounded-full bg-sand-50">
