@@ -39,6 +39,13 @@
           "photosPermission": "Artística usa tu galería para que subas tus obras.",
           "cameraPermission": "Artística usa la cámara para que fotografíes tus obras."
         }
+      ],
+      [
+        "expo-navigation-bar",
+        {
+          "enforceContrast": false,
+          "style": "dark"
+        }
       ]
     ],
     "experiments": {
