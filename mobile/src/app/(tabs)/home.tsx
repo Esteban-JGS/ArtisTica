@@ -10,8 +10,6 @@ import Animated, {
   useAnimatedScrollHandler,
   useAnimatedStyle,
   useSharedValue,
-  withSpring,
-  type SharedValue,
 } from 'react-native-reanimated';
 
 const FLOAT_SHADOW = {
@@ -49,13 +47,6 @@ const NOTE_SHADOW = {
   shadowOffset: { width: 0, height: 6 },
   elevation: 6,
 };
-
-// The notes are only "taped" at the top, so a quick scroll should make
-// them tip forward/back in depth (rotateX), like the loose bottom edge
-// lags behind the top for a beat, and settle flat once you stop.
-const TILT_SPRING = { damping: 9, stiffness: 140, mass: 0.4 };
-const TILT_MAX_DEG = 6;
-const TILT_FACTOR = 1.4;
 
 function WashiTape({ color, rotation }: { color: string; rotation: number }) {
   return (
@@ -116,25 +107,11 @@ const POSTS = [
 
 type Post = (typeof POSTS)[number];
 
-function NoteCard({
-  post,
-  rotation,
-  noteTilt,
-}: {
-  post: Post;
-  rotation: number;
-  noteTilt: SharedValue<number>;
-}) {
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [
-      { perspective: 700 },
-      { rotateX: `${noteTilt.value}deg` },
-      { rotate: `${rotation}deg` },
-    ],
-  }));
-
+function NoteCard({ post, rotation }: { post: Post; rotation: number }) {
   return (
-    <Animated.View style={[animatedStyle, NOTE_SHADOW]} className="rounded-xl">
+    <View
+      style={[{ transform: [{ rotate: `${rotation}deg` }] }, NOTE_SHADOW]}
+      className="rounded-xl">
       <WashiTape color={ROLE_BADGE_COLORS[post.color].fg} rotation={rotation * -2.4} />
       <View className="gap-3 overflow-hidden rounded-xl bg-sand-50 p-4">
         <PaperTexture width={420} height={900} speckOpacity={0.5} />
@@ -189,7 +166,7 @@ function NoteCard({
 
         <Text className="text-sm text-ink">{post.caption}</Text>
       </View>
-    </Animated.View>
+    </View>
   );
 }
 
@@ -198,31 +175,16 @@ export default function InicioScreen() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const scrollY = useSharedValue(0);
   const wasCollapsed = useSharedValue(false);
-  const previousScrollY = useSharedValue(0);
-  const noteTilt = useSharedValue(0);
 
-  const scrollHandler = useAnimatedScrollHandler({
-    onScroll: (event) => {
-      const y = event.contentOffset.y;
-      scrollY.value = y;
+  const scrollHandler = useAnimatedScrollHandler((event) => {
+    const y = event.contentOffset.y;
+    scrollY.value = y;
 
-      const delta = y - previousScrollY.value;
-      previousScrollY.value = y;
-      const target = Math.min(Math.max(delta * TILT_FACTOR, -TILT_MAX_DEG), TILT_MAX_DEG);
-      noteTilt.value = withSpring(target, TILT_SPRING);
-
-      const shouldCollapse = y > COLLAPSE_DISTANCE;
-      if (shouldCollapse !== wasCollapsed.value) {
-        wasCollapsed.value = shouldCollapse;
-        runOnJS(setIsCollapsed)(shouldCollapse);
-      }
-    },
-    onEndDrag: () => {
-      noteTilt.value = withSpring(0, TILT_SPRING);
-    },
-    onMomentumEnd: () => {
-      noteTilt.value = withSpring(0, TILT_SPRING);
-    },
+    const shouldCollapse = y > COLLAPSE_DISTANCE;
+    if (shouldCollapse !== wasCollapsed.value) {
+      wasCollapsed.value = shouldCollapse;
+      runOnJS(setIsCollapsed)(shouldCollapse);
+    }
   });
 
   const pillStyle = useAnimatedStyle(() => {
@@ -268,7 +230,6 @@ export default function InicioScreen() {
             key={post.id}
             post={post}
             rotation={CARD_ROTATIONS[index % CARD_ROTATIONS.length]}
-            noteTilt={noteTilt}
           />
         ))}
       </Animated.ScrollView>
