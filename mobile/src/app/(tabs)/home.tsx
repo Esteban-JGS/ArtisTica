@@ -1,9 +1,15 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Image, Pressable, ScrollView, Text, View } from 'react-native';
+import { Image, Pressable, Text, View } from 'react-native';
 
 import { Avatar } from '@/components/avatar';
+import Animated, {
+  runOnJS,
+  useAnimatedScrollHandler,
+  useAnimatedStyle,
+  useSharedValue,
+} from 'react-native-reanimated';
 
 const FLOAT_SHADOW = {
   shadowColor: '#3d362f',
@@ -16,6 +22,10 @@ const FLOAT_SHADOW = {
 // Space reserved at the top of the scrollable content so it starts right
 // below the floating title card/bell and the floating tab pill.
 const FLOATING_HEADER_HEIGHT = 168;
+
+// How far you need to scroll before the text pill collapses into the
+// small icon pair under "Artística".
+const COLLAPSE_DISTANCE = 40;
 
 const POSTS = [
   {
@@ -52,10 +62,40 @@ const POSTS = [
 
 export default function InicioScreen() {
   const [tab, setTab] = useState<'seguidos' | 'para-ti'>('seguidos');
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const scrollY = useSharedValue(0);
+  const wasCollapsed = useSharedValue(false);
+
+  const scrollHandler = useAnimatedScrollHandler((event) => {
+    scrollY.value = event.contentOffset.y;
+    const shouldCollapse = event.contentOffset.y > COLLAPSE_DISTANCE;
+    if (shouldCollapse !== wasCollapsed.value) {
+      wasCollapsed.value = shouldCollapse;
+      runOnJS(setIsCollapsed)(shouldCollapse);
+    }
+  });
+
+  const pillStyle = useAnimatedStyle(() => {
+    const progress = Math.min(Math.max(scrollY.value / COLLAPSE_DISTANCE, 0), 1);
+    return {
+      opacity: 1 - progress,
+      transform: [{ translateY: progress * -8 }, { scale: 1 - progress * 0.08 }],
+    };
+  });
+
+  const miniToggleStyle = useAnimatedStyle(() => {
+    const progress = Math.min(Math.max(scrollY.value / COLLAPSE_DISTANCE, 0), 1);
+    return {
+      opacity: progress,
+      transform: [{ translateY: (1 - progress) * -6 }],
+    };
+  });
 
   return (
     <View className="flex-1 bg-sand-100">
-      <ScrollView
+      <Animated.ScrollView
+        onScroll={scrollHandler}
+        scrollEventThrottle={16}
         contentContainerStyle={{ paddingTop: FLOATING_HEADER_HEIGHT }}
         contentContainerClassName="gap-4 px-5 pb-5"
         showsVerticalScrollIndicator={false}>
@@ -118,19 +158,40 @@ export default function InicioScreen() {
             <Text className="text-sm text-ink">{post.caption}</Text>
           </View>
         ))}
-      </ScrollView>
+      </Animated.ScrollView>
 
       <View pointerEvents="box-none" className="absolute inset-x-0 top-0 pt-14">
         <View className="flex-row items-center justify-between px-5 pb-3">
           <View
-            className="flex-row items-center gap-2 rounded-2xl bg-sand-50 px-4 py-2.5"
+            className="rounded-2xl bg-sand-50 px-4 py-2.5"
             style={FLOAT_SHADOW}>
-            <Image
-              source={require('@/assets/images/logo-mark.png')}
-              style={{ width: 22, height: 22 }}
-              resizeMode="contain"
-            />
-            <Text className="font-serif text-2xl italic text-ink">Artística</Text>
+            <View className="flex-row items-center gap-2">
+              <Image
+                source={require('@/assets/images/logo-mark.png')}
+                style={{ width: 22, height: 22 }}
+                resizeMode="contain"
+              />
+              <Text className="font-serif text-2xl italic text-ink">Artística</Text>
+            </View>
+
+            <Animated.View
+              pointerEvents={isCollapsed ? 'auto' : 'none'}
+              style={[{ flexDirection: 'row', gap: 14, marginTop: 2 }, miniToggleStyle]}>
+              <Pressable onPress={() => setTab('seguidos')} hitSlop={6}>
+                <Ionicons
+                  name="people-outline"
+                  size={15}
+                  color={tab === 'seguidos' ? '#c2653b' : '#8b8279'}
+                />
+              </Pressable>
+              <Pressable onPress={() => setTab('para-ti')} hitSlop={6}>
+                <Ionicons
+                  name="sparkles-outline"
+                  size={15}
+                  color={tab === 'para-ti' ? '#c2653b' : '#8b8279'}
+                />
+              </Pressable>
+            </Animated.View>
           </View>
           <Pressable
             className="h-11 w-11 items-center justify-center rounded-full bg-sand-50"
@@ -139,9 +200,10 @@ export default function InicioScreen() {
           </Pressable>
         </View>
 
-        <View
+        <Animated.View
+          pointerEvents={isCollapsed ? 'none' : 'auto'}
           className="mx-5 flex-row rounded-full bg-sand-200 p-1"
-          style={FLOAT_SHADOW}>
+          style={[FLOAT_SHADOW, pillStyle]}>
           <Pressable
             onPress={() => setTab('seguidos')}
             className={tab === 'seguidos' ? 'flex-1 rounded-full bg-sand-50 py-2' : 'flex-1 py-2'}>
@@ -166,7 +228,7 @@ export default function InicioScreen() {
               Para ti
             </Text>
           </Pressable>
-        </View>
+        </Animated.View>
       </View>
     </View>
   );
