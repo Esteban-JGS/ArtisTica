@@ -26,6 +26,7 @@ const FLOATING_HEADER_HEIGHT = 168;
 // How far you need to scroll before the text pill collapses into the
 // small icon pair under "Artística".
 const COLLAPSE_DISTANCE = 40;
+const MINI_TOGGLE_HEIGHT = 30;
 
 const POSTS = [
   {
@@ -87,6 +88,8 @@ export default function InicioScreen() {
     const progress = Math.min(Math.max(scrollY.value / COLLAPSE_DISTANCE, 0), 1);
     return {
       opacity: progress,
+      height: progress * MINI_TOGGLE_HEIGHT,
+      marginTop: progress * 6,
       transform: [{ translateY: (1 - progress) * -6 }],
     };
   });
@@ -176,17 +179,29 @@ export default function InicioScreen() {
 
             <Animated.View
               pointerEvents={isCollapsed ? 'auto' : 'none'}
-              style={[{ flexDirection: 'row', gap: 14, marginTop: 2 }, miniToggleStyle]}>
-              <Pressable onPress={() => setTab('seguidos')} hitSlop={6}>
+              style={[{ flexDirection: 'row', gap: 8, overflow: 'hidden' }, miniToggleStyle]}>
+              <Pressable
+                onPress={() => setTab('seguidos')}
+                className={
+                  tab === 'seguidos'
+                    ? 'h-7 w-7 items-center justify-center rounded-full bg-accent/15'
+                    : 'h-7 w-7 items-center justify-center rounded-full bg-sand-200'
+                }>
                 <Ionicons
-                  name="people-outline"
+                  name="people"
                   size={15}
                   color={tab === 'seguidos' ? '#c2653b' : '#8b8279'}
                 />
               </Pressable>
-              <Pressable onPress={() => setTab('para-ti')} hitSlop={6}>
+              <Pressable
+                onPress={() => setTab('para-ti')}
+                className={
+                  tab === 'para-ti'
+                    ? 'h-7 w-7 items-center justify-center rounded-full bg-accent/15'
+                    : 'h-7 w-7 items-center justify-center rounded-full bg-sand-200'
+                }>
                 <Ionicons
-                  name="sparkles-outline"
+                  name="sparkles"
                   size={15}
                   color={tab === 'para-ti' ? '#c2653b' : '#8b8279'}
                 />
