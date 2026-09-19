@@ -51,11 +51,11 @@ const NOTE_SHADOW = {
 };
 
 // The notes are only "taped" at the top, so a quick scroll should make
-// them sway a little, like they're swinging from that one pinned edge,
-// and settle back once you stop.
+// them tip forward/back in depth (rotateX), like the loose bottom edge
+// lags behind the top for a beat, and settle flat once you stop.
 const TILT_SPRING = { damping: 9, stiffness: 140, mass: 0.4 };
-const TILT_MAX_DEG = 2.5;
-const TILT_FACTOR = 0.7;
+const TILT_MAX_DEG = 6;
+const TILT_FACTOR = 1.4;
 
 function WashiTape({ color, rotation }: { color: string; rotation: number }) {
   return (
@@ -126,7 +126,11 @@ function NoteCard({
   noteTilt: SharedValue<number>;
 }) {
   const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ rotate: `${rotation + noteTilt.value}deg` }],
+    transform: [
+      { perspective: 700 },
+      { rotateX: `${noteTilt.value}deg` },
+      { rotate: `${rotation}deg` },
+    ],
   }));
 
   return (
