@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Image, Pressable, Text, View } from 'react-native';
 
 import { Avatar } from '@/components/avatar';
-import { PaperTexture } from '@/components/paper-texture';
+import { PaperTexture, RusticTexture } from '@/components/paper-texture';
 import Animated, {
   runOnJS,
   useAnimatedScrollHandler,
@@ -140,7 +140,7 @@ export default function InicioScreen() {
 
   return (
     <View className="flex-1 bg-sand-100">
-      <PaperTexture />
+      <RusticTexture />
       <Animated.ScrollView
         onScroll={scrollHandler}
         scrollEventThrottle={16}
