@@ -36,6 +36,42 @@ const ROLE_BADGE_COLORS: Record<string, { bg: string; fg: string }> = {
   taupe: { bg: 'rgba(139,130,121,0.16)', fg: '#5c534b' },
 };
 
+// Posts read as notes pinned to the corkboard: a little crooked, each
+// one taped down at a slightly different angle.
+const CARD_ROTATIONS = [-1.6, 1.3, -1, 1.8, -1.4];
+
+const NOTE_SHADOW = {
+  shadowColor: '#3d362f',
+  shadowOpacity: 0.2,
+  shadowRadius: 10,
+  shadowOffset: { width: 0, height: 6 },
+  elevation: 6,
+};
+
+function WashiTape({ color, rotation }: { color: string; rotation: number }) {
+  return (
+    <View
+      pointerEvents="none"
+      style={{
+        position: 'absolute',
+        top: -12,
+        left: '50%',
+        marginLeft: -36,
+        width: 72,
+        height: 24,
+        backgroundColor: color,
+        opacity: 0.8,
+        borderRadius: 2,
+        transform: [{ rotate: `${rotation}deg` }],
+        shadowColor: '#000',
+        shadowOpacity: 0.15,
+        shadowRadius: 3,
+        shadowOffset: { width: 0, height: 2 },
+      }}
+    />
+  );
+}
+
 const POSTS = [
   {
     id: '1',
@@ -122,8 +158,14 @@ export default function InicioScreen() {
           </Text>
         </Pressable>
 
-        {POSTS.map((post) => (
-          <View key={post.id} className="gap-3 rounded-3xl bg-sand-50 p-4">
+        {POSTS.map((post, index) => {
+          const rotation = CARD_ROTATIONS[index % CARD_ROTATIONS.length];
+          return (
+          <View
+            key={post.id}
+            style={[{ transform: [{ rotate: `${rotation}deg` }] }, NOTE_SHADOW]}
+            className="gap-3 rounded-xl bg-sand-50 p-4">
+            <WashiTape color={ROLE_BADGE_COLORS[post.color].fg} rotation={rotation * -2.4} />
             <View className="flex-row items-center gap-3">
               <Avatar initial={post.initial} color={post.color} />
               <View className="flex-1">
@@ -175,7 +217,8 @@ export default function InicioScreen() {
 
             <Text className="text-sm text-ink">{post.caption}</Text>
           </View>
-        ))}
+          );
+        })}
       </Animated.ScrollView>
 
       <View pointerEvents="box-none" className="absolute inset-x-0 top-0 pt-14">
