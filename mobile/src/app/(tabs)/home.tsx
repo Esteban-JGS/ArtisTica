@@ -164,8 +164,10 @@ export default function InicioScreen() {
           <View
             key={post.id}
             style={[{ transform: [{ rotate: `${rotation}deg` }] }, NOTE_SHADOW]}
-            className="gap-3 rounded-xl bg-sand-50 p-4">
+            className="rounded-xl">
             <WashiTape color={ROLE_BADGE_COLORS[post.color].fg} rotation={rotation * -2.4} />
+            <View className="gap-3 overflow-hidden rounded-xl bg-sand-50 p-4">
+              <PaperTexture width={420} height={900} speckOpacity={0.5} />
             <View className="flex-row items-center gap-3">
               <Avatar initial={post.initial} color={post.color} />
               <View className="flex-1">
@@ -216,6 +218,7 @@ export default function InicioScreen() {
             </View>
 
             <Text className="text-sm text-ink">{post.caption}</Text>
+            </View>
           </View>
           );
         })}
