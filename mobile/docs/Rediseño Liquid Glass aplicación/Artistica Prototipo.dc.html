@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<script src="./image-slot.js"></script>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:#efece7;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;color:#201d1a}
+  a{color:#c2653b;text-decoration:none}a:hover{color:#a1512d}
+  button{border:0;background:transparent;padding:0;margin:0;font:inherit;color:inherit;cursor:pointer;-webkit-appearance:none;appearance:none;outline:0}
+  input,textarea{font:inherit;color:inherit;border:0;outline:0;background:transparent;-webkit-appearance:none;appearance:none}
+  ::-webkit-scrollbar{display:none}
+  @keyframes riseIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes sheetUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @keyframes marqUp{from{transform:translateY(0)}to{transform:translateY(-50%)}}
+  @keyframes marqDown{from{transform:translateY(-50%)}to{transform:translateY(0)}}
+  @keyframes moment{0%{opacity:0;transform:translateY(14px) scale(.96)}8%{opacity:1;transform:translateY(0) scale(1)}25%{opacity:1;transform:translateY(0) scale(1)}33%,100%{opacity:0;transform:translateY(-12px) scale(.98)}}
+  @keyframes pulseDot{0%,100%{opacity:.35;transform:scale(1)}50%{opacity:1;transform:scale(1.35)}}
+</style>
+</helmet>
+
+<template id="__bundler_thumbnail" data-bg-color="#efece7"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><rect width="200" height="200" fill="#efece7"/><rect x="66" y="42" width="68" height="116" rx="16" fill="#fff" stroke="#c2653b" stroke-width="3"/><circle cx="100" cy="100" r="16" fill="#c2653b"/></svg></template>
+
+<svg width="0" height="0" aria-hidden="true" style="position:absolute;pointer-events:none"><filter id="liquidRefract" x="-25%" y="-25%" width="150%" height="150%" color-interpolation-filters="sRGB"><feTurbulence type="fractalNoise" baseFrequency="0.009 0.024" numOctaves="2" seed="11" result="noise"></feTurbulence><feGaussianBlur in="noise" stdDeviation="1.6" result="soft"></feGaussianBlur><feDisplacementMap in="SourceGraphic" in2="soft" scale="26" xChannelSelector="R" yChannelSelector="G"></feDisplacementMap></filter></svg>
+<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#efece7">
+  <div style="position:relative;width:min(390px,100vw);height:min(844px,100svh);border-radius:52px;padding:5px;background:#e2ddd5;box-shadow:0 30px 70px -20px rgba(80,60,42,.35),0 2px 6px rgba(80,60,42,.12)">
+    <div style="position:relative;width:100%;height:100%;border-radius:47px;overflow:hidden;background:#f7f5f1;display:flex;flex-direction:column">
+
+      <sc-if value="{{ showHeader }}" hint-placeholder-val="{{ true }}">
+        <div style="position:absolute;top:0;left:0;right:0;z-index:6;padding:14px 18px 12px;background:rgba(255,253,250,.58);backdrop-filter:blur(40px) url(#liquidRefract) saturate(2.2) brightness(1.14);-webkit-backdrop-filter:blur(40px) saturate(2.2) brightness(1.14);box-shadow:inset 0 -1px 0 rgba(255,255,255,.9),0 1px 0 rgba(150,120,95,.16),0 10px 26px -22px rgba(120,96,74,.7)">
+          <div style="position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,rgba(255,255,255,.38) 0%,rgba(255,255,255,.12) 46%,rgba(255,255,255,.26) 100%)"></div>
+          <div style="position:relative">          <div style="display:flex;align-items:center;justify-content:space-between;font-size:12px;font-weight:600;color:#3d362f;padding:0 4px 10px"><span>9:41</span><span style="display:flex;gap:5px;align-items:center"><span style="width:16px;height:9px;border:1px solid #6f665e;border-radius:2px;display:block"></span><span style="width:3px;height:3px;border-radius:50%;background:#6f665e;display:block"></span></span></div>
+          <div style="display:flex;align-items:center;gap:12px;min-height:34px">
+            <sc-if value="{{ showBack }}" hint-placeholder-val="{{ true }}">
+              <button onClick="{{ onBack }}" style="width:34px;height:34px;flex:0 0 auto;display:grid;place-items:center;border-radius:50%;background:rgba(255,255,255,.8);border:1px solid rgba(255,255,255,.9);color:#4a423a;box-shadow:0 2px 8px rgba(88,64,44,.12)"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+            </sc-if>
+            <div style="flex:1;min-width:0">
+              <div style="font-family:'Instrument Serif',Georgia,serif;font-style:italic;font-size:27px;line-height:1.1;letter-spacing:-.3px">{{ headerTitle }}</div>
+              <sc-if value="{{ headerSub }}" hint-placeholder-val="{{ true }}"><div style="font-size:11px;color:#948b82;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ headerSub }}</div></sc-if>
+            </div>
+            <sc-if value="{{ showBell }}" hint-placeholder-val="{{ true }}">
+              <button onClick="{{ goNotif }}" style="position:relative;width:34px;height:34px;flex:0 0 auto;display:grid;place-items:center;border-radius:50%;background:rgba(255,255,255,.8);border:1px solid rgba(255,255,255,.9);color:#4a423a"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M18 8a6 6 0 10-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10.5 21a2 2 0 003 0"/></svg><sc-if value="{{ hasUnread }}" hint-placeholder-val="{{ true }}"><span style="position:absolute;top:5px;right:5px;width:7px;height:7px;border-radius:50%;background:#c2653b;border:1.5px solid #fff"></span></sc-if></button>
+            </sc-if>
+          </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <div style="flex:1;min-height:0;overflow:auto;-webkit-overflow-scrolling:touch">
+        <sc-if value="{{ showHeader }}" hint-placeholder-val="{{ true }}"><div style="{{ headerSpacer }}"></div></sc-if>
+
+        <sc-if value="{{ isAuth }}" hint-placeholder-val="{{ true }}">
+          <div style="position:relative;min-height:100%;display:flex;flex-direction:column;overflow:hidden;background:#1b1510">
+
+            <div style="position:absolute;top:-16%;left:-12%;right:-12%;bottom:-16%;display:grid;grid-template-columns:repeat(3,1fr);gap:10px;transform:rotate(-7deg) scale(1.16)">
+            <div style="display:flex;flex-direction:column;gap:10px;animation:marqUp 26s linear infinite;will-change:transform">
+              <img src="https://images.unsplash.com/photo-1493106641515-6b5631de4bb9?auto=format&fit=crop&w=420&h=560&q=70" alt="Manos en el torno de alfarero" style="width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:16px;display:block;background:#2a2118" />
+              <img src="https://images.unsplash.com/photo-1465847899084-d164df4dedc6?auto=format&fit=crop&w=420&h=560&q=70" alt="Violines en ensayo" style="width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:16px;display:block;background:#2a2118" />
+              <img src="https://images.unsplash.com/photo-1578926375605-eaf7559b1458?auto=format&fit=crop&w=420&h=560&q=70" alt="Óleo, escena de río" style="width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:16px;display:block;background:#2a2118" />
+              <img src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=420&h=560&q=70" alt="Personas conversando en una mesa" style="width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:16px;display:block;background:#2a2118" />
+              <img src="https://images.unsplash.com/photo-1493106641515-6b5631de4bb9?auto=format&fit=crop&w=420&h=560&q=70" alt="Manos en el torno de alfarero" style="width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:16px;display:block;background:#2a2118" />
+              <img src="https://images.unsplash.com/photo-1465847899084-d164df4dedc6?auto=format&fit=crop&w=420&h=560&q=70" alt="Violines en ensayo" style="width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:16px;display:block;background:#2a2118" />
+              <img src="https://images.unsplash.com/photo-1578926375605-eaf7559b1458?auto=format&fit=crop&w=420&h=560&q=70" alt="Óleo, escena de río" style="width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:16px;display:block;background:#2a2118" />
+              <img src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=420&h=560&q=70" alt="Personas conversando en una mesa" style="width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:16px;display:block;background:#2a2118" />
+            </div>
+            <div style="display:flex;flex-direction:column;gap:10px;animation:marqDown 21s linear infinite;will-change:transform">
+              <img src="https://images.unsplash.com/photo-1510915361894-db8b60106cb1?auto=format&fit=crop&w=420&h=560&q=70" alt="Manos tocando la guitarra" style="width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:16px;display:block;background:#2a2118" />
+              <img src="https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?auto=format&fit=crop&w=420&h=560&q=70" alt="Piezas de cerámica" style="width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:16px;display:block;background:#2a2118" />
+              <img src="https://images.unsplash.com/photo-1547153760-18fc86324498?auto=format&fit=crop&w=420&h=560&q=70" alt="Bailarina en movimiento" style="width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:16px;display:block;background:#2a2118" />
+              <img src="https://images.unsplash.com/photo-1515405295579-ba7b45403062?auto=format&fit=crop&w=420&h=560&q=70" alt="Pintura abstracta" style="width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:16px;display:block;background:#2a2118" />
+              <img src="https://images.unsplash.com/photo-1510915361894-db8b60106cb1?auto=format&fit=crop&w=420&h=560&q=70" alt="Manos tocando la guitarra" style="width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:16px;display:block;background:#2a2118" />
+              <img src="https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?auto=format&fit=crop&w=420&h=560&q=70" alt="Piezas de cerámica" style="width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:16px;display:block;background:#2a2118" />
+              <img src="https://images.unsplash.com/photo-1547153760-18fc86324498?auto=format&fit=crop&w=420&h=560&q=70" alt="Bailarina en movimiento" style="width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:16px;display:block;background:#2a2118" />
+              <img src="https://images.unsplash.com/photo-1515405295579-ba7b45403062?auto=format&fit=crop&w=420&h=560&q=70" alt="Pintura abstracta" style="width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:16px;display:block;background:#2a2118" />
+            </div>
+            <div style="display:flex;flex-direction:column;gap:10px;animation:marqUp 31s linear infinite;will-change:transform">
+              <img src="https://images.unsplash.com/photo-1482160549825-59d1b23cb208?auto=format&fit=crop&w=420&h=560&q=70" alt="Muro de afiches y arte urbano" style="width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:16px;display:block;background:#2a2118" />
+              <img src="https://images.unsplash.com/photo-1517048676732-d65bc937f952?auto=format&fit=crop&w=420&h=560&q=70" alt="Manos dibujando sobre la mesa" style="width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:16px;display:block;background:#2a2118" />
+              <img src="https://images.unsplash.com/photo-1518834107812-67b0b7c58434?auto=format&fit=crop&w=420&h=560&q=70" alt="Danza contemporánea" style="width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:16px;display:block;background:#2a2118" />
+              <img src="https://images.unsplash.com/photo-1531384441138-2736e62e0919?auto=format&fit=crop&w=420&h=560&q=70" alt="Retrato de un músico" style="width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:16px;display:block;background:#2a2118" />
+              <img src="https://images.unsplash.com/photo-1482160549825-59d1b23cb208?auto=format&fit=crop&w=420&h=560&q=70" alt="Muro de afiches y arte urbano" style="width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:16px;display:block;background:#2a2118" />
+              <img src="https://images.unsplash.com/photo-1517048676732-d65bc937f952?auto=format&fit=crop&w=420&h=560&q=70" alt="Manos dibujando sobre la mesa" style="width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:16px;display:block;background:#2a2118" />
+              <img src="https://images.unsplash.com/photo-1518834107812-67b0b7c58434?auto=format&fit=crop&w=420&h=560&q=70" alt="Danza contemporánea" style="width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:16px;display:block;background:#2a2118" />
+              <img src="https://images.unsplash.com/photo-1531384441138-2736e62e0919?auto=format&fit=crop&w=420&h=560&q=70" alt="Retrato de un músico" style="width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:16px;display:block;background:#2a2118" />
+            </div>
+            </div>
+
+            <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(24,18,13,.6) 0%,rgba(24,18,13,.34) 24%,rgba(22,16,12,.78) 58%,rgba(18,13,9,.96) 100%)"></div>
+            <div style="{{ authTintStyle }}"></div>
+
+            <div style="position:relative;flex:1;display:flex;flex-direction:column;justify-content:flex-end;padding:16px 22px 24px">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:auto;font-size:12px;font-weight:600;color:#fff"><span>9:41</span><span style="display:flex;gap:5px;align-items:center"><span style="width:16px;height:9px;border:1px solid rgba(255,255,255,.85);border-radius:2px;display:block"></span><span style="width:3px;height:3px;border-radius:50%;background:rgba(255,255,255,.85);display:block"></span></span></div>
+
+              <div style="margin-bottom:18px">
+                <div style="font-size:11.5px;font-weight:600;letter-spacing:1.6px;text-transform:uppercase;color:rgba(255,255,255,.72)">{{ greeting }}</div>
+                <h2 style="margin:5px 0 0;font-family:'Instrument Serif',Georgia,serif;font-style:italic;font-size:44px;line-height:1;letter-spacing:-.8px;font-weight:400;color:#fff">Artistica</h2>
+                <p style="margin:9px 0 0;max-width:300px;font-size:14.5px;line-height:1.4;font-weight:600;color:#fff;text-wrap:pretty">Acá tu talento se ve, se valora y se paga.</p>
+                <p style="margin:5px 0 0;max-width:300px;font-size:12.5px;line-height:1.5;color:rgba(255,255,255,.78);text-wrap:pretty">Publicá tu obra, construí comunidad con otros artistas y gestioná tus comisiones de forma segura.</p>
+              </div>
+
+              <div style="display:flex;flex-direction:column;gap:9px">
+                <button onClick="{{ login }}" style="display:flex;align-items:center;justify-content:center;gap:10px;padding:16px 20px;border-radius:19px;background:#c2653b;border:1px solid rgba(255,255,255,.22);box-shadow:0 14px 34px -12px rgba(194,101,59,.75);font-size:15.5px;font-weight:600;color:#fff">
+                  <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M3.5 7l8.5 6 8.5-6"/></svg>Crear mi cuenta
+                </button>
+                <div style="display:flex;gap:9px">
+                  <button onClick="{{ login }}" style="flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:14px 12px;border-radius:17px;background:rgba(255,255,255,.14);backdrop-filter:blur(24px) saturate(1.5);-webkit-backdrop-filter:blur(24px) saturate(1.5);border:1px solid rgba(255,255,255,.3);font-size:14px;font-weight:600;color:#fff">
+                    <span style="font-size:15px;font-weight:700">G</span>Google
+                  </button>
+                  <button onClick="{{ login }}" style="flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:14px 12px;border-radius:17px;background:rgba(255,255,255,.14);backdrop-filter:blur(24px) saturate(1.5);-webkit-backdrop-filter:blur(24px) saturate(1.5);border:1px solid rgba(255,255,255,.3);font-size:14px;font-weight:600;color:#fff">
+                    <svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor"><path d="M16.4 12.9c0-2.3 1.9-3.4 2-3.5-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.1-2.7.8-3.4.8-.7 0-1.8-.8-2.9-.8-1.5 0-2.9.9-3.7 2.3-1.6 2.7-.4 6.7 1.1 8.9.7 1.1 1.6 2.3 2.8 2.2 1.1 0 1.5-.7 2.9-.7 1.3 0 1.7.7 2.8.7 1.2 0 2-1.1 2.7-2.2.5-.8.8-1.6 1-2.4-.1 0-2-.8-2-3.5zM14.1 5.6c.6-.7 1-1.7.9-2.7-.9 0-2 .6-2.6 1.3-.6.6-1 1.6-.9 2.6 1 .1 2-.5 2.6-1.2z"/></svg>Apple
+                  </button>
+                </div>
+                <button onClick="{{ guest }}" style="display:flex;align-items:center;justify-content:center;gap:7px;padding:11px 20px;border-radius:17px;background:transparent;border:0;font-size:14px;font-weight:600;color:rgba(255,255,255,.82)">
+                  Mirar sin cuenta
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M13 7l5 5-5 5"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ isFeed }}" hint-placeholder-val="{{ true }}">
+          <div style="padding:18px 16px 28px;display:flex;flex-direction:column;gap:26px">
+            <sc-for list="{{ posts }}" as="p" hint-placeholder-count="2">
+              <article style="animation:riseIn .3s ease both">
+                <div style="display:flex;align-items:center;gap:11px;padding:0 4px 12px">
+                  <button onClick="{{ p.onOpen }}" style="width:40px;height:40px;flex:0 0 auto;border-radius:50%;border:1px solid rgba(255,255,255,.9);box-shadow:0 2px 8px rgba(88,64,44,.14);display:grid;place-items:center;background:#c2653b;color:#fff;font-size:13px;font-weight:700">{{ p.initials }}</button>
+                  <div style="flex:1;min-width:0">
+                    <div style="display:flex;align-items:center;gap:7px"><b style="font-size:14px;font-weight:600;letter-spacing:-.2px">{{ p.author }}</b><span style="padding:3px 8px;border-radius:999px;background:rgba(194,101,59,.12);color:#a1512d;font-size:10px;font-weight:600;letter-spacing:.04em">{{ p.category }}</span></div>
+                    <small style="display:block;font-size:11px;color:#948b82;margin-top:3px">{{ p.when }}</small>
+                  </div>
+                </div>
+                <div style="position:relative;border-radius:24px;overflow:hidden;box-shadow:0 14px 34px -10px rgba(88,64,44,.3);height:300px">
+                  <image-slot id="{{ p.slotId }}" shape="rect" placeholder="{{ p.slotHint }}"></image-slot>
+                </div>
+                <p style="margin:12px 4px 0;font-size:14px;line-height:1.55;color:#4a423a;text-wrap:pretty">{{ p.caption }}</p>
+                <div style="display:flex;align-items:center;gap:18px;padding:12px 4px 0">
+                  <button onClick="{{ p.onLike }}" style="display:flex;align-items:center;gap:7px;font-size:13px;font-weight:600;color:#7f766d">
+                    <span style="{{ p.heartStyle }}"><svg viewBox="0 0 24 24" width="20" height="20" fill="{{ p.heartFill }}" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M12 20s-7-4.6-7-9.4A3.9 3.9 0 0112 8a3.9 3.9 0 017 2.6C19 15.4 12 20 12 20z"/></svg></span>{{ p.likes }}
+                  </button>
+                  <div style="display:flex;align-items:center;gap:7px;font-size:13px;font-weight:600;color:#7f766d"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M21 12a8 8 0 01-11.6 7.1L4 20l1-4.6A8 8 0 1121 12z"/></svg>{{ p.comments }}</div>
+                  <button onClick="{{ p.onOpen }}" style="margin-left:auto;padding:8px 14px;border-radius:999px;background:rgba(255,255,255,.75);border:1px solid rgba(255,255,255,.9);font-size:12px;font-weight:600;color:#a1512d;box-shadow:0 4px 12px -6px rgba(88,64,44,.3)">Encargar</button>
+                </div>
+              </article>
+            </sc-for>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ isExplore }}" hint-placeholder-val="{{ true }}">
+          <div style="padding:16px 16px 28px">
+            <div style="display:flex;align-items:center;gap:10px;padding:13px 16px;border-radius:18px;background:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.9);box-shadow:0 6px 18px -10px rgba(88,64,44,.3)">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#948b82" stroke-width="1.6" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4 4"/></svg>
+              <input value="{{ query }}" onChange="{{ onQuery }}" placeholder="Buscar artistas, técnicas, lugares" style="flex:1;min-width:0;font-size:14px" />
+            </div>
+            <div style="font-size:11px;color:#948b82;margin:10px 4px 0">Búsqueda por texto (tsvector) y similitud de estilo (pgvector)</div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 18px">
+              <sc-for list="{{ cats }}" as="c" hint-placeholder-count="5">
+                <button onClick="{{ c.onPress }}" style="{{ c.style }}">{{ c.label }}</button>
+              </sc-for>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+              <sc-for list="{{ tiles }}" as="t" hint-placeholder-count="6">
+                <button onClick="{{ t.onPress }}" style="display:block;text-align:left;border-radius:20px;overflow:hidden;background:rgba(255,255,255,.72);border:1px solid rgba(255,255,255,.9);box-shadow:0 8px 22px -12px rgba(88,64,44,.35)">
+                  <div style="height:132px;position:relative"><image-slot id="{{ t.slotId }}" shape="rect" placeholder="{{ t.label }}"></image-slot></div>
+                  <div style="padding:10px 12px 12px">
+                    <div style="font-size:13px;font-weight:600;letter-spacing:-.2px">{{ t.author }}</div>
+                    <div style="font-size:11px;color:#948b82;margin-top:2px">{{ t.label }}</div>
+                  </div>
+                </button>
+              </sc-for>
+            </div>
+            <sc-if value="{{ noResults }}" hint-placeholder-val="{{ false }}">
+              <div style="padding:40px 10px;text-align:center;font-size:13px;color:#948b82">Sin resultados para esa búsqueda.</div>
+            </sc-if>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ isArtist }}" hint-placeholder-val="{{ true }}">
+          <div style="padding:0 0 28px">
+            <div style="position:relative;height:150px"><image-slot id="artist-cover" shape="rect" placeholder="Portada del artista"></image-slot></div>
+            <div style="padding:0 18px">
+              <div style="display:flex;align-items:flex-end;gap:14px;margin-top:-34px">
+                <div style="width:74px;height:74px;flex:0 0 auto;border-radius:50%;border:3px solid #f7f5f1;background:#c2653b;color:#fff;display:grid;place-items:center;font-size:22px;font-family:'Instrument Serif',Georgia,serif;font-style:italic;box-shadow:0 8px 20px -8px rgba(88,64,44,.4)">{{ artist.initials }}</div>
+                <button onClick="{{ onFollow }}" style="{{ followStyle }}">{{ followLabel }}</button>
+              </div>
+              <div style="margin-top:14px;display:flex;align-items:center;gap:7px"><h3 style="margin:0;font-family:'Instrument Serif',Georgia,serif;font-style:italic;font-size:28px;font-weight:400;letter-spacing:-.3px">{{ artist.name }}</h3><sc-if value="{{ artist.verified }}" hint-placeholder-val="{{ true }}"><span style="width:17px;height:17px;border-radius:50%;background:#c2653b;color:#fff;display:grid;place-items:center;font-size:10px;font-weight:700">✓</span></sc-if></div>
+              <div style="font-size:12px;color:#948b82;margin-top:3px">{{ artist.handle }} · {{ artist.place }}</div>
+              <p style="margin:12px 0 0;font-size:14px;line-height:1.55;color:#4a423a;text-wrap:pretty">{{ artist.bio }}</p>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+                <sc-for list="{{ artist.tags }}" as="tg" hint-placeholder-count="3">
+                  <span style="padding:5px 11px;border-radius:999px;background:rgba(255,255,255,.75);border:1px solid rgba(255,255,255,.9);font-size:11px;font-weight:600;color:#6f665e">{{ tg }}</span>
+                </sc-for>
+              </div>
+              <button onClick="{{ goRequest }}" style="width:100%;margin-top:18px;padding:16px;border-radius:18px;background:#c2653b;color:#fff;font-size:15px;font-weight:600;box-shadow:0 10px 26px rgba(194,101,59,.34)">Encargar una obra</button>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:20px">
+                <sc-for list="{{ artistWorks }}" as="w" hint-placeholder-count="4">
+                  <div style="height:150px;border-radius:18px;overflow:hidden;box-shadow:0 8px 22px -12px rgba(88,64,44,.35)"><image-slot id="{{ w.slotId }}" shape="rect" placeholder="{{ w.title }}"></image-slot></div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ isRequest }}" hint-placeholder-val="{{ true }}">
+          <div style="padding:18px 18px 32px">
+            <sc-if value="{{ reqSent }}" hint-placeholder-val="{{ false }}">
+              <div style="padding:44px 18px;text-align:center;animation:riseIn .35s ease both">
+                <div style="width:62px;height:62px;margin:0 auto;border-radius:50%;background:rgba(194,101,59,.12);color:#c2653b;display:grid;place-items:center"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg></div>
+                <h3 style="margin:18px 0 8px;font-family:'Instrument Serif',Georgia,serif;font-style:italic;font-size:26px;font-weight:400">Encargo enviado</h3>
+                <p style="margin:0 auto;max-width:250px;font-size:14px;line-height:1.55;color:#6f665e">Queda en estado <b style="color:#8a8178">solicitada</b> hasta que el artista responda con una cotización.</p>
+                <button onClick="{{ goCommissions }}" style="margin-top:22px;padding:14px 22px;border-radius:16px;background:rgba(255,255,255,.8);border:1px solid rgba(255,255,255,.9);font-size:14px;font-weight:600;color:#a1512d">Ver mis encargos</button>
+              </div>
+            </sc-if>
+            <sc-if value="{{ reqForm }}" hint-placeholder-val="{{ true }}">
+              <div>
+                <div style="display:flex;align-items:center;gap:11px;padding:14px;border-radius:18px;background:rgba(255,255,255,.72);border:1px solid rgba(255,255,255,.9)">
+                  <div style="width:40px;height:40px;border-radius:50%;background:#c2653b;color:#fff;display:grid;place-items:center;font-size:13px;font-weight:700">{{ artist.initials }}</div>
+                  <div><div style="font-size:14px;font-weight:600">{{ artist.name }}</div><div style="font-size:11px;color:#948b82">{{ artist.handle }}</div></div>
+                </div>
+                <div style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#9b9187;font-weight:600;margin:22px 0 8px">Qué necesitás</div>
+                <textarea value="{{ reqDesc }}" onChange="{{ onReqDesc }}" placeholder="Describí la pieza: técnica, tamaño, referencias, fecha en la que la necesitás." style="width:100%;height:120px;padding:14px;border-radius:18px;background:rgba(255,255,255,.72);border:1px solid rgba(255,255,255,.9);font-size:14px;line-height:1.5;resize:none"></textarea>
+                <div style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#9b9187;font-weight:600;margin:22px 0 8px">Referencias</div>
+                <div style="height:110px;border-radius:18px;overflow:hidden"><image-slot id="req-ref" shape="rect" placeholder="Arrastrá una referencia"></image-slot></div>
+                <div style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#9b9187;font-weight:600;margin:22px 0 8px">Presupuesto aproximado</div>
+                <div style="display:flex;align-items:center;gap:8px;padding:14px;border-radius:18px;background:rgba(255,255,255,.72);border:1px solid rgba(255,255,255,.9)">
+                  <span style="font-size:15px;font-weight:600;color:#948b82">₡</span>
+                  <input value="{{ reqBudget }}" onChange="{{ onReqBudget }}" placeholder="0" style="flex:1;font-size:15px;font-weight:600" />
+                </div>
+                <div style="margin-top:16px;padding:14px;border-radius:16px;background:rgba(194,101,59,.08);font-size:12px;line-height:1.55;color:#7a5340">El dinero se retiene en la plataforma cuando aceptás la cotización y se libera cuando aprobás la entrega.</div>
+                <button onClick="{{ onSendRequest }}" style="{{ sendReqStyle }}">Enviar encargo</button>
+              </div>
+            </sc-if>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ isCreate }}" hint-placeholder-val="{{ true }}">
+          <div style="padding:18px 18px 32px">
+            <sc-if value="{{ publishDone }}" hint-placeholder-val="{{ false }}">
+              <div style="padding:44px 18px;text-align:center;animation:riseIn .35s ease both">
+                <div style="width:62px;height:62px;margin:0 auto;border-radius:50%;background:rgba(92,122,94,.14);color:#4c6a4f;display:grid;place-items:center"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg></div>
+                <h3 style="margin:18px 0 8px;font-family:'Instrument Serif',Georgia,serif;font-style:italic;font-size:26px;font-weight:400">Publicado</h3>
+                <p style="margin:0 auto;max-width:260px;font-size:14px;line-height:1.55;color:#6f665e">Miniatura y vector de estilo generados por el worker.</p>
+                <button onClick="{{ goProfile }}" style="margin-top:22px;padding:14px 22px;border-radius:16px;background:rgba(255,255,255,.8);border:1px solid rgba(255,255,255,.9);font-size:14px;font-weight:600;color:#a1512d">Ver en mi perfil</button>
+              </div>
+            </sc-if>
+            <sc-if value="{{ publishing }}" hint-placeholder-val="{{ false }}">
+              <div style="padding:34px 4px">
+                <div style="display:flex;flex-direction:column;gap:14px">
+                  <sc-for list="{{ publishSteps }}" as="s" hint-placeholder-count="3">
+                    <div style="display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:16px;background:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.9)">
+                      <span style="{{ s.dot }}"></span>
+                      <div style="flex:1"><div style="font-size:14px;font-weight:600;color:#2b2621">{{ s.label }}</div><div style="font-size:11px;color:#948b82;margin-top:2px">{{ s.note }}</div></div>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </sc-if>
+            <sc-if value="{{ createForm }}" hint-placeholder-val="{{ true }}">
+              <div>
+                <div style="height:230px;border-radius:22px;overflow:hidden;box-shadow:0 14px 34px -14px rgba(88,64,44,.35)"><image-slot id="create-media" shape="rect" placeholder="Arrastrá imagen, audio o video"></image-slot></div>
+                <div style="font-size:11px;color:#948b82;margin:10px 4px 0">El archivo sube directo a Storage con una signed URL. No pasa por la API.</div>
+                <div style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#9b9187;font-weight:600;margin:22px 0 8px">Título</div>
+                <input value="{{ newTitle }}" onChange="{{ onNewTitle }}" placeholder="Nombre de la obra" style="width:100%;padding:14px;border-radius:18px;background:rgba(255,255,255,.72);border:1px solid rgba(255,255,255,.9);font-size:15px;font-weight:600" />
+                <div style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#9b9187;font-weight:600;margin:22px 0 8px">Descripción</div>
+                <textarea value="{{ newDesc }}" onChange="{{ onNewDesc }}" placeholder="Técnica, materiales, contexto." style="width:100%;height:96px;padding:14px;border-radius:18px;background:rgba(255,255,255,.72);border:1px solid rgba(255,255,255,.9);font-size:14px;line-height:1.5;resize:none"></textarea>
+                <div style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#9b9187;font-weight:600;margin:22px 0 8px">Categorías</div>
+                <div style="display:flex;flex-wrap:wrap;gap:8px">
+                  <sc-for list="{{ createCats }}" as="c" hint-placeholder-count="5">
+                    <button onClick="{{ c.onPress }}" style="{{ c.style }}">{{ c.label }}</button>
+                  </sc-for>
+                </div>
+                <button onClick="{{ onPublish }}" style="{{ publishStyle }}">Publicar</button>
+              </div>
+            </sc-if>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ isProfile }}" hint-placeholder-val="{{ true }}">
+          <div style="padding:0 0 28px">
+            <div style="position:relative;height:150px"><image-slot id="me-cover" shape="rect" placeholder="Tu portada"></image-slot></div>
+            <div style="padding:0 18px">
+              <div style="margin-top:-34px;width:74px;height:74px;border-radius:50%;border:3px solid #f7f5f1;background:#c2653b;color:#fff;display:grid;place-items:center;font-size:22px;font-family:'Instrument Serif',Georgia,serif;font-style:italic;box-shadow:0 8px 20px -8px rgba(88,64,44,.4)">{{ me.initials }}</div>
+              <div style="margin-top:14px;display:flex;align-items:center;gap:7px"><h3 style="margin:0;font-family:'Instrument Serif',Georgia,serif;font-style:italic;font-size:28px;font-weight:400;letter-spacing:-.3px">{{ me.name }}</h3><span style="width:17px;height:17px;border-radius:50%;background:#c2653b;color:#fff;display:grid;place-items:center;font-size:10px;font-weight:700">✓</span></div>
+              <div style="font-size:12px;color:#948b82;margin-top:3px">{{ me.handle }} · {{ me.place }}</div>
+              <p style="margin:12px 0 0;font-size:14px;line-height:1.55;color:#4a423a;text-wrap:pretty">{{ me.bio }}</p>
+              <div style="display:flex;gap:22px;margin-top:16px;padding:14px 16px;border-radius:18px;background:rgba(255,255,255,.72);border:1px solid rgba(255,255,255,.9)">
+                <div><div style="font-size:18px;font-weight:700;letter-spacing:-.3px">{{ me.works }}</div><div style="font-size:11px;color:#948b82;margin-top:2px">obras</div></div>
+                <div><div style="font-size:18px;font-weight:700;letter-spacing:-.3px">{{ me.followers }}</div><div style="font-size:11px;color:#948b82;margin-top:2px">seguidores</div></div>
+                <div><div style="font-size:18px;font-weight:700;letter-spacing:-.3px">{{ me.done }}</div><div style="font-size:11px;color:#948b82;margin-top:2px">encargos</div></div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:10px;margin-top:14px">
+                <button onClick="{{ goCommissions }}" style="display:flex;align-items:center;gap:12px;padding:15px 16px;border-radius:18px;background:rgba(255,255,255,.72);border:1px solid rgba(255,255,255,.9);text-align:left">
+                  <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="#c2653b" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16v13H4z"/><path d="M9 7V5h6v2"/></svg>
+                  <span style="flex:1;font-size:14px;font-weight:600">Encargos</span>
+                  <span style="{{ pendingBadge }}">{{ pendingCount }}</span>
+                  <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="#b6ada4" stroke-width="1.8" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+                </button>
+                <button onClick="{{ goBalance }}" style="display:flex;align-items:center;gap:12px;padding:15px 16px;border-radius:18px;background:rgba(255,255,255,.72);border:1px solid rgba(255,255,255,.9);text-align:left">
+                  <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="#c2653b" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="12" rx="3"/><path d="M3 10h18"/></svg>
+                  <span style="flex:1;font-size:14px;font-weight:600">Saldo y retiros</span>
+                  <span style="font-size:13px;font-weight:600;color:#6f665e">{{ disponibleLabel }}</span>
+                  <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="#b6ada4" stroke-width="1.8" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+                </button>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:20px">
+                <sc-for list="{{ works }}" as="w" hint-placeholder-count="4">
+                  <div style="height:150px;border-radius:18px;overflow:hidden;box-shadow:0 8px 22px -12px rgba(88,64,44,.35);position:relative">
+                    <image-slot id="{{ w.slotId }}" shape="rect" placeholder="{{ w.title }}"></image-slot>
+                    <sc-if value="{{ w.isNew }}" hint-placeholder-val="{{ false }}"><span style="position:absolute;top:8px;left:8px;padding:4px 9px;border-radius:999px;background:rgba(255,255,255,.9);font-size:10px;font-weight:700;color:#a1512d;letter-spacing:.04em">NUEVO</span></sc-if>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ isCommissions }}" hint-placeholder-val="{{ true }}">
+          <div style="padding:16px 16px 28px;display:flex;flex-direction:column;gap:10px">
+            <sc-for list="{{ commissions }}" as="c" hint-placeholder-count="4">
+              <button onClick="{{ c.onPress }}" style="display:block;text-align:left;padding:15px 16px;border-radius:20px;background:rgba(255,255,255,.72);border:1px solid rgba(255,255,255,.9);box-shadow:0 6px 18px -12px rgba(88,64,44,.35)">
+                <div style="display:flex;align-items:center;gap:11px">
+                  <div style="width:38px;height:38px;flex:0 0 auto;border-radius:12px;background:rgba(194,101,59,.12);color:#a1512d;display:grid;place-items:center;font-size:12px;font-weight:700">{{ c.initials }}</div>
+                  <div style="flex:1;min-width:0">
+                    <div style="font-size:14px;font-weight:600;letter-spacing:-.2px">{{ c.client }}</div>
+                    <div style="font-size:12px;color:#7f766d;margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ c.desc }}</div>
+                  </div>
+                  <div style="text-align:right;flex:0 0 auto"><div style="font-size:13px;font-weight:700;letter-spacing:-.2px">{{ c.priceLabel }}</div></div>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;margin-top:12px">
+                  <span style="{{ c.pillStyle }}">{{ c.stateLabel }}</span>
+                  <span style="font-size:11px;color:#a89f96;font-family:ui-monospace,SFMono-Regular,Menlo,monospace">{{ c.status }}</span>
+                  <sc-if value="{{ c.needsYou }}" hint-placeholder-val="{{ true }}"><span style="margin-left:auto;font-size:11px;font-weight:700;color:#c2653b">Te toca</span></sc-if>
+                </div>
+              </button>
+            </sc-for>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ isChat }}" hint-placeholder-val="{{ true }}">
+          <div style="padding:0 0 18px">
+            <div style="padding:14px 16px;background:rgba(255,255,255,.55);border-bottom:1px solid rgba(255,255,255,.85)">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+                <span style="{{ chat.pillStyle }}">{{ chat.stateLabel }}</span>
+                <span style="font-size:11px;color:#a89f96;font-family:ui-monospace,SFMono-Regular,Menlo,monospace">{{ chat.status }}</span>
+                <span style="margin-left:auto;font-size:14px;font-weight:700;letter-spacing:-.2px">{{ chat.priceLabel }}</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:0">
+                <sc-for list="{{ steps }}" as="s" hint-placeholder-count="6">
+                  <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px">
+                    <div style="display:flex;align-items:center;width:100%">
+                      <div style="{{ s.lineL }}"></div><div style="{{ s.dot }}"></div><div style="{{ s.lineR }}"></div>
+                    </div>
+                    <div style="{{ s.label }}">{{ s.short }}</div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+            <div style="padding:16px 16px 0;display:flex;flex-direction:column;gap:12px">
+              <sc-for list="{{ messages }}" as="m" hint-placeholder-count="3">
+                <div style="{{ m.row }}">
+                  <sc-if value="{{ m.isSystem }}" hint-placeholder-val="{{ false }}">
+                    <div style="font-size:11px;color:#a89f96;text-align:center;padding:2px 12px;line-height:1.5">{{ m.text }}</div>
+                  </sc-if>
+                  <sc-if value="{{ m.isQuote }}" hint-placeholder-val="{{ false }}">
+                    <div style="width:78%;padding:15px 16px;border-radius:20px;background:rgba(255,255,255,.85);border:1px solid rgba(194,101,59,.28);box-shadow:0 8px 22px -14px rgba(88,64,44,.4)">
+                      <div style="font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#a1512d;font-weight:700">Cotización</div>
+                      <div style="font-family:'Instrument Serif',Georgia,serif;font-style:italic;font-size:30px;margin:8px 0 4px;letter-spacing:-.4px">{{ m.text }}</div>
+                      <div style="font-size:12px;color:#7f766d;line-height:1.5">{{ m.note }}</div>
+                    </div>
+                  </sc-if>
+                  <sc-if value="{{ m.isBubble }}" hint-placeholder-val="{{ true }}">
+                    <div style="{{ m.bubble }}">{{ m.text }}<div style="{{ m.time }}">{{ m.at }}</div></div>
+                  </sc-if>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ isMessages }}" hint-placeholder-val="{{ true }}">
+          <div style="padding:16px 16px 28px;display:flex;flex-direction:column;gap:8px">
+            <sc-for list="{{ threads }}" as="t" hint-placeholder-count="4">
+              <button onClick="{{ t.onPress }}" style="display:flex;align-items:center;gap:12px;padding:13px 14px;border-radius:18px;background:rgba(255,255,255,.72);border:1px solid rgba(255,255,255,.9);text-align:left">
+                <div style="width:44px;height:44px;flex:0 0 auto;border-radius:50%;background:#c2653b;color:#fff;display:grid;place-items:center;font-size:13px;font-weight:700">{{ t.initials }}</div>
+                <div style="flex:1;min-width:0">
+                  <div style="display:flex;align-items:center;gap:8px"><b style="font-size:14px;font-weight:600">{{ t.name }}</b><span style="margin-left:auto;font-size:11px;color:#a89f96">{{ t.when }}</span></div>
+                  <div style="font-size:12px;color:#7f766d;margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ t.last }}</div>
+                </div>
+              </button>
+            </sc-for>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ isNotif }}" hint-placeholder-val="{{ true }}">
+          <div style="padding:16px 16px 28px;display:flex;flex-direction:column;gap:8px">
+            <sc-for list="{{ notifs }}" as="n" hint-placeholder-count="3">
+              <button onClick="{{ n.onPress }}" style="display:flex;align-items:flex-start;gap:12px;padding:14px;border-radius:18px;background:rgba(255,255,255,.72);border:1px solid rgba(255,255,255,.9);text-align:left">
+                <span style="{{ n.dot }}"></span>
+                <div style="flex:1;min-width:0">
+                  <div style="font-size:13px;line-height:1.5;color:#2b2621">{{ n.text }}</div>
+                  <div style="font-size:11px;color:#a89f96;margin-top:4px">{{ n.when }}</div>
+                </div>
+              </button>
+            </sc-for>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ isBalance }}" hint-placeholder-val="{{ true }}">
+          <div style="padding:16px 16px 28px">
+            <div style="padding:20px;border-radius:24px;background:#c2653b;color:#fff;box-shadow:0 16px 36px -16px rgba(194,101,59,.7)">
+              <div style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;opacity:.82;font-weight:600">Disponible para retirar</div>
+              <div style="font-family:'Instrument Serif',Georgia,serif;font-style:italic;font-size:44px;line-height:1.1;margin:8px 0 0;letter-spacing:-.5px">{{ disponibleLabel }}</div>
+              <button onClick="{{ onWithdraw }}" style="{{ withdrawStyle }}">Retirar a mi cuenta</button>
+            </div>
+            <div style="display:flex;gap:10px;margin-top:12px">
+              <div style="flex:1;padding:15px 16px;border-radius:18px;background:rgba(255,255,255,.72);border:1px solid rgba(255,255,255,.9)">
+                <div style="font-size:11px;color:#948b82;font-weight:600">En retención</div>
+                <div style="font-size:19px;font-weight:700;margin-top:6px;letter-spacing:-.3px">{{ retenidoLabel }}</div>
+              </div>
+              <div style="flex:1;padding:15px 16px;border-radius:18px;background:rgba(255,255,255,.72);border:1px solid rgba(255,255,255,.9)">
+                <div style="font-size:11px;color:#948b82;font-weight:600">Retirado</div>
+                <div style="font-size:19px;font-weight:700;margin-top:6px;letter-spacing:-.3px">{{ retiradoLabel }}</div>
+              </div>
+            </div>
+            <div style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#9b9187;font-weight:600;margin:24px 0 10px">Movimientos</div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <sc-for list="{{ ledger }}" as="l" hint-placeholder-count="4">
+                <div style="display:flex;align-items:center;gap:12px;padding:14px;border-radius:18px;background:rgba(255,255,255,.72);border:1px solid rgba(255,255,255,.9)">
+                  <span style="{{ l.dot }}"></span>
+                  <div style="flex:1;min-width:0">
+                    <div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ l.label }}</div>
+                    <div style="font-size:11px;color:#948b82;margin-top:3px">{{ l.sub }}</div>
+                  </div>
+                  <div style="{{ l.amountStyle }}">{{ l.amount }}</div>
+                </div>
+              </sc-for>
+            </div>
+            <div style="margin-top:14px;font-size:11px;color:#a89f96;line-height:1.55">Saldo calculado sumando ledger_entries. Pagos y retiros vía ONVO Pay (sandbox).</div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ showTabs }}" hint-placeholder-val="{{ true }}"><div style="height:104px;flex:0 0 auto"></div></sc-if>
+      </div>
+
+      <sc-if value="{{ isChat }}" hint-placeholder-val="{{ false }}">
+        <div style="flex:0 0 auto;background:rgba(255,255,255,.72);backdrop-filter:blur(26px) saturate(1.6);-webkit-backdrop-filter:blur(26px) saturate(1.6);border-top:1px solid rgba(255,255,255,.9);padding:12px 14px 16px">
+          <sc-if value="{{ hasActions }}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex;gap:8px;overflow:auto;padding-bottom:10px">
+              <sc-for list="{{ actions }}" as="a" hint-placeholder-count="2">
+                <button onClick="{{ a.onPress }}" style="{{ a.style }}">{{ a.label }}<span style="{{ a.tagStyle }}">{{ a.tag }}</span></button>
+              </sc-for>
+            </div>
+          </sc-if>
+          <div style="display:flex;align-items:center;gap:9px">
+            <input value="{{ draft }}" onChange="{{ onDraft }}" placeholder="Escribir mensaje" style="flex:1;min-width:0;padding:13px 16px;border-radius:999px;background:rgba(255,255,255,.9);border:1px solid rgba(255,255,255,.95);font-size:14px" />
+            <button onClick="{{ onSend }}" style="width:44px;height:44px;flex:0 0 auto;border-radius:50%;background:#c2653b;color:#fff;display:grid;place-items:center;box-shadow:0 8px 20px -8px rgba(194,101,59,.7)"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l16-8-6 8 6 8z"/></svg></button>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ showTabs }}" hint-placeholder-val="{{ true }}">
+        <div style="position:absolute;bottom:0;left:0;right:0;height:104px;pointer-events:none;z-index:5">
+          <div style="position:absolute;bottom:0;left:0;right:0;height:104px;clip-path:path('M0,36 C73,36 112,36 133,32 C159,26 163,4 190,4 C217,4 221,26 247,32 C268,36 307,36 380,36 L380,104 L0,104 Z');overflow:hidden"><div style="position:absolute;inset:0;background:rgba(255,253,250,.58);backdrop-filter:blur(40px) url(#liquidRefract) saturate(2.2) brightness(1.14);-webkit-backdrop-filter:blur(40px) saturate(2.2) brightness(1.14)"></div><div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,.38) 0%,rgba(255,255,255,.12) 46%,rgba(255,255,255,.26) 100%)"></div><div style="position:absolute;inset:0;box-shadow:inset 0 1px 0 rgba(255,255,255,.85)"></div></div>
+          <nav style="position:absolute;bottom:0;left:0;right:0;box-sizing:border-box;height:104px;display:flex;align-items:flex-start;padding:48px 12px 0;pointer-events:auto">
+            <button onClick="{{ goFeed }}" style="{{ feedTab }}"><svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.6 12 3.4l9 7.2V20a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 20z"></path><path d="M9.5 21.5v-6h5v6"></path></svg>INICIO</button>
+            <button onClick="{{ goExplore }}" style="{{ exploreTab }}"><svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"></circle><path d="M15.4 8.6l-1.7 5.1-5.1 1.7 1.7-5.1z"></path></svg>EXPLORAR</button>
+            <div style="flex:1"></div>
+            <button onClick="{{ goMessages }}" style="{{ msgTab }}" ><svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 11.6a8 8 0 0 1-11.6 7.1L4 20.5l1.8-4.9A8 8 0 1 1 20.5 11.6z"></path></svg>MENSAJES</button>
+            <button onClick="{{ goProfile }}" style="{{ profileTab }}"><svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"></circle><path d="M4.5 20.5a7.5 7.5 0 0 1 15 0"></path></svg>PERFIL</button>
+          </nav>
+          <svg width="380" height="104" viewBox="0 0 380 104" fill="none" aria-hidden="true" style="position:absolute;bottom:0;left:0;pointer-events:none;-webkit-mask:linear-gradient(90deg,transparent 0,#000 14%,#000 86%,transparent 100%);mask:linear-gradient(90deg,transparent 0,#000 14%,#000 86%,transparent 100%)"><path d="M0,36 C73,36 112,36 133,32 C159,26 163,4 190,4 C217,4 221,26 247,32 C268,36 307,36 380,36" stroke="rgba(255,255,255,.95)" stroke-width="1.6"></path><path d="M0,37.6 C73,37.6 112,37.6 133,33.6 C159,27.6 163,5.6 190,5.6 C217,5.6 221,27.6 247,33.6 C268,37.6 307,37.6 380,37.6" stroke="rgba(150,120,95,.16)" stroke-width="1"></path></svg>
+          <button onClick="{{ goCreate }}" style="position:absolute;bottom:54px;left:50%;transform:translateX(-50%);width:58px;height:58px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(165deg,#d4784d 0%,#c2653b 52%,#ad5730 100%);color:#fff;box-shadow:0 14px 30px -6px rgba(194,101,59,.55),inset 0 1.5px 0 rgba(255,255,255,.55),inset 0 -6px 14px -6px rgba(90,40,18,.6);pointer-events:auto" style-hover="background:#ae5731"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg></button>
+        </div>
+
+      <sc-if value="{{ showSheet }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute;inset:0;background:rgba(40,32,26,.32);backdrop-filter:blur(2px);display:flex;flex-direction:column;justify-content:flex-end;border-radius:47px;overflow:hidden">
+          <button onClick="{{ onCloseSheet }}" style="flex:1"></button>
+          <div style="background:#f7f5f1;border-radius:28px 28px 0 0;padding:22px 20px 28px;animation:sheetUp .28s cubic-bezier(.2,.8,.2,1) both;box-shadow:0 -14px 40px -10px rgba(60,44,32,.4)">
+            <div style="width:40px;height:4px;border-radius:999px;background:#ded7cf;margin:0 auto 18px"></div>
+            <h4 style="margin:0 0 6px;font-family:'Instrument Serif',Georgia,serif;font-style:italic;font-size:26px;font-weight:400">{{ sheetTitle }}</h4>
+            <p style="margin:0 0 18px;font-size:13px;line-height:1.55;color:#7f766d">{{ sheetNote }}</p>
+            <sc-if value="{{ sheetIsQuote }}" hint-placeholder-val="{{ true }}">
+              <div style="display:flex;align-items:center;gap:8px;padding:16px;border-radius:18px;background:rgba(255,255,255,.85);border:1px solid rgba(255,255,255,.95)">
+                <span style="font-size:20px;font-weight:600;color:#948b82">₡</span>
+                <input value="{{ quotePrice }}" onChange="{{ onQuotePrice }}" placeholder="0" style="flex:1;font-size:22px;font-weight:700;letter-spacing:-.4px" />
+              </div>
+            </sc-if>
+            <sc-if value="{{ sheetIsDeliver }}" hint-placeholder-val="{{ false }}">
+              <div style="height:140px;border-radius:18px;overflow:hidden"><image-slot id="deliver-file" shape="rect" placeholder="Arrastrá el archivo final"></image-slot></div>
+            </sc-if>
+            <button onClick="{{ onConfirmSheet }}" style="width:100%;margin-top:16px;padding:16px;border-radius:18px;background:#c2653b;color:#fff;font-size:15px;font-weight:600;box-shadow:0 10px 26px rgba(194,101,59,.34)">{{ sheetCta }}</button>
+            <button onClick="{{ onCloseSheet }}" style="width:100%;margin-top:8px;padding:14px;font-size:14px;font-weight:600;color:#948b82">Cancelar</button>
+          </div>
+        </div>
+      </sc-if>
+
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:460,&quot;height&quot;:900},&quot;startScreen&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;auth&quot;,&quot;feed&quot;,&quot;explore&quot;,&quot;profile&quot;,&quot;commissions&quot;,&quot;chat&quot;,&quot;balance&quot;],&quot;default&quot;:&quot;auth&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Demo&quot;},&quot;showActorTags&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Demo&quot;}}">
+const ACCENT = '#c2653b';
+
+const TR = {
+  solicitada: [
+    { to: 'cotizada', label: 'Enviar cotización', actor: 'artista', primary: true, sheet: 'quote' },
+    { to: 'rechazada', label: 'Rechazar', actor: 'artista' }
+  ],
+  cotizada: [
+    { to: 'aceptada', label: 'Aceptar cotización', actor: 'cliente', primary: true },
+    { to: 'rechazada', label: 'Rechazar', actor: 'cliente' }
+  ],
+  aceptada: [
+    { to: 'pagada_en_retencion', label: 'Pagar en retención', actor: 'cliente', primary: true },
+    { to: 'cancelada', label: 'Cancelar', actor: 'cliente' }
+  ],
+  pagada_en_retencion: [
+    { to: 'entregada', label: 'Marcar entregada', actor: 'artista', primary: true, sheet: 'deliver' }
+  ],
+  entregada: [
+    { to: 'liberada', label: 'Liberar pago', actor: 'cliente', primary: true },
+    { to: 'en_disputa', label: 'Abrir disputa', actor: 'cliente' }
+  ],
+  liberada: [],
+  rechazada: [],
+  cancelada: [],
+  en_disputa: [
+    { to: 'liberada', label: 'Resolver: liberar', actor: 'admin', primary: true },
+    { to: 'cancelada', label: 'Resolver: cancelar', actor: 'admin' }
+  ]
+};
+
+const META = {
+  solicitada: { t: 'Solicitada', c: '#8a8178' },
+  cotizada: { t: 'Cotizada', c: '#b08340' },
+  aceptada: { t: 'Aceptada', c: '#b08340' },
+  pagada_en_retencion: { t: 'Pagada en retención', c: ACCENT },
+  entregada: { t: 'Entregada', c: ACCENT },
+  liberada: { t: 'Liberada', c: '#4c6a4f' },
+  rechazada: { t: 'Rechazada', c: '#9b9187' },
+  cancelada: { t: 'Cancelada', c: '#9b9187' },
+  en_disputa: { t: 'En disputa', c: '#a8452f' }
+};
+
+const HAPPY = ['solicitada', 'cotizada', 'aceptada', 'pagada_en_retencion', 'entregada', 'liberada'];
+const SHORT = { solicitada: 'Sol', cotizada: 'Cot', aceptada: 'Ace', pagada_en_retencion: 'Ret', entregada: 'Ent', liberada: 'Lib' };
+const HELD = ['pagada_en_retencion', 'entregada', 'en_disputa'];
+
+const fmt = n => (n === null || n === undefined) ? 'Sin cotizar' : '₡' + Number(n).toLocaleString('es-CR');
+const now = () => { const d = new Date(); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); };
+
+const PILL = c => ({ padding: '4px 10px', borderRadius: '999px', background: c, color: '#fff', fontSize: '10px', fontWeight: 700, letterSpacing: '.04em', whiteSpace: 'nowrap' });
+const CHIP = on => ({ padding: '8px 14px', borderRadius: '999px', background: on ? ACCENT : 'rgba(255,255,255,.75)', border: on ? '1px solid rgba(255,255,255,.2)' : '1px solid rgba(255,255,255,.9)', color: on ? '#fff' : '#6f665e', fontSize: '12px', fontWeight: 600, boxShadow: on ? '0 6px 16px -8px rgba(194,101,59,.7)' : 'none' });
+
+class Component extends DCLogic {
+  state = {
+    screen: null,
+    stack: [],
+    openId: null,
+    sheet: null,
+    quotePrice: '',
+    draft: '',
+    query: '',
+    cat: null,
+    likes: { f1: false, f2: false, f3: false },
+    following: false,
+    createCats: [],
+    newTitle: '',
+    newDesc: '',
+    publishStage: null,
+    reqDesc: '',
+    reqBudget: '',
+    reqSent: false,
+    withdrawn: 0,
+    payouts: [],
+    notifs: [
+      { id: 'n1', text: 'Mateo Fuentes te envió un encargo nuevo.', when: 'hace 12 min', unread: true, go: 'c1' },
+      { id: 'n2', text: 'Lucía Prado pagó ₡140 000. El dinero está retenido hasta la entrega.', when: 'hace 3 h', unread: true, go: 'c3' },
+      { id: 'n3', text: 'Estudio Nómada revisa tu entrega.', when: 'ayer', unread: false, go: 'c4' }
+    ],
+    works: [
+      { slotId: 'w1', title: 'Raíces, tinta sobre papel' },
+      { slotId: 'w2', title: 'Mural Barrio Escalante' },
+      { slotId: 'w3', title: 'Serie Neblina I' },
+      { slotId: 'w4', title: 'Cartel Feria del Libro' },
+      { slotId: 'w5', title: 'Retrato n.º 12' },
+      { slotId: 'w6', title: 'Estudio de manos' }
+    ],
+    commissions: [
+      { id: 'c1', client: 'Mateo Fuentes', initials: 'MF', desc: 'Retrato a tinta, formato A3', price: null, status: 'solicitada', msgs: [
+        { k: 'sys', t: 'Encargo creado · estado solicitada' },
+        { k: 'them', t: 'Hola Sofía. Quiero un retrato a tinta de mi abuela en A3, a partir de una foto.', at: '10:12' },
+        { k: 'them', t: 'Lo necesito para el 20 de octubre. ¿Entra en tu agenda?', at: '10:13' }
+      ] },
+      { id: 'c2', client: 'Casa Verde Café', initials: 'CV', desc: 'Mural para fachada interior, 4 × 2 m', price: 480000, status: 'cotizada', msgs: [
+        { k: 'sys', t: 'Encargo creado · estado solicitada' },
+        { k: 'them', t: 'Buscamos un mural para la pared del fondo del local, 4 × 2 metros.', at: 'Lun' },
+        { k: 'me', t: 'Gracias. Con materiales y tres días de trabajo, la cotización queda así.', at: 'Lun' },
+        { k: 'quote', t: '₡480 000', note: 'Incluye materiales, boceto y tres días de trabajo en sitio.' },
+        { k: 'sys', t: 'solicitada → cotizada' }
+      ] },
+      { id: 'c3', client: 'Lucía Prado', initials: 'LP', desc: 'Ilustración para portada de EP', price: 140000, status: 'pagada_en_retencion', msgs: [
+        { k: 'quote', t: '₡140 000', note: 'Ilustración digital, entrega en 300 dpi y versión para redes.' },
+        { k: 'sys', t: 'cotizada → aceptada' },
+        { k: 'sys', t: 'aceptada → pagada_en_retencion · ₡140 000 retenidos' },
+        { k: 'them', t: 'Ya pagué. Quedo atenta al boceto.', at: '08:40' }
+      ] },
+      { id: 'c4', client: 'Estudio Nómada', initials: 'EN', desc: 'Serie de 3 piezas digitales', price: 220000, status: 'entregada', msgs: [
+        { k: 'sys', t: 'aceptada → pagada_en_retencion · ₡220 000 retenidos' },
+        { k: 'me', t: 'Subí las tres piezas finales en el hilo.', at: 'Ayer' },
+        { k: 'sys', t: 'pagada_en_retencion → entregada' },
+        { k: 'them', t: 'Las estamos revisando hoy.', at: 'Ayer' }
+      ] },
+      { id: 'c5', client: 'Gabriel Soto', initials: 'GS', desc: 'Logo para marca de café', price: 95000, status: 'liberada', msgs: [
+        { k: 'sys', t: 'pagada_en_retencion → entregada' },
+        { k: 'them', t: 'Quedó perfecto, gracias.', at: 'Mar' },
+        { k: 'sys', t: 'entregada → liberada · ₡95 000 acreditados' }
+      ] }
+    ]
+  };
+
+  componentDidMount() {
+    if (this.state.screen === null) this.setState({ screen: this.props.startScreen || 'auth' });
+  }
+
+  go = s => this.setState(st => ({ screen: s, stack: [...st.stack, st.screen] }));
+  set = s => this.setState({ screen: s, stack: [] });
+  back = () => this.setState(st => ({ screen: st.stack.length ? st.stack[st.stack.length - 1] : 'feed', stack: st.stack.slice(0, -1), sheet: null }));
+
+  open = id => this.setState(st => ({
+    screen: 'chat', openId: id, stack: [...st.stack, st.screen],
+    notifs: st.notifs.map(n => n.go === id ? { ...n, unread: false } : n)
+  }));
+
+  patch = (id, fn) => this.setState(st => ({ commissions: st.commissions.map(c => c.id === id ? fn(c) : c) }));
+
+  transition = (id, to, price) => {
+    const c = this.state.commissions.find(x => x.id === id);
+    if (!c || !(TR[c.status] || []).some(a => a.to === to)) return;
+    const from = c.status;
+    const p = price !== undefined && price !== null ? price : c.price;
+    const extra = [];
+    if (to === 'cotizada') extra.push({ k: 'quote', t: fmt(p), note: 'Cotización enviada al cliente.' });
+    let sys = from + ' → ' + to;
+    if (to === 'pagada_en_retencion') sys += ' · ' + fmt(p) + ' retenidos';
+    if (to === 'liberada') sys += ' · ' + fmt(p) + ' acreditados';
+    this.patch(id, x => ({ ...x, status: to, price: p, msgs: [...x.msgs, ...extra, { k: 'sys', t: sys }] }));
+    const label = { cotizada: 'Enviaste la cotización a ' + c.client + '.', aceptada: c.client + ' aceptó la cotización.', pagada_en_retencion: c.client + ' pagó ' + fmt(p) + '. Retenido hasta la entrega.', entregada: 'Marcaste la entrega de ' + c.client + '.', liberada: c.client + ' liberó el pago: ' + fmt(p) + ' disponibles.', rechazada: 'El encargo de ' + c.client + ' quedó rechazado.', cancelada: 'El encargo de ' + c.client + ' quedó cancelado.', en_disputa: c.client + ' abrió una disputa.' }[to];
+    if (label) this.setState(st => ({ notifs: [{ id: 'n' + Date.now(), text: label, when: 'ahora', unread: true, go: id }, ...st.notifs] }));
+  };
+
+  act = a => {
+    if (a.sheet) { this.setState({ sheet: a.sheet, quotePrice: '' }); return; }
+    this.transition(this.state.openId, a.to);
+  };
+
+  confirmSheet = () => {
+    const s = this.state.sheet;
+    if (s === 'quote') {
+      const n = parseInt(String(this.state.quotePrice).replace(/\D/g, ''), 10);
+      if (!n) return;
+      this.transition(this.state.openId, 'cotizada', n);
+    } else if (s === 'deliver') {
+      this.transition(this.state.openId, 'entregada');
+    }
+    this.setState({ sheet: null, quotePrice: '' });
+  };
+
+  send = () => {
+    const t = this.state.draft.trim();
+    if (!t) return;
+    this.patch(this.state.openId, c => ({ ...c, msgs: [...c.msgs, { k: 'me', t, at: now() }] }));
+    this.setState({ draft: '' });
+  };
+
+  publish = () => {
+    if (this.state.publishStage) return;
+    this.setState({ publishStage: 1 });
+    setTimeout(() => this.setState({ publishStage: 2 }), 900);
+    setTimeout(() => this.setState({ publishStage: 3 }), 2000);
+    setTimeout(() => this.setState(st => ({
+      publishStage: 4,
+      works: [{ slotId: 'w-' + Date.now(), title: st.newTitle || 'Obra sin título', isNew: true }, ...st.works]
+    })), 3100);
+  };
+
+  sendRequest = () => {
+    if (!this.state.reqDesc.trim()) return;
+    this.setState(st => ({
+      reqSent: true,
+      commissions: [...st.commissions, { id: 'c-new', client: 'Vos → Tomás Iglesias', initials: 'TI', desc: st.reqDesc.trim(), price: null, status: 'solicitada', msgs: [{ k: 'sys', t: 'Encargo creado · estado solicitada' }, { k: 'me', t: st.reqDesc.trim(), at: now() }] }]
+    }));
+  };
+
+  withdraw = () => {
+    const d = this.disponible();
+    if (d <= 0) return;
+    this.setState(st => ({ withdrawn: st.withdrawn + d, payouts: [{ amount: d, at: 'ahora' }, ...st.payouts] }));
+  };
+
+  disponible = () => this.state.commissions.filter(c => c.status === 'liberada').reduce((s, c) => s + (c.price || 0), 0) - this.state.withdrawn;
+
+  authAmbience() {
+    const h = new Date().getHours();
+    const bands = [
+      { to: 6,  greeting: 'Buenas noches',  tint: 'rgba(66,74,132,.34)', live: 'Taller abierto toda la noche' },
+      { to: 12, greeting: 'Buenos días',    tint: 'rgba(240,196,132,.26)', live: '38 obras nuevas esta mañana' },
+      { to: 18, greeting: 'Buenas tardes',  tint: 'rgba(214,150,104,.22)', live: '12 encargos en curso ahora' },
+      { to: 21, greeting: 'Buenas tardes',  tint: 'rgba(198,104,72,.34)', live: '7 pagos liberados hoy' },
+      { to: 24, greeting: 'Buenas noches',  tint: 'rgba(66,74,132,.34)', live: 'La comunidad sigue conversando' }
+    ];
+    const b = bands.find(x => h < x.to) || bands[4];
+    return {
+      greeting: b.greeting,
+      liveLabel: b.live,
+      authTintStyle: { position: 'absolute', inset: 0, background: b.tint, mixBlendMode: 'soft-light', pointerEvents: 'none' }
+    };
+  }
+
+  renderVals() {
+    const st = this.state;
+    const screen = st.screen || this.props.startScreen || 'auth';
+    const showTags = this.props.showActorTags !== false;
+    const tabs = ['feed', 'explore', 'create', 'messages', 'profile'];
+    const titles = { feed: 'Inicio', explore: 'Explorar', create: 'Nueva obra', profile: 'Mi perfil', messages: 'Mensajes', notif: 'Notificaciones', balance: 'Saldo', commissions: 'Encargos', chat: 'Encargo', artist: 'Artista', request: 'Nuevo encargo' };
+
+    const cur = st.commissions.find(c => c.id === st.openId) || null;
+    const catList = ['Ilustración', 'Mural', 'Cerámica', 'Fotografía', 'Música', 'Tatuaje'];
+
+    const tiles = [
+      { slotId: 'e1', author: 'Tomás Iglesias', label: 'Ilustración' },
+      { slotId: 'e2', author: 'Colectivo Higuerón', label: 'Mural' },
+      { slotId: 'e3', author: 'Ana Vargas', label: 'Cerámica' },
+      { slotId: 'e4', author: 'Renata Ocampo', label: 'Fotografía' },
+      { slotId: 'e5', author: 'Dúo Sotavento', label: 'Música' },
+      { slotId: 'e6', author: 'Kai Herrera', label: 'Tatuaje' }
+    ].filter(t => {
+      const q = st.query.trim().toLowerCase();
+      const okQ = !q || (t.author + ' ' + t.label).toLowerCase().includes(q);
+      const okC = !st.cat || t.label === st.cat;
+      return okQ && okC;
+    }).map(t => ({ ...t, onPress: () => this.go('artist') }));
+
+    const posts = [
+      { id: 'f1', author: 'Tomás Iglesias', initials: 'TI', category: 'Ilustración', when: 'hace 2 h · San José', caption: 'Serie de tinta sobre papel de algodón. Tres piezas, misma paleta.', slotHint: 'Obra de Tomás', likes: 128, comments: 14 },
+      { id: 'f2', author: 'Colectivo Higuerón', initials: 'CH', category: 'Mural', when: 'hace 5 h · Heredia', caption: 'Terminamos la pared sur. Nueve metros, cuatro manos.', slotHint: 'Mural terminado', likes: 342, comments: 37 },
+      { id: 'f3', author: 'Ana Vargas', initials: 'AV', category: 'Cerámica', when: 'ayer · Cartago', caption: 'Piezas salidas del horno esta semana. Esmalte de ceniza.', slotHint: 'Cerámica', likes: 89, comments: 6 }
+    ].map(p => {
+      const on = st.likes[p.id];
+      return { ...p, slotId: p.id, liked: on, likes: p.likes + (on ? 1 : 0),
+        heartStyle: { color: on ? ACCENT : '#7f766d', display: 'grid', placeItems: 'center' },
+        heartFill: on ? ACCENT : 'none',
+        onLike: () => this.setState(s => ({ likes: { ...s.likes, [p.id]: !s.likes[p.id] } })),
+        onOpen: () => this.go('artist') };
+    });
+
+    const commissions = st.commissions.map(c => {
+      const m = META[c.status];
+      return { ...c, stateLabel: m.t, pillStyle: PILL(m.c), priceLabel: fmt(c.price),
+        needsYou: (TR[c.status] || []).some(a => a.actor === 'artista'),
+        onPress: () => this.open(c.id) };
+    });
+
+    const pending = commissions.filter(c => c.needsYou).length;
+
+    const idx = cur ? HAPPY.indexOf(cur.status) : -1;
+    const steps = HAPPY.map((s, i) => {
+      const done = idx >= 0 && i <= idx;
+      const line = on => ({ flex: 1, height: '2px', background: on ? ACCENT : '#e0dad2' });
+      return { short: SHORT[s],
+        dot: { width: done ? '10px' : '8px', height: done ? '10px' : '8px', borderRadius: '50%', background: done ? ACCENT : '#e0dad2', flex: '0 0 auto' },
+        lineL: { ...line(i > 0 && done), visibility: i === 0 ? 'hidden' : 'visible' },
+        lineR: { ...line(idx > i), visibility: i === HAPPY.length - 1 ? 'hidden' : 'visible' },
+        label: { fontSize: '9px', fontWeight: 600, color: done ? '#7a5340' : '#b6ada4', letterSpacing: '.02em' } };
+    });
+
+    const messages = (cur ? cur.msgs : []).map(m => ({
+      text: m.t, note: m.note, at: m.at,
+      isSystem: m.k === 'sys', isQuote: m.k === 'quote', isBubble: m.k === 'me' || m.k === 'them',
+      row: { display: 'flex', justifyContent: m.k === 'me' ? 'flex-end' : (m.k === 'sys' ? 'center' : 'flex-start') },
+      bubble: m.k === 'me'
+        ? { maxWidth: '76%', padding: '11px 15px 9px', borderRadius: '20px 20px 6px 20px', background: ACCENT, color: '#fff', fontSize: '14px', lineHeight: 1.5 }
+        : { maxWidth: '76%', padding: '11px 15px 9px', borderRadius: '20px 20px 20px 6px', background: 'rgba(255,255,255,.85)', border: '1px solid rgba(255,255,255,.95)', color: '#2b2621', fontSize: '14px', lineHeight: 1.5 },
+      time: { fontSize: '10px', marginTop: '4px', textAlign: 'right', color: m.k === 'me' ? 'rgba(255,255,255,.75)' : '#a89f96' }
+    }));
+
+    const actions = (cur ? (TR[cur.status] || []) : []).map(a => ({
+      label: a.label, tag: showTags ? a.actor : '',
+      style: a.primary
+        ? { display: 'flex', alignItems: 'center', gap: '7px', padding: '11px 16px', borderRadius: '999px', background: ACCENT, color: '#fff', fontSize: '13px', fontWeight: 600, whiteSpace: 'nowrap', boxShadow: '0 8px 20px -10px rgba(194,101,59,.8)' }
+        : { display: 'flex', alignItems: 'center', gap: '7px', padding: '11px 16px', borderRadius: '999px', background: 'rgba(255,255,255,.9)', border: '1px solid rgba(255,255,255,.95)', color: '#6f665e', fontSize: '13px', fontWeight: 600, whiteSpace: 'nowrap' },
+      tagStyle: { fontSize: '9px', fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', opacity: .62 },
+      onPress: () => this.act(a)
+    }));
+
+    const retenido = st.commissions.filter(c => HELD.includes(c.status)).reduce((s, c) => s + (c.price || 0), 0);
+    const disp = this.disponible();
+
+    const ledger = [
+      ...st.payouts.map(p => ({ label: 'Retiro a cuenta bancaria', sub: 'ONVO Pay · procesando', amount: '−' + fmt(p.amount), kind: 'debit' })),
+      ...[...st.commissions].reverse().flatMap(c => {
+        const out = [];
+        if (c.status === 'liberada') out.push({ label: 'Pago liberado · ' + c.client, sub: 'disponible', amount: '+' + fmt(c.price), kind: 'credit' });
+        if (HELD.includes(c.status)) out.push({ label: 'Pago en retención · ' + c.client, sub: 'retenido hasta la entrega', amount: fmt(c.price), kind: 'hold' });
+        return out;
+      })
+    ].map(l => ({ ...l,
+      dot: { width: '8px', height: '8px', borderRadius: '50%', flex: '0 0 auto', background: l.kind === 'credit' ? '#4c6a4f' : (l.kind === 'hold' ? ACCENT : '#9b9187') },
+      amountStyle: { fontSize: '13px', fontWeight: 700, letterSpacing: '-.2px', whiteSpace: 'nowrap', color: l.kind === 'credit' ? '#4c6a4f' : (l.kind === 'hold' ? '#7a5340' : '#6f665e') } }));
+
+    const threads = st.commissions.slice().reverse().map(c => ({
+      name: c.client, initials: c.initials, when: META[c.status].t,
+      last: (c.msgs.filter(m => m.k !== 'sys').slice(-1)[0] || { t: c.desc }).t,
+      onPress: () => this.open(c.id)
+    }));
+
+    const pubStage = st.publishStage;
+    const stepDot = s => ({ width: '9px', height: '9px', borderRadius: '50%', flex: '0 0 auto', background: pubStage > s ? '#4c6a4f' : (pubStage === s ? ACCENT : '#e0dad2') });
+
+    const sheet = st.sheet;
+    const tabColor = t => screen === t ? ACCENT : '#948b82';
+    const tabBtn = t => ({ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px', background: 'transparent', fontSize: '9.5px', letterSpacing: '.06em', color: screen === t ? '#a1512d' : '#574e46', fontWeight: screen === t ? 700 : 600 });
+    const tabDot = t => ({ width: '4px', height: '4px', borderRadius: '50%', background: screen === t ? ACCENT : 'transparent' });
+
+    return {
+      isAuth: screen === 'auth', isFeed: screen === 'feed', isExplore: screen === 'explore',
+      isArtist: screen === 'artist', isRequest: screen === 'request', isCreate: screen === 'create',
+      isProfile: screen === 'profile', isCommissions: screen === 'commissions', isChat: screen === 'chat',
+      isMessages: screen === 'messages', isNotif: screen === 'notif', isBalance: screen === 'balance',
+      showHeader: screen !== 'auth',
+      headerSpacer: { flex: '0 0 auto', height: (screen === 'chat' && cur ? 104 : 88) + 'px' },
+      showTabs: tabs.includes(screen),
+      showBack: !tabs.includes(screen) && screen !== 'auth',
+      showBell: screen === 'feed',
+      hasUnread: st.notifs.some(n => n.unread),
+      headerTitle: screen === 'chat' && cur ? cur.client : titles[screen] || '',
+      headerSub: screen === 'chat' && cur ? cur.desc : '',
+      onBack: this.back,
+      ...this.authAmbience(),
+      login: () => this.set('feed'),
+      guest: () => this.set('feed'),
+      goFeed: () => this.set('feed'), goExplore: () => this.set('explore'),
+      goCreate: () => this.setState({ screen: 'create', stack: [], publishStage: null, newTitle: '', newDesc: '', createCats: [] }),
+      goMessages: () => this.set('messages'), goProfile: () => this.setState({ screen: 'profile', stack: [], publishStage: null, newTitle: '', newDesc: '', createCats: [] }),
+      goNotif: () => this.go('notif'), goBalance: () => this.go('balance'),
+      goCommissions: () => this.go('commissions'), goRequest: () => this.setState({ screen: 'request', reqSent: false, reqDesc: '', reqBudget: '', stack: [...st.stack, 'artist'] }),
+      feedColor: tabColor('feed'), exploreColor: tabColor('explore'), msgColor: tabColor('messages'), profileColor: tabColor('profile'),
+      feedTab: tabBtn('feed'), exploreTab: tabBtn('explore'), msgTab: tabBtn('messages'), profileTab: tabBtn('profile'),
+      feedDot: tabDot('feed'), exploreDot: tabDot('explore'), msgDot: tabDot('messages'), profileDot: tabDot('profile'),
+
+      posts,
+      query: st.query, onQuery: e => this.setState({ query: e.target.value }),
+      cats: catList.map(c => ({ label: c, style: CHIP(st.cat === c), onPress: () => this.setState(s => ({ cat: s.cat === c ? null : c })) })),
+      tiles, noResults: tiles.length === 0,
+
+      artist: { name: 'Tomás Iglesias', initials: 'TI', handle: '@tomasiglesias', place: 'San José', verified: true, bio: 'Tinta y grabado. Trabajo por encargo con dos semanas de anticipación.', tags: ['Ilustración', 'Grabado', 'Retrato'] },
+      artistWorks: [{ slotId: 'a1', title: 'Tinta I' }, { slotId: 'a2', title: 'Tinta II' }, { slotId: 'a3', title: 'Grabado' }, { slotId: 'a4', title: 'Retrato' }],
+      following: st.following,
+      followLabel: st.following ? 'Siguiendo' : 'Seguir',
+      followStyle: st.following
+        ? { marginLeft: 'auto', padding: '10px 20px', borderRadius: '999px', background: 'rgba(255,255,255,.8)', border: '1px solid rgba(255,255,255,.95)', fontSize: '13px', fontWeight: 600, color: '#6f665e' }
+        : { marginLeft: 'auto', padding: '10px 20px', borderRadius: '999px', background: ACCENT, color: '#fff', fontSize: '13px', fontWeight: 600, boxShadow: '0 8px 20px -10px rgba(194,101,59,.8)' },
+      onFollow: () => this.setState(s => ({ following: !s.following })),
+
+      reqForm: !st.reqSent, reqSent: st.reqSent,
+      reqDesc: st.reqDesc, onReqDesc: e => this.setState({ reqDesc: e.target.value }),
+      reqBudget: st.reqBudget, onReqBudget: e => this.setState({ reqBudget: e.target.value }),
+      onSendRequest: this.sendRequest,
+      sendReqStyle: { width: '100%', marginTop: '16px', padding: '16px', borderRadius: '18px', background: st.reqDesc.trim() ? ACCENT : '#ded7cf', color: st.reqDesc.trim() ? '#fff' : '#a89f96', fontSize: '15px', fontWeight: 600 },
+
+      createForm: !pubStage, publishing: pubStage > 0 && pubStage < 4, publishDone: pubStage === 4,
+      newTitle: st.newTitle, onNewTitle: e => this.setState({ newTitle: e.target.value }),
+      newDesc: st.newDesc, onNewDesc: e => this.setState({ newDesc: e.target.value }),
+      createCats: catList.map(c => ({ label: c, style: CHIP(st.createCats.includes(c)), onPress: () => this.setState(s => ({ createCats: s.createCats.includes(c) ? s.createCats.filter(x => x !== c) : [...s.createCats, c] })) })),
+      onPublish: this.publish,
+      publishStyle: { width: '100%', marginTop: '22px', padding: '16px', borderRadius: '18px', background: ACCENT, color: '#fff', fontSize: '15px', fontWeight: 600, boxShadow: '0 10px 26px rgba(194,101,59,.34)' },
+      publishSteps: [
+        { label: 'Pidiendo signed URL', note: 'POST /v1/media/upload-url', dot: stepDot(1) },
+        { label: 'Subiendo a Storage', note: 'El archivo va directo, sin pasar por la API', dot: stepDot(2) },
+        { label: 'Procesando en el worker', note: 'Miniatura, moderación y vector de estilo', dot: stepDot(3) }
+      ],
+
+      me: { name: 'Sofía Rivas', initials: 'SR', handle: '@sofiarivas', place: 'San José', bio: 'Tinta, mural y retrato por encargo. Respondo cotizaciones en 48 horas.', works: st.works.length, followers: '2 140', done: st.commissions.filter(c => c.status === 'liberada').length },
+      works: st.works,
+      pendingCount: pending,
+      pendingBadge: { padding: '3px 9px', borderRadius: '999px', background: pending ? 'rgba(194,101,59,.14)' : 'transparent', color: '#a1512d', fontSize: '11px', fontWeight: 700 },
+
+      commissions,
+      chat: cur ? { client: cur.client, desc: cur.desc, status: cur.status, stateLabel: META[cur.status].t, pillStyle: PILL(META[cur.status].c), priceLabel: fmt(cur.price) } : { status: '', stateLabel: '', pillStyle: PILL('#8a8178'), priceLabel: '' },
+      steps, messages, actions, hasActions: actions.length > 0,
+      draft: st.draft, onDraft: e => this.setState({ draft: e.target.value }), onSend: this.send,
+
+      threads,
+      notifs: st.notifs.map(n => ({ text: n.text, when: n.when, onPress: () => this.open(n.go),
+        dot: { width: '8px', height: '8px', borderRadius: '50%', marginTop: '5px', flex: '0 0 auto', background: n.unread ? ACCENT : '#ded7cf' } })),
+
+      retenidoLabel: fmt(retenido), disponibleLabel: fmt(disp), retiradoLabel: fmt(st.withdrawn),
+      ledger, onWithdraw: this.withdraw,
+      withdrawStyle: { width: '100%', marginTop: '18px', padding: '14px', borderRadius: '16px', background: disp > 0 ? 'rgba(255,255,255,.95)' : 'rgba(255,255,255,.3)', color: disp > 0 ? '#a1512d' : 'rgba(255,255,255,.7)', fontSize: '14px', fontWeight: 700 },
+
+      showSheet: !!sheet,
+      sheetIsQuote: sheet === 'quote', sheetIsDeliver: sheet === 'deliver',
+      sheetTitle: sheet === 'quote' ? 'Enviar cotización' : 'Marcar como entregada',
+      sheetNote: sheet === 'quote' ? 'El cliente puede aceptarla o rechazarla. Al aceptar, paga y el monto queda retenido.' : 'Adjuntá el archivo final. El pago se libera cuando el cliente aprueba la entrega.',
+      sheetCta: sheet === 'quote' ? 'Enviar cotización' : 'Confirmar entrega',
+      quotePrice: st.quotePrice, onQuotePrice: e => this.setState({ quotePrice: e.target.value }),
+      onConfirmSheet: this.confirmSheet, onCloseSheet: () => this.setState({ sheet: null })
+    };
+  }
+}
+</script>
+</body>
+</html>

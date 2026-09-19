@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:#efece7;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;}
+  a{color:#c2653b;text-decoration:none}a:hover{color:#a1512d}
+  button{border:0;background:transparent;padding:0;margin:0;font:inherit;color:inherit;cursor:pointer;-webkit-appearance:none;appearance:none;outline:0}
+  button[data-sel="true"]{background:#c2653b!important;border-color:rgba(255,255,255,.2)!important;color:#fff!important;font-weight:600!important;box-shadow:0 6px 16px -6px rgba(194,101,59,.6)}
+  ::-webkit-scrollbar{display:none}
+</style>
+</helmet>
+
+<template id="__bundler_thumbnail" data-bg-color="#efece7"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><rect width="200" height="200" fill="#efece7"/><rect x="60" y="60" width="80" height="80" rx="24" fill="#c2653b"/><text x="100" y="118" font-family="Georgia,serif" font-style="italic" font-size="52" fill="#f7efe4" text-anchor="middle">A</text></svg></template>
+
+
+<div style="padding:64px 56px 96px;background:#efece7;min-height:100vh">
+  <div style="max-width:2100px;margin:0 auto 52px">
+    <div style="font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:#9b9187;font-weight:600">Artistica · rediseño</div>
+    <h1 style="margin:12px 0 10px;font-family:'Instrument Serif',Georgia,serif;font-style:italic;font-size:48px;letter-spacing:-.5px;font-weight:400;color:#201d1a">Acento cálido, Vintage</h1>
+    <p style="margin:0;max-width:620px;font-size:14px;line-height:1.6;color:#7f766d;text-wrap:pretty">Ocho pantallas sobre un fondo casi blanco: paneles de vidrio esmerilado en capas, iconos de línea fina de un solo peso, y un único acento terracota reservado para acciones primarias, estados activos y badges.</p>
+  </div>
+
+  <div style="display:flex;flex-wrap:wrap;gap:56px;align-items:flex-start;max-width:2100px;margin:0 auto">
+
+    <!-- ONBOARDING -->
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <sc-if value="{{ showFrameLabels }}" hint-placeholder-val="{{ true }}"><div style="font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#9b9187;font-weight:600;padding-left:4px">01 · Bienvenida</div></sc-if>
+      <div style="position:relative;width:390px;height:844px;border-radius:52px;padding:5px;background:#e2ddd5;box-shadow:0 30px 70px -20px rgba(80,60,42,.35),0 2px 6px rgba(80,60,42,.12)">
+        <div style="position:relative;width:100%;height:100%;border-radius:47px;overflow:hidden;background:#f6f3ef">
+          <div style="position:absolute;inset:0;background:radial-gradient(58% 42% at 18% 8%,rgba(214,150,104,.42),transparent 70%),radial-gradient(52% 40% at 92% 30%,rgba(176,164,196,.34),transparent 72%),radial-gradient(60% 45% at 50% 104%,rgba(226,187,140,.5),transparent 70%),#f6f3ef"></div>
+          <img src="https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?auto=format&fit=crop&w=900&q=85" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.22;filter:saturate(.85)">
+          <div style="position:absolute;inset:0;display:flex;flex-direction:column;padding:40px 26px 40px">
+            <div style="display:flex;align-items:center;justify-content:space-between;font-size:12px;font-weight:600;color:#3d362f;letter-spacing:.2px"><span>9:41</span><span style="display:flex;gap:5px;align-items:center"><span style="width:16px;height:9px;border:1px solid #3d362f;border-radius:2px;display:block"></span></span></div>
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;text-align:center">
+              <div style="width:78px;height:78px;border-radius:26px;display:grid;place-items:center;background:rgba(255,255,255,.5);backdrop-filter:blur(30px) saturate(1.7);-webkit-backdrop-filter:blur(30px) saturate(1.7);border:1px solid rgba(255,255,255,.8);box-shadow:0 12px 34px rgba(88,64,44,.14)">
+                <div style="width:34px;height:34px;border-radius:12px;background:#c2653b"></div>
+              </div>
+              <h2 style="margin:0;font-family:'Instrument Serif',Georgia,serif;font-style:italic;font-size:44px;line-height:1.05;letter-spacing:-.5px;font-weight:400;color:#201d1a">Artistica</h2>
+              <p style="margin:0;max-width:250px;font-size:14px;line-height:1.55;color:#6f665e;text-wrap:pretty">Donde el trabajo se muestra, se conversa y se encarga.</p>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <button style="display:flex;align-items:center;gap:12px;padding:16px 20px;border-radius:18px;background:rgba(255,255,255,.58);backdrop-filter:blur(26px) saturate(1.6);-webkit-backdrop-filter:blur(26px) saturate(1.6);border:1px solid rgba(255,255,255,.8);box-shadow:0 6px 22px rgba(88,64,44,.09);color:#201d1a;font-size:15px;font-weight:500" style-hover="background:rgba(255,255,255,.72)">
+                <span style="width:22px;display:grid;place-items:center;font-size:15px;font-weight:600;color:#4a423a">G</span>Continuar con Google
+              </button>
+              <button style="display:flex;align-items:center;gap:12px;padding:16px 20px;border-radius:18px;background:rgba(255,255,255,.58);backdrop-filter:blur(26px) saturate(1.6);-webkit-backdrop-filter:blur(26px) saturate(1.6);border:1px solid rgba(255,255,255,.8);box-shadow:0 6px 22px rgba(88,64,44,.09);color:#201d1a;font-size:15px;font-weight:500" style-hover="background:rgba(255,255,255,.72)">
+                <span style="width:22px;display:grid;place-items:center;color:#4a423a"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="10.5" width="15" height="10" rx="3"></rect><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"></path></svg></span>Continuar con Apple
+              </button>
+              <button style="display:flex;align-items:center;gap:12px;padding:16px 20px;border-radius:18px;background:#c2653b;border:1px solid rgba(255,255,255,.18);box-shadow:0 10px 26px rgba(194,101,59,.3);color:#fff;font-size:15px;font-weight:600" style-hover="background:#ae5731">
+                <span style="width:22px;display:grid;place-items:center"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5.5" width="18" height="13" rx="3"></rect><path d="M4 7.5l8 5.5 8-5.5"></path></svg></span>Continuar con correo
+              </button>
+              <div style="text-align:center;margin-top:14px;font-size:13px;color:#7f766d">¿Ya tenés cuenta? <a href="#" style="color:#c2653b;font-weight:600">Iniciar sesión</a></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FEED -->
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <sc-if value="{{ showFrameLabels }}" hint-placeholder-val="{{ true }}"><div style="font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#9b9187;font-weight:600;padding-left:4px">02 · Feed</div></sc-if>
+      <div style="position:relative;width:390px;height:844px;border-radius:52px;padding:5px;background:#e2ddd5;box-shadow:0 30px 70px -20px rgba(80,60,42,.35),0 2px 6px rgba(80,60,42,.12)">
+        <div style="position:relative;width:100%;height:100%;border-radius:47px;overflow:hidden;background:#f7f5f1">
+          <div style="position:absolute;inset:0;overflow:auto;padding:128px 18px 118px">
+            <article style="margin-bottom:26px">
+              <div style="display:flex;align-items:center;gap:11px;padding:0 4px 12px">
+                <div style="width:40px;height:40px;border-radius:50%;border:1px solid rgba(255,255,255,.9);box-shadow:0 2px 8px rgba(88,64,44,.14);display:grid;place-items:center;background:#c2653b;color:#fdf8f3;font-family:'Instrument Serif',Georgia,serif;font-style:italic;font-size:20px;line-height:1">L</div>
+                <div style="flex:1">
+                  <div style="display:flex;align-items:center;gap:7px"><b style="font-size:14px;font-weight:600;color:#201d1a;letter-spacing:-.2px">Luna Atelier</b><span style="padding:3px 8px;border-radius:20px;background:rgba(194,101,59,.12);color:#a1512d;font-size:10px;font-weight:600;letter-spacing:.04em">Ilustradora</span></div>
+                  <small style="display:block;font-size:11px;color:#948b82;margin-top:3px">hace 2 h · Buenos Aires</small>
+                </div>
+                <button style="width:32px;height:32px;display:grid;place-items:center;border-radius:50%;background:transparent;color:#948b82"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="5.5" cy="12" r="1.2" fill="currentColor" stroke="none"></circle><circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none"></circle><circle cx="18.5" cy="12" r="1.2" fill="currentColor" stroke="none"></circle></svg></button>
+              </div>
+              <div style="position:relative;border-radius:24px;overflow:hidden;box-shadow:0 14px 34px -10px rgba(88,64,44,.3)">
+                <img src="https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?auto=format&fit=crop&w=900&q=85" alt="Obra de Luna Atelier" style="display:block;width:100%;aspect-ratio:1.05;object-fit:cover">
+                <div style="position:absolute;left:12px;bottom:12px;display:flex;align-items:center;gap:6px;padding:7px 12px;border-radius:20px;background:rgba(255,255,255,.34);backdrop-filter:blur(20px) saturate(1.6);-webkit-backdrop-filter:blur(20px) saturate(1.6);border:1px solid rgba(255,255,255,.45);color:#fff;font-size:11px;font-weight:600;text-shadow:0 1px 2px rgba(0,0,0,.2)">Acepta comisiones</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:18px;padding:14px 4px 8px;color:#7f766d">
+                <button style="display:flex;align-items:center;gap:6px;background:transparent;color:#c2653b;font-size:12px;font-weight:600"><svg viewBox="0 0 24 24" width="21" height="21" fill="rgba(194,101,59,.16)" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 5.2a5.2 5.2 0 0 0-7.4 0L12 6.4l-1.2-1.2a5.2 5.2 0 0 0-7.4 7.4L12 21l8.6-8.4a5.2 5.2 0 0 0 0-7.4z"></path></svg>1.3k</button>
+                <button style="display:flex;align-items:center;gap:6px;background:transparent;color:#7f766d;font-size:12px;font-weight:500"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 11.6a8 8 0 0 1-11.6 7.1L4 20.5l1.8-4.9A8 8 0 1 1 20.5 11.6z"></path></svg>24</button>
+                <button style="display:flex;align-items:center;gap:6px;background:transparent;color:#7f766d;font-size:12px;font-weight:500"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15.5v-12M7.5 8 12 3.5 16.5 8"></path><path d="M5 13.5V19A1.5 1.5 0 0 0 6.5 20.5h11A1.5 1.5 0 0 0 19 19v-5.5"></path></svg>8</button>
+                <button style="margin-left:auto;background:transparent;color:#7f766d"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18.5 21 12 16.4 5.5 21V5A1.5 1.5 0 0 1 7 3.5h10A1.5 1.5 0 0 1 18.5 5z"></path></svg></button>
+              </div>
+              <p style="margin:0 4px;font-size:13px;line-height:1.55;color:#4a423a;text-wrap:pretty">Fragmentos de luz para días que necesitan un poco más de color.</p>
+            </article>
+
+            <article>
+              <div style="display:flex;align-items:center;gap:11px;padding:0 4px 12px">
+                <div style="width:40px;height:40px;border-radius:50%;border:1px solid rgba(255,255,255,.9);box-shadow:0 2px 8px rgba(88,64,44,.14);display:grid;place-items:center;background:#3f6b63;color:#fdf8f3;font-family:'Instrument Serif',Georgia,serif;font-style:italic;font-size:20px;line-height:1">M</div>
+                <div style="flex:1">
+                  <div style="display:flex;align-items:center;gap:7px"><b style="font-size:14px;font-weight:600;color:#201d1a;letter-spacing:-.2px">Mateo Ríos</b><span style="padding:3px 8px;border-radius:20px;background:rgba(194,101,59,.12);color:#a1512d;font-size:10px;font-weight:600;letter-spacing:.04em">Pintor</span></div>
+                  <small style="display:block;font-size:11px;color:#948b82;margin-top:3px">hace 5 h · Rosario</small>
+                </div>
+                <button style="width:32px;height:32px;display:grid;place-items:center;border-radius:50%;background:transparent;color:#948b82"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="5.5" cy="12" r="1.2" fill="currentColor" stroke="none"></circle><circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none"></circle><circle cx="18.5" cy="12" r="1.2" fill="currentColor" stroke="none"></circle></svg></button>
+              </div>
+              <div style="border-radius:24px;overflow:hidden;box-shadow:0 14px 34px -10px rgba(88,64,44,.3)">
+                <img src="https://images.unsplash.com/photo-1549490349-8643362247b5?auto=format&fit=crop&w=900&q=85" alt="Obra de Mateo Ríos" style="display:block;width:100%;aspect-ratio:1.05;object-fit:cover">
+              </div>
+              <div style="display:flex;align-items:center;gap:18px;padding:14px 4px 8px;color:#7f766d">
+                <button style="display:flex;align-items:center;gap:6px;background:transparent;color:#7f766d;font-size:12px;font-weight:500"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 5.2a5.2 5.2 0 0 0-7.4 0L12 6.4l-1.2-1.2a5.2 5.2 0 0 0-7.4 7.4L12 21l8.6-8.4a5.2 5.2 0 0 0 0-7.4z"></path></svg>834</button>
+                <button style="display:flex;align-items:center;gap:6px;background:transparent;color:#7f766d;font-size:12px;font-weight:500"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 11.6a8 8 0 0 1-11.6 7.1L4 20.5l1.8-4.9A8 8 0 1 1 20.5 11.6z"></path></svg>11</button>
+                <button style="display:flex;align-items:center;gap:6px;background:transparent;color:#7f766d;font-size:12px;font-weight:500"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15.5v-12M7.5 8 12 3.5 16.5 8"></path><path d="M5 13.5V19A1.5 1.5 0 0 0 6.5 20.5h11A1.5 1.5 0 0 0 19 19v-5.5"></path></svg>3</button>
+                <button style="margin-left:auto;background:transparent;color:#7f766d"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18.5 21 12 16.4 5.5 21V5A1.5 1.5 0 0 1 7 3.5h10A1.5 1.5 0 0 1 18.5 5z"></path></svg></button>
+              </div>
+              <p style="margin:0 4px;font-size:13px;line-height:1.55;color:#4a423a;text-wrap:pretty">Nueva pieza, “La calma antes del ruido”.</p>
+            </article>
+          </div>
+
+          <!-- top glass bar + segmented -->
+          <header style="position:absolute;top:0;left:0;right:0;padding:28px 18px 10px;background:rgba(247,245,241,.62);backdrop-filter:blur(28px) saturate(1.7);-webkit-backdrop-filter:blur(28px) saturate(1.7);border-bottom:1px solid rgba(255,255,255,.7)">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+              <div style="font-family:'Instrument Serif',Georgia,serif;font-style:italic;font-size:24px;font-weight:400;letter-spacing:-.2px;color:#201d1a">Artistica</div>
+              <button style="width:34px;height:34px;display:grid;place-items:center;border-radius:50%;background:rgba(255,255,255,.55);border:1px solid rgba(255,255,255,.8);color:#4a423a"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8.5a6 6 0 0 0-12 0c0 6-2.5 8-2.5 8h17S18 14.5 18 8.5z"></path><path d="M13.8 20a2.2 2.2 0 0 1-3.6 0"></path></svg></button>
+            </div>
+            <div style="display:flex;gap:24px;padding:0 2px">
+              <button style="background:transparent;padding:4px 0 8px;font-size:14px;font-weight:600;color:#201d1a;border-bottom:2px solid #c2653b;letter-spacing:-.1px">Seguidos</button>
+              <button style="background:transparent;padding:4px 0 8px;font-size:14px;font-weight:500;color:#9b9187;border-bottom:2px solid transparent;letter-spacing:-.1px">Para ti</button>
+            </div>
+          </header>
+
+          <!-- bottom nav -->
+          <div style="position:absolute;bottom:0;left:0;right:0;height:104px;pointer-events:none">
+            <div style="position:absolute;bottom:0;left:0;right:0;height:104px;clip-path:path('M0,36 C73,36 112,36 133,32 C159,26 163,4 190,4 C217,4 221,26 247,32 C268,36 307,36 380,36 L380,104 L0,104 Z');overflow:hidden"><div style="position:absolute;inset:0;background:rgba(252,250,247,.82);backdrop-filter:blur(30px) saturate(1.2);-webkit-backdrop-filter:blur(30px) saturate(1.2)"></div></div><nav style="position:absolute;bottom:0;left:0;right:0;box-sizing:border-box;height:104px;display:flex;align-items:flex-start;padding:48px 12px 0;pointer-events:auto">
+              <button style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;background:transparent;color:#a1512d;font-size:9.5px;font-weight:700;letter-spacing:.06em"><svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.6 12 3.4l9 7.2V20a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 20z"></path><path d="M9.5 21.5v-6h5v6"></path></svg>INICIO</button>
+              <button style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;background:transparent;color:#574e46;font-size:9.5px;font-weight:600;letter-spacing:.06em"><svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"></circle><path d="M15.4 8.6l-1.7 5.1-5.1 1.7 1.7-5.1z"></path></svg>EXPLORAR</button>
+              <div style="flex:1"></div>
+              <button style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;background:transparent;color:#574e46;font-size:9.5px;font-weight:600;letter-spacing:.06em"><svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 11.6a8 8 0 0 1-11.6 7.1L4 20.5l1.8-4.9A8 8 0 1 1 20.5 11.6z"></path></svg>MENSAJES</button>
+              <button style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;background:transparent;color:#574e46;font-size:9.5px;font-weight:600;letter-spacing:.06em"><svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"></circle><path d="M4.5 20.5a7.5 7.5 0 0 1 15 0"></path></svg>PERFIL</button>
+            </nav><svg width="380" height="104" viewBox="0 0 380 104" fill="none" aria-hidden="true" style="position:absolute;bottom:0;left:0;pointer-events:none;-webkit-mask:linear-gradient(90deg,transparent 0,#000 14%,#000 86%,transparent 100%);mask:linear-gradient(90deg,transparent 0,#000 14%,#000 86%,transparent 100%)"><path d="M0,36 C73,36 112,36 133,32 C159,26 163,4 190,4 C217,4 221,26 247,32 C268,36 307,36 380,36" stroke="rgba(255,255,255,.9)" stroke-width="1.5"></path></svg>
+            <button style="position:absolute;bottom:54px;left:50%;transform:translateX(-50%);width:58px;height:58px;border-radius:50%;display:grid;place-items:center;background:#c2653b;color:#fff;box-shadow:0 12px 26px -4px rgba(194,101,59,.5),inset 0 1px 0 rgba(255,255,255,.35);pointer-events:auto" style-hover="background:#ae5731"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">{{ fabIcon }}</svg></button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- EXPLORE -->
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <sc-if value="{{ showFrameLabels }}" hint-placeholder-val="{{ true }}"><div style="font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#9b9187;font-weight:600;padding-left:4px">03 · Explorar</div></sc-if>
+      <div style="position:relative;width:390px;height:844px;border-radius:52px;padding:5px;background:#e2ddd5;box-shadow:0 30px 70px -20px rgba(80,60,42,.35),0 2px 6px rgba(80,60,42,.12)">
+        <div style="position:relative;width:100%;height:100%;border-radius:47px;overflow:hidden;background:#f7f5f1">
+          <div style="position:absolute;inset:0;overflow:auto;padding:152px 16px 118px">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:start">
+              <div style="display:flex;flex-direction:column;gap:10px">
+                <img src="https://images.unsplash.com/photo-1577083288073-40892c0860a4?auto=format&fit=crop&w=600&q=80" alt="" style="width:100%;height:224px;object-fit:cover;border-radius:20px;box-shadow:0 8px 22px -8px rgba(88,64,44,.28)">
+                <img src="https://images.unsplash.com/photo-1561214115-f2f134cc4912?auto=format&fit=crop&w=600&q=80" alt="" style="width:100%;height:160px;object-fit:cover;border-radius:20px;box-shadow:0 8px 22px -8px rgba(88,64,44,.28)">
+                <img src="https://images.unsplash.com/photo-1577083552431-6e5fd01aa342?auto=format&fit=crop&w=600&q=80" alt="" style="width:100%;height:246px;object-fit:cover;border-radius:20px;box-shadow:0 8px 22px -8px rgba(88,64,44,.28)">
+              </div>
+              <div style="display:flex;flex-direction:column;gap:10px">
+                <img src="https://images.unsplash.com/photo-1547891654-e66ed7ebb968?auto=format&fit=crop&w=600&q=80" alt="" style="width:100%;height:162px;object-fit:cover;border-radius:20px;box-shadow:0 8px 22px -8px rgba(88,64,44,.28)">
+                <img src="https://images.unsplash.com/photo-1541961017774-22349e4a1262?auto=format&fit=crop&w=600&q=80" alt="" style="width:100%;height:238px;object-fit:cover;border-radius:20px;box-shadow:0 8px 22px -8px rgba(88,64,44,.28)">
+                <img src="https://images.unsplash.com/photo-1578301978018-3005759f48f7?auto=format&fit=crop&w=600&q=80" alt="" style="width:100%;height:180px;object-fit:cover;border-radius:20px;box-shadow:0 8px 22px -8px rgba(88,64,44,.28)">
+              </div>
+            </div>
+          </div>
+
+          <header style="position:absolute;top:0;left:0;right:0;padding:28px 16px 14px;background:rgba(247,245,241,.6);backdrop-filter:blur(28px) saturate(1.7);-webkit-backdrop-filter:blur(28px) saturate(1.7);border-bottom:1px solid rgba(255,255,255,.7)">
+            <div style="display:flex;align-items:center;gap:10px;padding:13px 15px;border-radius:18px;background:rgba(255,255,255,.6);border:1px solid rgba(255,255,255,.85);box-shadow:0 4px 16px rgba(88,64,44,.07);color:#948b82">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="10.8" cy="10.8" r="7.3"></circle><path d="M16.2 16.2 21 21"></path></svg>
+              <span style="flex:1;font-size:13.5px;color:#948b82">Buscar artistas, obras…</span>
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"></path><circle cx="15" cy="7" r="2"></circle><circle cx="9" cy="17" r="2"></circle></svg>
+            </div>
+            <div style="display:flex;gap:8px;overflow:auto;margin-top:14px;padding-bottom:2px">
+              <button style="white-space:nowrap;padding:9px 15px;border-radius:20px;background:#c2653b;color:#fff;border:1px solid rgba(255,255,255,.2);font-size:12px;font-weight:600;letter-spacing:.02em;box-shadow:0 6px 16px -6px rgba(194,101,59,.6)">Todos</button>
+              <button style="white-space:nowrap;padding:9px 15px;border-radius:20px;background:rgba(255,255,255,.55);color:#5c534b;border:1px solid rgba(255,255,255,.85);font-size:12px;font-weight:500">Músicos</button>
+              <button style="white-space:nowrap;padding:9px 15px;border-radius:20px;background:rgba(255,255,255,.55);color:#5c534b;border:1px solid rgba(255,255,255,.85);font-size:12px;font-weight:500">Dibujantes</button>
+              <button style="white-space:nowrap;padding:9px 15px;border-radius:20px;background:rgba(255,255,255,.55);color:#5c534b;border:1px solid rgba(255,255,255,.85);font-size:12px;font-weight:500">Pintores</button>
+              <button style="white-space:nowrap;padding:9px 15px;border-radius:20px;background:rgba(255,255,255,.55);color:#5c534b;border:1px solid rgba(255,255,255,.85);font-size:12px;font-weight:500">Artesanos</button>
+              <button style="white-space:nowrap;padding:9px 15px;border-radius:20px;background:rgba(255,255,255,.55);color:#5c534b;border:1px solid rgba(255,255,255,.85);font-size:12px;font-weight:500">Escultores</button>
+            </div>
+          </header>
+
+          <div style="position:absolute;bottom:0;left:0;right:0;height:104px;pointer-events:none">
+            <div style="position:absolute;bottom:0;left:0;right:0;height:104px;clip-path:path('M0,36 C73,36 112,36 133,32 C159,26 163,4 190,4 C217,4 221,26 247,32 C268,36 307,36 380,36 L380,104 L0,104 Z');overflow:hidden"><div style="position:absolute;inset:0;background:rgba(252,250,247,.82);backdrop-filter:blur(30px) saturate(1.2);-webkit-backdrop-filter:blur(30px) saturate(1.2)"></div></div><nav style="position:absolute;bottom:0;left:0;right:0;box-sizing:border-box;height:104px;display:flex;align-items:flex-start;padding:48px 12px 0;pointer-events:auto">
+              <button style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;background:transparent;color:#574e46;font-size:9.5px;font-weight:600;letter-spacing:.06em"><svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.6 12 3.4l9 7.2V20a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 20z"></path><path d="M9.5 21.5v-6h5v6"></path></svg>INICIO</button>
+              <button style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;background:transparent;color:#a1512d;font-size:9.5px;font-weight:700;letter-spacing:.06em"><svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"></circle><path d="M15.4 8.6l-1.7 5.1-5.1 1.7 1.7-5.1z"></path></svg>EXPLORAR</button>
+              <div style="flex:1"></div>
+              <button style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;background:transparent;color:#574e46;font-size:9.5px;font-weight:600;letter-spacing:.06em"><svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 11.6a8 8 0 0 1-11.6 7.1L4 20.5l1.8-4.9A8 8 0 1 1 20.5 11.6z"></path></svg>MENSAJES</button>
+              <button style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;background:transparent;color:#574e46;font-size:9.5px;font-weight:600;letter-spacing:.06em"><svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"></circle><path d="M4.5 20.5a7.5 7.5 0 0 1 15 0"></path></svg>PERFIL</button>
+            </nav><svg width="380" height="104" viewBox="0 0 380 104" fill="none" aria-hidden="true" style="position:absolute;bottom:0;left:0;pointer-events:none;-webkit-mask:linear-gradient(90deg,transparent 0,#000 14%,#000 86%,transparent 100%);mask:linear-gradient(90deg,transparent 0,#000 14%,#000 86%,transparent 100%)"><path d="M0,36 C73,36 112,36 133,32 C159,26 163,4 190,4 C217,4 221,26 247,32 C268,36 307,36 380,36" stroke="rgba(255,255,255,.9)" stroke-width="1.5"></path></svg>
+            <button style="position:absolute;bottom:54px;left:50%;transform:translateX(-50%);width:58px;height:58px;border-radius:50%;display:grid;place-items:center;background:#c2653b;color:#fff;box-shadow:0 12px 26px -4px rgba(194,101,59,.5),inset 0 1px 0 rgba(255,255,255,.35);pointer-events:auto"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">{{ fabIcon }}</svg></button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PROFILE -->
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <sc-if value="{{ showFrameLabels }}" hint-placeholder-val="{{ true }}"><div style="font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#9b9187;font-weight:600;padding-left:4px">04 · Perfil</div></sc-if>
+      <div style="position:relative;width:390px;height:844px;border-radius:52px;padding:5px;background:#e2ddd5;box-shadow:0 30px 70px -20px rgba(80,60,42,.35),0 2px 6px rgba(80,60,42,.12)">
+        <div style="position:relative;width:100%;height:100%;border-radius:47px;overflow:hidden;background:#f7f5f1">
+          <div style="position:absolute;inset:0;overflow:auto;padding-bottom:118px">
+            <div style="position:relative;height:212px">
+              <img src="https://images.unsplash.com/photo-1497250681960-ef046c08a56e?auto=format&fit=crop&w=1000&q=85" alt="Portada" style="width:100%;height:100%;object-fit:cover;filter:saturate(.8)">
+              <button style="position:absolute;top:28px;left:16px;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.32);backdrop-filter:blur(18px) saturate(1.6);-webkit-backdrop-filter:blur(18px) saturate(1.6);border:1px solid rgba(255,255,255,.5);color:#fff"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M15 19.5 7.5 12 15 4.5"></path></svg></button>
+              <button style="position:absolute;top:28px;right:16px;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.32);backdrop-filter:blur(18px) saturate(1.6);-webkit-backdrop-filter:blur(18px) saturate(1.6);border:1px solid rgba(255,255,255,.5);color:#fff"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="5.5" cy="12" r="1.2" fill="currentColor" stroke="none"></circle><circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none"></circle><circle cx="18.5" cy="12" r="1.2" fill="currentColor" stroke="none"></circle></svg></button>
+            </div>
+            <div style="position:relative;margin:-46px 20px 0;padding:0">
+              <div style="width:88px;height:88px;border-radius:50%;border:4px solid rgba(255,255,255,.85);box-shadow:0 10px 26px -8px rgba(88,64,44,.4);display:grid;place-items:center;background:#c2653b;color:#fdf8f3;font-family:'Instrument Serif',Georgia,serif;font-style:italic;font-size:44px;line-height:1">L</div>
+              <div style="display:flex;align-items:center;gap:8px;margin-top:12px">
+                <h2 style="margin:0;font-family:'Instrument Serif',Georgia,serif;font-style:italic;font-size:28px;letter-spacing:-.3px;font-weight:400;color:#201d1a">Luna Atelier</h2>
+                <span style="display:grid;place-items:center;width:19px;height:19px;border-radius:50%;background:#c2653b;color:#fff"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6.5 9.2 17.3 4 12.1"></path></svg></span>
+              </div>
+              <div style="margin-top:5px;font-size:12.5px;font-weight:600;color:#a1512d;letter-spacing:.02em">Ilustradora digital</div>
+              <p style="margin:10px 0 0;font-size:13px;line-height:1.55;color:#7f766d;text-wrap:pretty">Creo mundos suaves para quienes todavía creen en la magia cotidiana. Comisiones abiertas hasta noviembre.</p>
+
+              <div style="display:flex;margin:18px 0;padding:14px 4px;border-radius:20px;background:rgba(255,255,255,.55);backdrop-filter:blur(26px) saturate(1.6);-webkit-backdrop-filter:blur(26px) saturate(1.6);border:1px solid rgba(255,255,255,.85);box-shadow:0 6px 20px rgba(88,64,44,.07)">
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px"><b style="font-size:16px;font-weight:600;color:#201d1a">148</b><span style="font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:#948b82;font-weight:600">Obras</span></div>
+                <div style="width:1px;background:rgba(120,100,80,.14)"></div>
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px"><b style="font-size:16px;font-weight:600;color:#201d1a">12.4k</b><span style="font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:#948b82;font-weight:600">Seguidores</span></div>
+                <div style="width:1px;background:rgba(120,100,80,.14)"></div>
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px"><b style="font-size:16px;font-weight:600;color:#201d1a">386</b><span style="font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:#948b82;font-weight:600">Siguiendo</span></div>
+              </div>
+
+              <div style="display:flex;gap:10px">
+                <button style="flex:1;padding:14px;border-radius:16px;background:#c2653b;color:#fff;font-size:13.5px;font-weight:600;box-shadow:0 10px 24px -8px rgba(194,101,59,.6)">Seguir</button>
+                <button style="flex:1.35;padding:14px;border-radius:16px;background:rgba(255,255,255,.6);backdrop-filter:blur(24px) saturate(1.6);-webkit-backdrop-filter:blur(24px) saturate(1.6);border:1px solid rgba(255,255,255,.9);color:#201d1a;font-size:13.5px;font-weight:600;box-shadow:0 6px 20px rgba(88,64,44,.08)">Solicitar comisión</button>
+              </div>
+
+              <div style="display:flex;gap:26px;margin:24px 0 14px;border-bottom:1px solid rgba(120,100,80,.13)">
+                <button style="background:transparent;padding:0 0 10px;font-size:14px;font-weight:600;color:#201d1a;border-bottom:2px solid #c2653b">Portafolio</button>
+                <button style="background:transparent;padding:0 0 10px;font-size:14px;font-weight:500;color:#9b9187;border-bottom:2px solid transparent">Sobre mí</button>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;padding:0 20px">
+              <img src="https://images.unsplash.com/photo-1577083288073-40892c0860a4?auto=format&fit=crop&w=600&q=80" alt="" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px">
+              <img src="https://images.unsplash.com/photo-1547891654-e66ed7ebb968?auto=format&fit=crop&w=600&q=80" alt="" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px">
+              <img src="https://images.unsplash.com/photo-1561214115-f2f134cc4912?auto=format&fit=crop&w=600&q=80" alt="" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px">
+              <img src="https://images.unsplash.com/photo-1541961017774-22349e4a1262?auto=format&fit=crop&w=600&q=80" alt="" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px">
+              <img src="https://images.unsplash.com/photo-1577083552431-6e5fd01aa342?auto=format&fit=crop&w=600&q=80" alt="" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px">
+              <img src="https://images.unsplash.com/photo-1578301978018-3005759f48f7?auto=format&fit=crop&w=600&q=80" alt="" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px">
+            </div>
+          </div>
+
+          <div style="position:absolute;bottom:0;left:0;right:0;height:104px;pointer-events:none">
+            <div style="position:absolute;bottom:0;left:0;right:0;height:104px;clip-path:path('M0,36 C73,36 112,36 133,32 C159,26 163,4 190,4 C217,4 221,26 247,32 C268,36 307,36 380,36 L380,104 L0,104 Z');overflow:hidden"><div style="position:absolute;inset:0;background:rgba(252,250,247,.82);backdrop-filter:blur(30px) saturate(1.2);-webkit-backdrop-filter:blur(30px) saturate(1.2)"></div></div><nav style="position:absolute;bottom:0;left:0;right:0;box-sizing:border-box;height:104px;display:flex;align-items:flex-start;padding:48px 12px 0;pointer-events:auto">
+              <button style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;background:transparent;color:#574e46;font-size:9.5px;font-weight:600;letter-spacing:.06em"><svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.6 12 3.4l9 7.2V20a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 20z"></path><path d="M9.5 21.5v-6h5v6"></path></svg>INICIO</button>
+              <button style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;background:transparent;color:#574e46;font-size:9.5px;font-weight:600;letter-spacing:.06em"><svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"></circle><path d="M15.4 8.6l-1.7 5.1-5.1 1.7 1.7-5.1z"></path></svg>EXPLORAR</button>
+              <div style="flex:1"></div>
+              <button style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;background:transparent;color:#574e46;font-size:9.5px;font-weight:600;letter-spacing:.06em"><svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 11.6a8 8 0 0 1-11.6 7.1L4 20.5l1.8-4.9A8 8 0 1 1 20.5 11.6z"></path></svg>MENSAJES</button>
+              <button style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;background:transparent;color:#a1512d;font-size:9.5px;font-weight:700;letter-spacing:.06em"><svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"></circle><path d="M4.5 20.5a7.5 7.5 0 0 1 15 0"></path></svg>PERFIL</button>
+            </nav><svg width="380" height="104" viewBox="0 0 380 104" fill="none" aria-hidden="true" style="position:absolute;bottom:0;left:0;pointer-events:none;-webkit-mask:linear-gradient(90deg,transparent 0,#000 14%,#000 86%,transparent 100%);mask:linear-gradient(90deg,transparent 0,#000 14%,#000 86%,transparent 100%)"><path d="M0,36 C73,36 112,36 133,32 C159,26 163,4 190,4 C217,4 221,26 247,32 C268,36 307,36 380,36" stroke="rgba(255,255,255,.9)" stroke-width="1.5"></path></svg>
+            <button style="position:absolute;bottom:54px;left:50%;transform:translateX(-50%);width:58px;height:58px;border-radius:50%;display:grid;place-items:center;background:#c2653b;color:#fff;box-shadow:0 12px 26px -4px rgba(194,101,59,.5),inset 0 1px 0 rgba(255,255,255,.35);pointer-events:auto"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">{{ fabIcon }}</svg></button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- COMMISSION SHEET -->
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <sc-if value="{{ showFrameLabels }}" hint-placeholder-val="{{ true }}"><div style="font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#9b9187;font-weight:600;padding-left:4px">05 · Solicitar comisión</div></sc-if>
+      <div style="position:relative;width:390px;height:844px;border-radius:52px;padding:5px;background:#e2ddd5;box-shadow:0 30px 70px -20px rgba(80,60,42,.35),0 2px 6px rgba(80,60,42,.12)">
+        <div style="position:relative;width:100%;height:100%;border-radius:47px;overflow:hidden;background:#f7f5f1">
+          <img src="https://images.unsplash.com/photo-1497250681960-ef046c08a56e?auto=format&fit=crop&w=1000&q=85" alt="" style="position:absolute;top:0;left:0;width:100%;height:212px;object-fit:cover;filter:saturate(.8)">
+          <div style="position:absolute;top:212px;left:0;right:0;padding:56px 20px 0;color:#201d1a">
+            <div style="width:88px;height:88px;border-radius:50%;background:rgba(255,255,255,.6);margin-top:-46px"></div>
+            <div style="margin-top:14px;font-family:'Instrument Serif',Georgia,serif;font-style:italic;font-size:28px;font-weight:400;letter-spacing:-.3px;opacity:.5">Luna Atelier</div>
+          </div>
+          <div style="position:absolute;inset:0;background:rgba(52,40,31,.34);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px)"></div>
+
+          <section style="position:absolute;bottom:0;left:0;right:0;max-height:88%;overflow:auto;padding:22px 22px 26px;border-radius:32px 32px 0 0;background:rgba(250,248,245,.82);backdrop-filter:blur(40px) saturate(1.8);-webkit-backdrop-filter:blur(40px) saturate(1.8);border-top:1px solid rgba(255,255,255,.9);box-shadow:0 -20px 60px -10px rgba(52,40,31,.35)">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:22px">
+              <h2 style="margin:0;font-family:'Instrument Serif',Georgia,serif;font-style:italic;font-size:26px;line-height:1.15;letter-spacing:-.2px;font-weight:400;color:#201d1a">Solicitar comisión a<br><span style="color:#c2653b">Luna Atelier</span></h2>
+              <button style="width:34px;height:34px;flex:none;border-radius:50%;display:grid;place-items:center;background:rgba(120,100,80,.09);color:#5c534b"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"></path></svg></button>
+            </div>
+
+            <div style="display:flex;flex-direction:column;gap:18px">
+              <div>
+                <label style="display:block;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#8b8279;font-weight:600;margin-bottom:8px">Describe tu idea</label>
+                <div style="height:96px;padding:14px;border-radius:16px;background:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.9);box-shadow:inset 0 1px 2px rgba(88,64,44,.05);font-size:13px;color:#a49a90">Contale a Luna qué tenés en mente…</div>
+              </div>
+              <div>
+                <label style="display:block;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#8b8279;font-weight:600;margin-bottom:8px">Referencias</label>
+                <button style="width:100%;display:flex;align-items:center;gap:10px;padding:15px;border-radius:16px;background:rgba(255,255,255,.4);border:1px dashed rgba(140,118,96,.4);color:#7f766d;font-size:13px;font-weight:500"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="15" rx="3"></rect><circle cx="8.8" cy="9.6" r="1.5"></circle><path d="M20.5 15.5 16 11l-9.5 8.5"></path></svg>Agregar referencias<span style="margin-left:auto;color:#c2653b;font-size:18px;line-height:1">+</span></button>
+              </div>
+              <div style="display:flex;gap:12px">
+                <div style="flex:1">
+                  <label style="display:block;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#8b8279;font-weight:600;margin-bottom:8px">Presupuesto</label>
+                  <div style="display:flex;align-items:center;gap:6px;padding:15px;border-radius:16px;background:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.9);font-size:13.5px;color:#201d1a;font-weight:600"><span style="color:#a49a90">$</span>240<span style="color:#a49a90;font-weight:500;font-size:12px">USD</span></div>
+                </div>
+                <div style="flex:1">
+                  <label style="display:block;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#8b8279;font-weight:600;margin-bottom:8px">Plazo deseado</label>
+                  <button style="width:100%;display:flex;align-items:center;gap:8px;padding:15px;border-radius:16px;background:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.9);color:#7f766d;font-size:13px;font-weight:500"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="3.5" y="5.5" width="17" height="15" rx="3"></rect><path d="M8 3.5v4M16 3.5v4M3.5 10.5h17"></path></svg>Elegir</button>
+                </div>
+              </div>
+              <div style="display:flex;gap:10px;align-items:flex-start;padding:13px 14px;border-radius:16px;background:rgba(194,101,59,.09);border:1px solid rgba(194,101,59,.18)">
+                <span style="color:#a1512d;flex:none;margin-top:1px"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="4.5" y="10.5" width="15" height="10" rx="3"></rect><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"></path></svg></span>
+                <p style="margin:0;font-size:11.5px;line-height:1.5;color:#8a5636">El pago queda retenido hasta que apruebes la entrega.</p>
+              </div>
+              <button style="width:100%;display:flex;align-items:center;justify-content:center;gap:9px;padding:17px;border-radius:18px;background:#c2653b;color:#fff;font-size:14.5px;font-weight:600;box-shadow:0 14px 30px -10px rgba(194,101,59,.7)">Enviar solicitud<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2.5 10.5 13.5"></path><path d="M21.5 2.5 14.6 21.5 10.5 13.5 2.5 9.4z"></path></svg></button>
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+
+    <!-- CHAT -->
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <sc-if value="{{ showFrameLabels }}" hint-placeholder-val="{{ true }}"><div style="font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#9b9187;font-weight:600;padding-left:4px">06 · Negociación</div></sc-if>
+      <div style="position:relative;width:390px;height:844px;border-radius:52px;padding:5px;background:#e2ddd5;box-shadow:0 30px 70px -20px rgba(80,60,42,.35),0 2px 6px rgba(80,60,42,.12)">
+        <div style="position:relative;width:100%;height:100%;border-radius:47px;overflow:hidden;background:#f7f5f1">
+          <div style="position:absolute;inset:0;background:radial-gradient(50% 30% at 85% 12%,rgba(214,150,104,.16),transparent 70%),radial-gradient(50% 30% at 10% 70%,rgba(176,164,196,.14),transparent 70%)"></div>
+          <div style="position:absolute;inset:0;overflow:auto;padding:200px 18px 100px;display:flex;flex-direction:column;gap:10px">
+            <div style="text-align:center;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#a49a90;font-weight:600;margin-bottom:4px">Hoy 10:42</div>
+            <div style="max-width:78%;align-self:flex-start;padding:12px 15px;border-radius:20px 20px 20px 6px;background:rgba(255,255,255,.7);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.9);font-size:13px;line-height:1.45;color:#3d362f;box-shadow:0 4px 14px rgba(88,64,44,.06)">Hola, ya vi tus referencias y tengo una idea bastante clara.</div>
+            <div style="max-width:78%;align-self:flex-end;padding:12px 15px;border-radius:20px 20px 6px 20px;background:#2a2521;color:#f4efe8;font-size:13px;line-height:1.45;box-shadow:0 6px 18px -6px rgba(42,37,33,.5)">¡Perfecto! Me emociona mucho verlo.</div>
+            <div style="align-self:flex-end;font-size:9.5px;color:#a49a90;margin-top:-4px">10:44 · Visto</div>
+
+            <div style="align-self:flex-start;width:80%;margin-top:8px;padding:16px;border-radius:22px 22px 22px 8px;background:rgba(255,255,255,.62);backdrop-filter:blur(30px) saturate(1.7);-webkit-backdrop-filter:blur(30px) saturate(1.7);border:1px solid rgba(255,255,255,.92);box-shadow:0 10px 28px -8px rgba(88,64,44,.18);display:flex;flex-direction:column;gap:10px">
+              <div style="font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#a1512d;font-weight:700">Propuesta de comisión</div>
+              <div>
+                <div style="font-size:14px;font-weight:600;color:#201d1a">Ilustración editorial</div>
+                <div style="font-size:11.5px;color:#8b8279;margin-top:3px">2 revisiones · entrega 12 dic</div>
+              </div>
+              <div style="font-size:27px;font-weight:600;letter-spacing:-1px;color:#201d1a">$240 <span style="font-size:12px;font-weight:500;color:#948b82;letter-spacing:0">USD</span></div>
+              <div style="display:flex;gap:8px;margin-top:2px">
+                <button style="flex:1;padding:11px;border-radius:13px;background:#c2653b;color:#fff;font-size:12.5px;font-weight:600;box-shadow:0 8px 18px -8px rgba(194,101,59,.7)">Aceptar</button>
+                <button style="flex:1;padding:11px;border-radius:13px;background:rgba(120,100,80,.08);color:#4a423a;font-size:12.5px;font-weight:600">Contraofertar</button>
+              </div>
+            </div>
+          </div>
+
+          <header style="position:absolute;top:0;left:0;right:0;padding:28px 16px 12px;background:rgba(247,245,241,.62);backdrop-filter:blur(30px) saturate(1.8);-webkit-backdrop-filter:blur(30px) saturate(1.8);border-bottom:1px solid rgba(255,255,255,.7)">
+            <div style="display:flex;align-items:center;gap:11px">
+              <button style="width:32px;height:32px;display:grid;place-items:center;background:transparent;color:#4a423a"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M15 19.5 7.5 12 15 4.5"></path></svg></button>
+              <div style="width:36px;height:36px;border-radius:50%;border:1px solid rgba(255,255,255,.9);display:grid;place-items:center;background:#c2653b;color:#fdf8f3;font-family:'Instrument Serif',Georgia,serif;font-style:italic;font-size:18px;line-height:1">L</div>
+              <div style="flex:1"><b style="display:block;font-size:14px;font-weight:600;color:#201d1a;letter-spacing:-.2px">Luna Atelier</b><small style="font-size:11px;color:#948b82">Comisión #2481</small></div>
+              <button style="width:32px;height:32px;display:grid;place-items:center;background:transparent;color:#948b82"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="5.5" cy="12" r="1.2" fill="currentColor" stroke="none"></circle><circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none"></circle><circle cx="18.5" cy="12" r="1.2" fill="currentColor" stroke="none"></circle></svg></button>
+            </div>
+
+            <div style="margin-top:12px;padding:14px 15px;border-radius:20px;background:rgba(255,255,255,.55);backdrop-filter:blur(26px) saturate(1.6);-webkit-backdrop-filter:blur(26px) saturate(1.6);border:1px solid rgba(255,255,255,.9);box-shadow:0 6px 20px rgba(88,64,44,.07)">
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <span style="font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#8b8279;font-weight:700">Estado</span>
+                <span style="padding:3px 9px;border-radius:20px;background:rgba(194,101,59,.13);color:#a1512d;font-size:10px;font-weight:700;letter-spacing:.04em">Negociando</span>
+              </div>
+              <div style="display:flex;align-items:flex-start;margin-top:14px">
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px"><span style="display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:#c2653b;color:#fff"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6.5 9.2 17.3 4 12.1"></path></svg></span><span style="font-size:8.5px;color:#8b8279;font-weight:600;letter-spacing:.03em">Pendiente</span></div>
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px"><span style="display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:#c2653b;color:#fff;box-shadow:0 0 0 4px rgba(194,101,59,.16)"><span style="width:7px;height:7px;border-radius:50%;background:#fff;display:block"></span></span><span style="font-size:8.5px;color:#a1512d;font-weight:700;letter-spacing:.03em">Negociando</span></div>
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px"><span style="display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:rgba(120,100,80,.14)"></span><span style="font-size:8.5px;color:#a49a90;font-weight:600;letter-spacing:.03em">Pagado</span></div>
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px"><span style="display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:rgba(120,100,80,.14)"></span><span style="font-size:8.5px;color:#a49a90;font-weight:600;letter-spacing:.03em">Entregado</span></div>
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px"><span style="display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:rgba(120,100,80,.14)"></span><span style="font-size:8.5px;color:#a49a90;font-weight:600;letter-spacing:.03em">Liberado</span></div>
+              </div>
+            </div>
+          </header>
+
+          <div style="position:absolute;bottom:0;left:0;right:0;padding:12px 14px 26px;display:flex;align-items:center;gap:9px;background:rgba(247,245,241,.7);backdrop-filter:blur(30px) saturate(1.8);-webkit-backdrop-filter:blur(30px) saturate(1.8);border-top:1px solid rgba(255,255,255,.85)">
+            <button style="width:38px;height:38px;flex:none;display:grid;place-items:center;border-radius:50%;background:rgba(255,255,255,.6);border:1px solid rgba(255,255,255,.9);color:#5c534b"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M20.8 11.6 12 20.4a4.6 4.6 0 0 1-6.5-6.5l8.2-8.2a3.2 3.2 0 0 1 4.6 4.6l-8.2 8.2a1.8 1.8 0 0 1-2.6-2.6l7.4-7.4"></path></svg></button>
+            <div style="flex:1;padding:12px 15px;border-radius:20px;background:rgba(255,255,255,.65);border:1px solid rgba(255,255,255,.9);font-size:13px;color:#a49a90">Escribí un mensaje…</div>
+            <button style="width:38px;height:38px;flex:none;display:grid;place-items:center;border-radius:50%;background:#c2653b;color:#fff;box-shadow:0 8px 18px -6px rgba(194,101,59,.6)"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2.5 10.5 13.5"></path><path d="M21.5 2.5 14.6 21.5 10.5 13.5 2.5 9.4z"></path></svg></button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- INBOX -->
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <sc-if value="{{ showFrameLabels }}" hint-placeholder-val="{{ true }}"><div style="font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#9b9187;font-weight:600;padding-left:4px">07 · Mensajes</div></sc-if>
+      <div style="position:relative;width:390px;height:844px;border-radius:52px;padding:5px;background:#e2ddd5;box-shadow:0 30px 70px -20px rgba(80,60,42,.35),0 2px 6px rgba(80,60,42,.12)">
+        <div style="position:relative;width:100%;height:100%;border-radius:47px;overflow:hidden;background:#f7f5f1">
+          <div style="position:absolute;inset:0;overflow:auto;padding:128px 16px 118px">
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <button style="display:flex;align-items:center;gap:12px;padding:14px;border-radius:20px;text-align:left;background:rgba(255,255,255,.6);backdrop-filter:blur(26px) saturate(1.6);-webkit-backdrop-filter:blur(26px) saturate(1.6);border:1px solid rgba(255,255,255,.9);box-shadow:0 6px 20px rgba(88,64,44,.07)">
+                <div style="position:relative;flex:none"><div style="width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:#c2653b;color:#fdf8f3;font-family:'Instrument Serif',Georgia,serif;font-style:italic;font-size:22px;line-height:1">L</div><span style="position:absolute;right:-1px;bottom:-1px;width:11px;height:11px;border-radius:50%;background:#c2653b;border:2px solid #faf8f5;display:block"></span></div>
+                <div style="flex:1;min-width:0">
+                  <div style="display:flex;align-items:center;gap:7px"><b style="font-size:13.5px;font-weight:600;color:#201d1a">Luna Atelier</b><span style="padding:2px 7px;border-radius:20px;background:rgba(194,101,59,.13);color:#a1512d;font-size:9px;font-weight:700;letter-spacing:.05em;text-transform:uppercase">Negociando</span></div>
+                  <div style="font-size:12px;color:#7f766d;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">¡Me encanta la idea! Te envío una propuesta…</div>
+                </div>
+                <span style="font-size:10px;color:#a49a90;align-self:flex-start;flex:none">ahora</span>
+              </button>
+
+              <button style="display:flex;align-items:center;gap:12px;padding:14px;border-radius:20px;text-align:left;background:rgba(255,255,255,.6);backdrop-filter:blur(26px) saturate(1.6);-webkit-backdrop-filter:blur(26px) saturate(1.6);border:1px solid rgba(255,255,255,.9);box-shadow:0 6px 20px rgba(88,64,44,.07)">
+                <div style="position:relative;flex:none"><div style="width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:#3f6b63;color:#fdf8f3;font-family:'Instrument Serif',Georgia,serif;font-style:italic;font-size:22px;line-height:1">M</div><span style="position:absolute;right:-1px;bottom:-1px;width:11px;height:11px;border-radius:50%;background:#c2653b;border:2px solid #faf8f5;display:block"></span></div>
+                <div style="flex:1;min-width:0">
+                  <div style="display:flex;align-items:center;gap:7px"><b style="font-size:13.5px;font-weight:600;color:#201d1a">Mateo Ríos</b><span style="padding:2px 7px;border-radius:20px;background:rgba(94,120,86,.14);color:#4d6845;font-size:9px;font-weight:700;letter-spacing:.05em;text-transform:uppercase">Entregado</span></div>
+                  <div style="font-size:12px;color:#7f766d;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Tu obra ya está lista para revisión.</div>
+                </div>
+                <span style="font-size:10px;color:#a49a90;align-self:flex-start;flex:none">ayer</span>
+              </button>
+
+              <button style="display:flex;align-items:center;gap:12px;padding:14px;border-radius:20px;text-align:left;background:rgba(255,255,255,.42);border:1px solid rgba(255,255,255,.75)">
+                <div style="width:44px;height:44px;border-radius:50%;flex:none;display:grid;place-items:center;background:#d99a3f;color:#fdf8f3;font-family:'Instrument Serif',Georgia,serif;font-style:italic;font-size:22px;line-height:1">S</div>
+                <div style="flex:1;min-width:0">
+                  <div style="display:flex;align-items:center;gap:7px"><b style="font-size:13.5px;font-weight:500;color:#3d362f">Sofi Cerámica</b><span style="padding:2px 7px;border-radius:20px;background:rgba(120,100,80,.11);color:#7f766d;font-size:9px;font-weight:700;letter-spacing:.05em;text-transform:uppercase">Pagado</span></div>
+                  <div style="font-size:12px;color:#948b82;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">¿Qué tamaño estabas pensando?</div>
+                </div>
+                <span style="font-size:10px;color:#a49a90;align-self:flex-start;flex:none">lun</span>
+              </button>
+
+              <button style="display:flex;align-items:center;gap:12px;padding:14px;border-radius:20px;text-align:left;background:rgba(255,255,255,.42);border:1px solid rgba(255,255,255,.75)">
+                <div style="width:44px;height:44px;border-radius:50%;flex:none;display:grid;place-items:center;background:#7a6552;color:#fdf8f3;font-family:'Instrument Serif',Georgia,serif;font-style:italic;font-size:22px;line-height:1">T</div>
+                <div style="flex:1;min-width:0">
+                  <div style="display:flex;align-items:center;gap:7px"><b style="font-size:13.5px;font-weight:500;color:#3d362f">Taller Norte</b><span style="padding:2px 7px;border-radius:20px;background:rgba(120,100,80,.11);color:#7f766d;font-size:9px;font-weight:700;letter-spacing:.05em;text-transform:uppercase">Liberado</span></div>
+                  <div style="font-size:12px;color:#948b82;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Gracias por la reseña, fue un placer.</div>
+                </div>
+                <span style="font-size:10px;color:#a49a90;align-self:flex-start;flex:none">3 sep</span>
+              </button>
+            </div>
+          </div>
+
+          <header style="position:absolute;top:0;left:0;right:0;padding:28px 16px 12px;background:rgba(247,245,241,.62);backdrop-filter:blur(28px) saturate(1.7);-webkit-backdrop-filter:blur(28px) saturate(1.7);border-bottom:1px solid rgba(255,255,255,.7)">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+              <h1 style="margin:0;font-family:'Instrument Serif',Georgia,serif;font-style:italic;font-size:30px;font-weight:400;letter-spacing:-.2px;color:#201d1a">Mensajes</h1>
+              <button style="width:34px;height:34px;display:grid;place-items:center;border-radius:50%;background:rgba(255,255,255,.55);border:1px solid rgba(255,255,255,.85);color:#4a423a"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="10.8" cy="10.8" r="7.3"></circle><path d="M16.2 16.2 21 21"></path></svg></button>
+            </div>
+            <div style="display:flex;padding:3px;border-radius:14px;background:rgba(120,100,80,.09)">
+              <button style="flex:1;padding:9px;border-radius:11px;background:transparent;color:#8b8279;font-size:12.5px;font-weight:500">Chats</button>
+              <button style="flex:1;padding:9px;border-radius:11px;background:rgba(255,255,255,.9);color:#201d1a;font-size:12.5px;font-weight:600;box-shadow:0 2px 8px rgba(88,64,44,.1)">Comisiones</button>
+            </div>
+          </header>
+
+          <div style="position:absolute;bottom:0;left:0;right:0;height:104px;pointer-events:none">
+            <div style="position:absolute;bottom:0;left:0;right:0;height:104px;clip-path:path('M0,36 C73,36 112,36 133,32 C159,26 163,4 190,4 C217,4 221,26 247,32 C268,36 307,36 380,36 L380,104 L0,104 Z');overflow:hidden"><div style="position:absolute;inset:0;background:rgba(252,250,247,.82);backdrop-filter:blur(30px) saturate(1.2);-webkit-backdrop-filter:blur(30px) saturate(1.2)"></div></div><nav style="position:absolute;bottom:0;left:0;right:0;box-sizing:border-box;height:104px;display:flex;align-items:flex-start;padding:48px 12px 0;pointer-events:auto">
+              <button style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;background:transparent;color:#574e46;font-size:9.5px;font-weight:600;letter-spacing:.06em"><svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.6 12 3.4l9 7.2V20a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 20z"></path><path d="M9.5 21.5v-6h5v6"></path></svg>INICIO</button>
+              <button style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;background:transparent;color:#574e46;font-size:9.5px;font-weight:600;letter-spacing:.06em"><svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"></circle><path d="M15.4 8.6l-1.7 5.1-5.1 1.7 1.7-5.1z"></path></svg>EXPLORAR</button>
+              <div style="flex:1"></div>
+              <button style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;background:transparent;color:#a1512d;font-size:9.5px;font-weight:700;letter-spacing:.06em"><svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 11.6a8 8 0 0 1-11.6 7.1L4 20.5l1.8-4.9A8 8 0 1 1 20.5 11.6z"></path></svg>MENSAJES</button>
+              <button style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;background:transparent;color:#574e46;font-size:9.5px;font-weight:600;letter-spacing:.06em"><svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"></circle><path d="M4.5 20.5a7.5 7.5 0 0 1 15 0"></path></svg>PERFIL</button>
+            </nav><svg width="380" height="104" viewBox="0 0 380 104" fill="none" aria-hidden="true" style="position:absolute;bottom:0;left:0;pointer-events:none;-webkit-mask:linear-gradient(90deg,transparent 0,#000 14%,#000 86%,transparent 100%);mask:linear-gradient(90deg,transparent 0,#000 14%,#000 86%,transparent 100%)"><path d="M0,36 C73,36 112,36 133,32 C159,26 163,4 190,4 C217,4 221,26 247,32 C268,36 307,36 380,36" stroke="rgba(255,255,255,.9)" stroke-width="1.5"></path></svg>
+            <button style="position:absolute;bottom:54px;left:50%;transform:translateX(-50%);width:58px;height:58px;border-radius:50%;display:grid;place-items:center;background:#c2653b;color:#fff;box-shadow:0 12px 26px -4px rgba(194,101,59,.5),inset 0 1px 0 rgba(255,255,255,.35);pointer-events:auto"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">{{ fabIcon }}</svg></button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CREATE -->
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <sc-if value="{{ showFrameLabels }}" hint-placeholder-val="{{ true }}"><div style="font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#9b9187;font-weight:600;padding-left:4px">08 · Crear</div></sc-if>
+      <div style="position:relative;width:390px;height:844px;border-radius:52px;padding:5px;background:#e2ddd5;box-shadow:0 30px 70px -20px rgba(80,60,42,.35),0 2px 6px rgba(80,60,42,.12)">
+        <div style="position:relative;width:100%;height:100%;border-radius:47px;overflow:hidden;background:#f7f5f1">
+          <div style="position:absolute;inset:0;background:radial-gradient(60% 34% at 50% 6%,rgba(214,150,104,.18),transparent 72%)"></div>
+          <div style="position:absolute;inset:0;overflow:auto;padding:88px 20px 40px">
+            <div style="height:326px;border-radius:26px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:rgba(255,255,255,.5);backdrop-filter:blur(26px) saturate(1.6);-webkit-backdrop-filter:blur(26px) saturate(1.6);border:1px dashed rgba(140,118,96,.38);box-shadow:0 10px 30px rgba(88,64,44,.07);color:#8b8279">
+              <svg viewBox="0 0 24 24" width="38" height="38" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="15" rx="3"></rect><circle cx="8.8" cy="9.6" r="1.5"></circle><path d="M20.5 15.5 16 11l-9.5 8.5"></path></svg>
+              <b style="font-size:15px;font-weight:600;color:#201d1a">Muestra tu creatividad</b>
+              <small style="font-size:12px;color:#948b82">Imagen, audio o video</small>
+              <div style="display:flex;gap:7px;margin-top:8px">
+                <span style="padding:7px 13px;border-radius:20px;background:rgba(255,255,255,.75);border:1px solid rgba(255,255,255,.9);font-size:11px;font-weight:600;color:#5c534b">Galería</span>
+                <span style="padding:7px 13px;border-radius:20px;background:rgba(255,255,255,.75);border:1px solid rgba(255,255,255,.9);font-size:11px;font-weight:600;color:#5c534b">Cámara</span>
+                <span style="padding:7px 13px;border-radius:20px;background:rgba(255,255,255,.75);border:1px solid rgba(255,255,255,.9);font-size:11px;font-weight:600;color:#5c534b">Audio</span>
+              </div>
+            </div>
+
+            <div style="margin:22px 0 4px;font-size:15.5px;color:#a49a90;line-height:1.5">¿Qué estás pensando?</div>
+            <div style="height:1px;background:rgba(120,100,80,.13);margin:20px 0"></div>
+
+            <div style="font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:#8b8279;font-weight:600;margin-bottom:11px">Categoría</div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px">
+              <sc-for list="{{ categories }}" as="cat" hint-placeholder-count="5">
+                <button onClick="{{ cat.pick }}" style="padding:9px 14px;border-radius:20px;background:rgba(255,255,255,.6);border:1px solid rgba(255,255,255,.9);color:#5c534b;font-size:12px;font-weight:500;transition:background .2s,color .2s" style-hover="background:rgba(255,255,255,.85)" data-sel="{{ cat.selected }}">{{ cat.label }}</button>
+              </sc-for>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;margin-top:16px;font-size:11px;color:#948b82;line-height:1.45">
+              <span style="display:grid;place-items:center;width:30px;height:30px;flex:none;border-radius:50%;background:rgba(194,101,59,.12);color:#a1512d"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">{{ fabIcon }}</svg></span>
+              El botón de crear adopta el símbolo de tu disciplina.
+            </div>
+
+            <div style="display:flex;align-items:center;gap:11px;margin-top:26px;padding:15px;border-radius:18px;background:rgba(255,255,255,.5);border:1px solid rgba(255,255,255,.85)">
+              <span style="color:#5c534b"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="4.5" y="10.5" width="15" height="10" rx="3"></rect><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"></path></svg></span>
+              <div style="flex:1"><div style="font-size:13px;font-weight:600;color:#201d1a">Abierto a comisiones</div><div style="font-size:11px;color:#948b82;margin-top:2px">Muestra el badge en esta obra</div></div>
+              <span style="width:44px;height:27px;border-radius:20px;background:#c2653b;display:flex;align-items:center;justify-content:flex-end;padding:3px;box-shadow:inset 0 1px 3px rgba(0,0,0,.15)"><span style="width:21px;height:21px;border-radius:50%;background:#fff;display:block;box-shadow:0 1px 3px rgba(0,0,0,.2)"></span></span>
+            </div>
+          </div>
+
+          <header style="position:absolute;top:0;left:0;right:0;display:flex;align-items:center;justify-content:space-between;padding:28px 16px 12px;background:rgba(247,245,241,.62);backdrop-filter:blur(28px) saturate(1.7);-webkit-backdrop-filter:blur(28px) saturate(1.7);border-bottom:1px solid rgba(255,255,255,.7)">
+            <button style="background:transparent;color:#7f766d;font-size:14px;font-weight:500;padding:6px 2px">Cancelar</button>
+            <div style="font-size:15px;font-weight:600;letter-spacing:-.3px;color:#201d1a">Nueva obra</div>
+            <button style="padding:9px 17px;border-radius:14px;background:#c2653b;color:#fff;font-size:13px;font-weight:600;box-shadow:0 8px 18px -8px rgba(194,101,59,.7)">Publicar</button>
+          </header>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;showFrameLabels&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Presentación&quot;},&quot;category&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Dibujantes&quot;,&quot;Músicos&quot;,&quot;Pintores&quot;,&quot;Artesanos&quot;,&quot;Escultores&quot;],&quot;default&quot;:&quot;Dibujantes&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Contenido&quot;}}">
+const P = (d, i) => React.createElement('path', { key: i, d });
+const ICONS = {
+  palette: ['M12 3.2a8.8 8.8 0 0 0 0 17.6c1.3 0 2.1-.8 2.1-1.9 0-.9-.7-1.6-.7-2.4 0-1 .8-1.7 1.8-1.7h1.6a4 4 0 0 0 4-4.1c0-4.2-3.9-7.5-8.8-7.5z', 'M8.6 9.4h.01', 'M12 7.4h.01', 'M15.4 9.6h.01'],
+  vinyl: ['M12 3a9 9 0 1 1 0 18 9 9 0 0 1 0-18z', 'M12 8.5a3.5 3.5 0 1 1 0 7 3.5 3.5 0 0 1 0-7z', 'M12 11.6h.01'],
+  vase: ['M8.8 3.2h6.4', 'M10 3.4c0 2.1-3.2 3.1-3.2 7.1a5.2 5.2 0 0 0 10.4 0c0-4-3.2-5-3.2-7.1'],
+};
+const mkIcon = key => React.createElement(React.Fragment, null, ICONS[key].map(P));
+const CATS = [
+  { label: 'Dibujantes', icon: '#i-palette', ico: 'palette' },
+  { label: 'Músicos', icon: '#i-vinyl', ico: 'vinyl' },
+  { label: 'Pintores', icon: '#i-palette', ico: 'palette' },
+  { label: 'Artesanos', icon: '#i-vase', ico: 'vase' },
+  { label: 'Escultores', icon: '#i-vase', ico: 'vase' },
+];
+
+class Component extends DCLogic {
+  state = { cat: null };
+  renderVals() {
+    const active = this.state.cat ?? this.props.category ?? 'Dibujantes';
+    const found = CATS.find(c => c.label === active) || CATS[0];
+    return {
+      showFrameLabels: this.props.showFrameLabels ?? true,
+      fabIcon: mkIcon(found.ico),
+      categories: CATS.map(c => ({
+        label: c.label,
+        selected: c.label === active ? 'true' : 'false',
+        pick: () => this.setState({ cat: c.label }),
+      })),
+    };
+  }
+}
+</script>
+</body>
+</html>
