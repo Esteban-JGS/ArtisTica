@@ -61,20 +61,28 @@ const ITEM_COLORS: Record<MenuItem['kind'], { bg: string; fg: string }> = {
   inactive: { bg: CREAM, fg: INK },
 };
 
+const STAGGER = 0.08;
+
 function SpeedDialItem({
   item,
   index,
+  total,
   progress,
 }: {
   item: MenuItem;
   index: number;
+  total: number;
   progress: SharedValue<number>;
 }) {
   const offset = offsetForIndex(index);
   const colors = ITEM_COLORS[item.kind];
+  // Every item must reach itemProgress === 1 exactly when progress === 1,
+  // no matter its stagger delay, or it never settles into its final slot.
+  const start = index * STAGGER;
+  const span = 1 - (total - 1) * STAGGER;
 
   const animatedStyle = useAnimatedStyle(() => {
-    const itemProgress = Math.min(Math.max(progress.value * 1.35 - index * 0.1, 0), 1);
+    const itemProgress = Math.min(Math.max((progress.value - start) / span, 0), 1);
     return {
       opacity: itemProgress,
       transform: [
@@ -197,7 +205,13 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
           alignItems: 'flex-end',
         }}>
         {items.map((item, index) => (
-          <SpeedDialItem key={item.key} item={item} index={index} progress={progress} />
+          <SpeedDialItem
+            key={item.key}
+            item={item}
+            index={index}
+            total={items.length}
+            progress={progress}
+          />
         ))}
 
         <Pressable
