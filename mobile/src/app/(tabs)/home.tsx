@@ -10,6 +10,8 @@ import Animated, {
   useAnimatedScrollHandler,
   useAnimatedStyle,
   useSharedValue,
+  withSpring,
+  type SharedValue,
 } from 'react-native-reanimated';
 
 const FLOAT_SHADOW = {
@@ -47,6 +49,13 @@ const NOTE_SHADOW = {
   shadowOffset: { width: 0, height: 6 },
   elevation: 6,
 };
+
+// The notes are only "taped" at the top, so a quick scroll should make
+// them sway a little, like they're swinging from that one pinned edge,
+// and settle back once you stop.
+const TILT_SPRING = { damping: 9, stiffness: 140, mass: 0.4 };
+const TILT_MAX_DEG = 2.5;
+const TILT_FACTOR = 0.7;
 
 function WashiTape({ color, rotation }: { color: string; rotation: number }) {
   return (
@@ -105,19 +114,111 @@ const POSTS = [
   },
 ];
 
+type Post = (typeof POSTS)[number];
+
+function NoteCard({
+  post,
+  rotation,
+  noteTilt,
+}: {
+  post: Post;
+  rotation: number;
+  noteTilt: SharedValue<number>;
+}) {
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${rotation + noteTilt.value}deg` }],
+  }));
+
+  return (
+    <Animated.View style={[animatedStyle, NOTE_SHADOW]} className="rounded-xl">
+      <WashiTape color={ROLE_BADGE_COLORS[post.color].fg} rotation={rotation * -2.4} />
+      <View className="gap-3 overflow-hidden rounded-xl bg-sand-50 p-4">
+        <PaperTexture width={420} height={900} speckOpacity={0.5} />
+        <View className="flex-row items-center gap-3">
+          <Avatar initial={post.initial} color={post.color} />
+          <View className="flex-1">
+            <View className="flex-row items-center gap-2">
+              <Text className="font-semibold text-ink">{post.name}</Text>
+              <View
+                className="rounded-full px-2 py-0.5"
+                style={{ backgroundColor: ROLE_BADGE_COLORS[post.color].bg }}>
+                <Text
+                  className="text-xs font-medium"
+                  style={{ color: ROLE_BADGE_COLORS[post.color].fg }}>
+                  {post.role}
+                </Text>
+              </View>
+            </View>
+            <Text className="text-xs text-stone-700">
+              {post.time} · {post.place}
+            </Text>
+          </View>
+          <Ionicons name="ellipsis-horizontal" size={18} color="#8b8279" />
+        </View>
+
+        <View className="overflow-hidden rounded-2xl">
+          <Image source={{ uri: post.image }} className="aspect-[4/5] w-full" />
+          {post.acceptsCommissions && (
+            <View className="absolute bottom-3 left-3 rounded-full bg-ink/70 px-3 py-1.5">
+              <Text className="text-xs font-medium text-sand-50">Acepta comisiones</Text>
+            </View>
+          )}
+        </View>
+
+        <View className="flex-row items-center gap-5">
+          <View className="flex-row items-center gap-1.5">
+            <Ionicons name="heart-outline" size={20} color="#c2653b" />
+            <Text className="text-sm text-stone-800">{post.likes}</Text>
+          </View>
+          <View className="flex-row items-center gap-1.5">
+            <Ionicons name="chatbubble-outline" size={19} color="#8b8279" />
+            <Text className="text-sm text-stone-800">{post.comments}</Text>
+          </View>
+          <View className="flex-row items-center gap-1.5">
+            <Ionicons name="paper-plane-outline" size={19} color="#8b8279" />
+            <Text className="text-sm text-stone-800">{post.shares}</Text>
+          </View>
+          <View className="flex-1 items-end">
+            <Ionicons name="bookmark-outline" size={19} color="#8b8279" />
+          </View>
+        </View>
+
+        <Text className="text-sm text-ink">{post.caption}</Text>
+      </View>
+    </Animated.View>
+  );
+}
+
 export default function InicioScreen() {
   const [tab, setTab] = useState<'seguidos' | 'para-ti'>('seguidos');
   const [isCollapsed, setIsCollapsed] = useState(false);
   const scrollY = useSharedValue(0);
   const wasCollapsed = useSharedValue(false);
+  const previousScrollY = useSharedValue(0);
+  const noteTilt = useSharedValue(0);
 
-  const scrollHandler = useAnimatedScrollHandler((event) => {
-    scrollY.value = event.contentOffset.y;
-    const shouldCollapse = event.contentOffset.y > COLLAPSE_DISTANCE;
-    if (shouldCollapse !== wasCollapsed.value) {
-      wasCollapsed.value = shouldCollapse;
-      runOnJS(setIsCollapsed)(shouldCollapse);
-    }
+  const scrollHandler = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      const y = event.contentOffset.y;
+      scrollY.value = y;
+
+      const delta = y - previousScrollY.value;
+      previousScrollY.value = y;
+      const target = Math.min(Math.max(delta * TILT_FACTOR, -TILT_MAX_DEG), TILT_MAX_DEG);
+      noteTilt.value = withSpring(target, TILT_SPRING);
+
+      const shouldCollapse = y > COLLAPSE_DISTANCE;
+      if (shouldCollapse !== wasCollapsed.value) {
+        wasCollapsed.value = shouldCollapse;
+        runOnJS(setIsCollapsed)(shouldCollapse);
+      }
+    },
+    onEndDrag: () => {
+      noteTilt.value = withSpring(0, TILT_SPRING);
+    },
+    onMomentumEnd: () => {
+      noteTilt.value = withSpring(0, TILT_SPRING);
+    },
   });
 
   const pillStyle = useAnimatedStyle(() => {
@@ -158,70 +259,14 @@ export default function InicioScreen() {
           </Text>
         </Pressable>
 
-        {POSTS.map((post, index) => {
-          const rotation = CARD_ROTATIONS[index % CARD_ROTATIONS.length];
-          return (
-          <View
+        {POSTS.map((post, index) => (
+          <NoteCard
             key={post.id}
-            style={[{ transform: [{ rotate: `${rotation}deg` }] }, NOTE_SHADOW]}
-            className="rounded-xl">
-            <WashiTape color={ROLE_BADGE_COLORS[post.color].fg} rotation={rotation * -2.4} />
-            <View className="gap-3 overflow-hidden rounded-xl bg-sand-50 p-4">
-              <PaperTexture width={420} height={900} speckOpacity={0.5} />
-            <View className="flex-row items-center gap-3">
-              <Avatar initial={post.initial} color={post.color} />
-              <View className="flex-1">
-                <View className="flex-row items-center gap-2">
-                  <Text className="font-semibold text-ink">{post.name}</Text>
-                  <View
-                    className="rounded-full px-2 py-0.5"
-                    style={{ backgroundColor: ROLE_BADGE_COLORS[post.color].bg }}>
-                    <Text
-                      className="text-xs font-medium"
-                      style={{ color: ROLE_BADGE_COLORS[post.color].fg }}>
-                      {post.role}
-                    </Text>
-                  </View>
-                </View>
-                <Text className="text-xs text-stone-700">
-                  {post.time} · {post.place}
-                </Text>
-              </View>
-              <Ionicons name="ellipsis-horizontal" size={18} color="#8b8279" />
-            </View>
-
-            <View className="overflow-hidden rounded-2xl">
-              <Image source={{ uri: post.image }} className="aspect-[4/5] w-full" />
-              {post.acceptsCommissions && (
-                <View className="absolute bottom-3 left-3 rounded-full bg-ink/70 px-3 py-1.5">
-                  <Text className="text-xs font-medium text-sand-50">Acepta comisiones</Text>
-                </View>
-              )}
-            </View>
-
-            <View className="flex-row items-center gap-5">
-              <View className="flex-row items-center gap-1.5">
-                <Ionicons name="heart-outline" size={20} color="#c2653b" />
-                <Text className="text-sm text-stone-800">{post.likes}</Text>
-              </View>
-              <View className="flex-row items-center gap-1.5">
-                <Ionicons name="chatbubble-outline" size={19} color="#8b8279" />
-                <Text className="text-sm text-stone-800">{post.comments}</Text>
-              </View>
-              <View className="flex-row items-center gap-1.5">
-                <Ionicons name="paper-plane-outline" size={19} color="#8b8279" />
-                <Text className="text-sm text-stone-800">{post.shares}</Text>
-              </View>
-              <View className="flex-1 items-end">
-                <Ionicons name="bookmark-outline" size={19} color="#8b8279" />
-              </View>
-            </View>
-
-            <Text className="text-sm text-ink">{post.caption}</Text>
-            </View>
-          </View>
-          );
-        })}
+            post={post}
+            rotation={CARD_ROTATIONS[index % CARD_ROTATIONS.length]}
+            noteTilt={noteTilt}
+          />
+        ))}
       </Animated.ScrollView>
 
       <View pointerEvents="box-none" className="absolute inset-x-0 top-0 pt-14">
