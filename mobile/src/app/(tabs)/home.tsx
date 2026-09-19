@@ -12,6 +12,10 @@ const FLOAT_SHADOW = {
   elevation: 5,
 };
 
+// Space reserved at the top of the scrollable content so it starts right
+// below the floating title card/bell instead of hiding behind them.
+const FLOATING_HEADER_HEIGHT = 112;
+
 const POSTS = [
   {
     id: '1',
@@ -50,48 +54,33 @@ export default function InicioScreen() {
 
   return (
     <View className="flex-1 bg-sand-100">
-      <View className="flex-row items-center justify-between px-5 pb-3 pt-14">
-        <View
-          className="flex-row items-center gap-2 rounded-2xl bg-sand-50 px-4 py-2.5"
-          style={FLOAT_SHADOW}>
-          <Image
-            source={require('@/assets/images/logo-mark.png')}
-            style={{ width: 22, height: 22 }}
-            resizeMode="contain"
-          />
-          <Text className="font-serif text-2xl italic text-ink">Artística</Text>
+      <ScrollView
+        contentContainerStyle={{ paddingTop: FLOATING_HEADER_HEIGHT }}
+        contentContainerClassName="gap-4 px-5 pb-5"
+        showsVerticalScrollIndicator={false}>
+        <View className="flex-row gap-6 pb-1">
+          <Pressable onPress={() => setTab('seguidos')} className="pb-3">
+            <Text
+              className={
+                tab === 'seguidos'
+                  ? 'border-b-2 border-accent pb-3 text-sm font-semibold text-ink'
+                  : 'text-sm font-medium text-stone-800'
+              }>
+              Seguidos
+            </Text>
+          </Pressable>
+          <Pressable onPress={() => setTab('para-ti')} className="pb-3">
+            <Text
+              className={
+                tab === 'para-ti'
+                  ? 'border-b-2 border-accent pb-3 text-sm font-semibold text-ink'
+                  : 'text-sm font-medium text-stone-800'
+              }>
+              Para ti
+            </Text>
+          </Pressable>
         </View>
-        <Pressable
-          className="h-11 w-11 items-center justify-center rounded-full bg-sand-50"
-          style={FLOAT_SHADOW}>
-          <Ionicons name="notifications-outline" size={20} color="#201d1a" />
-        </Pressable>
-      </View>
 
-      <View className="flex-row gap-6 px-5 pb-3">
-        <Pressable onPress={() => setTab('seguidos')} className="pb-3">
-          <Text
-            className={
-              tab === 'seguidos'
-                ? 'border-b-2 border-accent pb-3 text-sm font-semibold text-ink'
-                : 'text-sm font-medium text-stone-800'
-            }>
-            Seguidos
-          </Text>
-        </Pressable>
-        <Pressable onPress={() => setTab('para-ti')} className="pb-3">
-          <Text
-            className={
-              tab === 'para-ti'
-                ? 'border-b-2 border-accent pb-3 text-sm font-semibold text-ink'
-                : 'text-sm font-medium text-stone-800'
-            }>
-            Para ti
-          </Text>
-        </Pressable>
-      </View>
-
-      <ScrollView contentContainerClassName="gap-4 p-5" showsVerticalScrollIndicator={false}>
         {POSTS.map((post) => (
           <View key={post.id} className="gap-3 rounded-3xl bg-sand-50 p-4">
             <View className="flex-row items-center gap-3">
@@ -141,6 +130,26 @@ export default function InicioScreen() {
           </View>
         ))}
       </ScrollView>
+
+      <View
+        pointerEvents="box-none"
+        className="absolute inset-x-0 top-0 flex-row items-center justify-between px-5 pb-3 pt-14">
+        <View
+          className="flex-row items-center gap-2 rounded-2xl bg-sand-50 px-4 py-2.5"
+          style={FLOAT_SHADOW}>
+          <Image
+            source={require('@/assets/images/logo-mark.png')}
+            style={{ width: 22, height: 22 }}
+            resizeMode="contain"
+          />
+          <Text className="font-serif text-2xl italic text-ink">Artística</Text>
+        </View>
+        <Pressable
+          className="h-11 w-11 items-center justify-center rounded-full bg-sand-50"
+          style={FLOAT_SHADOW}>
+          <Ionicons name="notifications-outline" size={20} color="#201d1a" />
+        </Pressable>
+      </View>
     </View>
   );
 }
