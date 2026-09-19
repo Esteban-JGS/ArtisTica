@@ -145,7 +145,7 @@ export default function InicioScreen() {
         onScroll={scrollHandler}
         scrollEventThrottle={16}
         contentContainerStyle={{ paddingTop: FLOATING_HEADER_HEIGHT }}
-        contentContainerClassName="gap-4 px-5 pb-5"
+        contentContainerClassName="gap-8 px-5 pb-5"
         showsVerticalScrollIndicator={false}>
         <Pressable
           onPress={() => router.push('/create')}
