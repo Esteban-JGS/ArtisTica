@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import { useState } from 'react';
 import { Image, Pressable, ScrollView, Text, View } from 'react-native';
 
@@ -13,8 +14,8 @@ const FLOAT_SHADOW = {
 };
 
 // Space reserved at the top of the scrollable content so it starts right
-// below the floating title card/bell instead of hiding behind them.
-const FLOATING_HEADER_HEIGHT = 112;
+// below the floating title card/bell and the floating tab pill.
+const FLOATING_HEADER_HEIGHT = 168;
 
 const POSTS = [
   {
@@ -58,28 +59,16 @@ export default function InicioScreen() {
         contentContainerStyle={{ paddingTop: FLOATING_HEADER_HEIGHT }}
         contentContainerClassName="gap-4 px-5 pb-5"
         showsVerticalScrollIndicator={false}>
-        <View className="flex-row gap-6 pb-1">
-          <Pressable onPress={() => setTab('seguidos')} className="pb-3">
-            <Text
-              className={
-                tab === 'seguidos'
-                  ? 'border-b-2 border-accent pb-3 text-sm font-semibold text-ink'
-                  : 'text-sm font-medium text-stone-800'
-              }>
-              Seguidos
-            </Text>
-          </Pressable>
-          <Pressable onPress={() => setTab('para-ti')} className="pb-3">
-            <Text
-              className={
-                tab === 'para-ti'
-                  ? 'border-b-2 border-accent pb-3 text-sm font-semibold text-ink'
-                  : 'text-sm font-medium text-stone-800'
-              }>
-              Para ti
-            </Text>
-          </Pressable>
-        </View>
+        <Pressable
+          onPress={() => router.push('/create')}
+          className="flex-row items-center gap-3 rounded-3xl bg-sand-50 p-4">
+          <View className="h-12 w-12 items-center justify-center rounded-full bg-accent/10">
+            <Ionicons name="add" size={24} color="#c2653b" />
+          </View>
+          <Text className="flex-1 text-sm font-medium text-stone-700">
+            ¿Qué querés compartir hoy?
+          </Text>
+        </Pressable>
 
         {POSTS.map((post) => (
           <View key={post.id} className="gap-3 rounded-3xl bg-sand-50 p-4">
@@ -131,24 +120,53 @@ export default function InicioScreen() {
         ))}
       </ScrollView>
 
-      <View
-        pointerEvents="box-none"
-        className="absolute inset-x-0 top-0 flex-row items-center justify-between px-5 pb-3 pt-14">
-        <View
-          className="flex-row items-center gap-2 rounded-2xl bg-sand-50 px-4 py-2.5"
-          style={FLOAT_SHADOW}>
-          <Image
-            source={require('@/assets/images/logo-mark.png')}
-            style={{ width: 22, height: 22 }}
-            resizeMode="contain"
-          />
-          <Text className="font-serif text-2xl italic text-ink">Artística</Text>
+      <View pointerEvents="box-none" className="absolute inset-x-0 top-0 pt-14">
+        <View className="flex-row items-center justify-between px-5 pb-3">
+          <View
+            className="flex-row items-center gap-2 rounded-2xl bg-sand-50 px-4 py-2.5"
+            style={FLOAT_SHADOW}>
+            <Image
+              source={require('@/assets/images/logo-mark.png')}
+              style={{ width: 22, height: 22 }}
+              resizeMode="contain"
+            />
+            <Text className="font-serif text-2xl italic text-ink">Artística</Text>
+          </View>
+          <Pressable
+            className="h-11 w-11 items-center justify-center rounded-full bg-sand-50"
+            style={FLOAT_SHADOW}>
+            <Ionicons name="notifications-outline" size={20} color="#201d1a" />
+          </Pressable>
         </View>
-        <Pressable
-          className="h-11 w-11 items-center justify-center rounded-full bg-sand-50"
+
+        <View
+          className="mx-5 flex-row rounded-full bg-sand-200 p-1"
           style={FLOAT_SHADOW}>
-          <Ionicons name="notifications-outline" size={20} color="#201d1a" />
-        </Pressable>
+          <Pressable
+            onPress={() => setTab('seguidos')}
+            className={tab === 'seguidos' ? 'flex-1 rounded-full bg-sand-50 py-2' : 'flex-1 py-2'}>
+            <Text
+              className={
+                tab === 'seguidos'
+                  ? 'text-center text-sm font-semibold text-ink'
+                  : 'text-center text-sm text-stone-800'
+              }>
+              Seguidos
+            </Text>
+          </Pressable>
+          <Pressable
+            onPress={() => setTab('para-ti')}
+            className={tab === 'para-ti' ? 'flex-1 rounded-full bg-sand-50 py-2' : 'flex-1 py-2'}>
+            <Text
+              className={
+                tab === 'para-ti'
+                  ? 'text-center text-sm font-semibold text-ink'
+                  : 'text-center text-sm text-stone-800'
+              }>
+              Para ti
+            </Text>
+          </Pressable>
+        </View>
       </View>
     </View>
   );
