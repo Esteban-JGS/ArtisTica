@@ -330,12 +330,7 @@ function PostCard({ post }: { post: Post }) {
               <View className="h-4 w-px bg-sand-50/25" />
 
               <Pressable
-                onPress={() =>
-                  router.push({
-                    pathname: '/comments',
-                    params: { authorName: post.name, commentsCount: String(post.comments) },
-                  })
-                }
+                onPress={() => router.push('/comments')}
                 accessibilityRole="button"
                 accessibilityLabel={`Comentarios, ${post.comments}`}
                 className="h-11 flex-row items-center justify-center gap-1.5 px-3">

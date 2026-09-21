@@ -8,6 +8,7 @@ import {
 import { QueryClientProvider } from '@tanstack/react-query';
 import { Stack } from 'expo-router';
 import { View } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { queryClient } from '@/lib/query-client';
 
@@ -22,28 +23,30 @@ export default function RootLayout() {
   }
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="index" />
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="create" options={{ presentation: 'modal' }} />
-        <Stack.Screen
-          name="comments"
-          options={{
-            presentation: 'transparentModal',
-            animation: 'slide_from_bottom',
-            contentStyle: { backgroundColor: 'transparent' },
-          }}
-        />
-        <Stack.Screen
-          name="share"
-          options={{
-            presentation: 'transparentModal',
-            animation: 'slide_from_bottom',
-            contentStyle: { backgroundColor: 'transparent' },
-          }}
-        />
-      </Stack>
-    </QueryClientProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <QueryClientProvider client={queryClient}>
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="index" />
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="create" options={{ presentation: 'modal' }} />
+          <Stack.Screen
+            name="comments"
+            options={{
+              presentation: 'transparentModal',
+              animation: 'none',
+              contentStyle: { backgroundColor: 'transparent' },
+            }}
+          />
+          <Stack.Screen
+            name="share"
+            options={{
+              presentation: 'transparentModal',
+              animation: 'none',
+              contentStyle: { backgroundColor: 'transparent' },
+            }}
+          />
+        </Stack>
+      </QueryClientProvider>
+    </GestureHandlerRootView>
   );
 }

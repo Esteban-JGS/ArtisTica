@@ -1,13 +1,14 @@
+/* eslint-disable react-hooks/immutability -- this React-Compiler-oriented rule doesn't understand Reanimated's mutable shared values, which are intentionally mutated from gesture worklets below (and passed as props to share them between components). This project doesn't run the React Compiler, so the rule's assumption doesn't apply. */
 import { Ionicons } from '@expo/vector-icons';
-import { LiquidGlassView } from '@sbaiahmed1/react-native-blur';
 import { router } from 'expo-router';
 import type { BottomTabBarProps } from 'expo-router/tabs';
-import { useEffect, useState } from 'react';
-import { Pressable, Text, View, useWindowDimensions } from 'react-native';
+import { Pressable, View } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   Easing,
   interpolate,
+  runOnJS,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
@@ -31,123 +32,107 @@ const TAB_LABELS: Record<string, string> = {
 const ACCENT = '#c2653b';
 const INK = '#201d1a';
 const CREAM = '#fdf8f3';
-const FAB_SIZE = 60;
-const ITEM_HEIGHT = 46;
-const ITEM_WIDTH = 172;
-const ITEM_GAP = 8;
-const GROUP_GAP = 20;
-const STACK_BOTTOM_MARGIN = 20;
-const SIDE_MARGIN = 20;
+const ITEM_SIZE = 56;
+const ITEM_GAP = 10;
+const PILL_PADDING = 8;
+const BOTTOM_MARGIN = 20;
+const PLUS_SIZE = 44;
+const PLUS_REST_TOP = -60;
 
-function offsetForIndex(index: number) {
-  const base = FAB_SIZE + ITEM_GAP;
-  if (index === 0) return base;
-  return base + ITEM_HEIGHT + GROUP_GAP + (index - 1) * (ITEM_HEIGHT + ITEM_GAP);
-}
+// How long you need to hold the Home icon before the "+" pops up, and
+// how far you then need to drag it upward to arm it for release.
+const HOLD_DELAY = 300;
+const DRAG_TRIGGER = 46;
 
 type Route = BottomTabBarProps['state']['routes'][number];
 
-type MenuItem = {
-  key: string;
-  icon: keyof typeof Ionicons.glyphMap;
-  label: string;
-  kind: 'action' | 'active' | 'inactive';
-  onPress: () => void;
-};
-
-const ITEM_COLORS: Record<MenuItem['kind'], { bg: string; fg: string }> = {
-  action: { bg: INK, fg: CREAM },
-  active: { bg: ACCENT, fg: CREAM },
-  inactive: { bg: CREAM, fg: INK },
-};
-
-const STAGGER = 0.08;
-
-function SpeedDialItem({
-  item,
-  index,
-  total,
-  progress,
+function HomeTabButton({
+  isActive,
+  onNavigate,
+  holding,
+  armed,
+  dragY,
 }: {
-  item: MenuItem;
-  index: number;
-  total: number;
-  progress: SharedValue<number>;
+  isActive: boolean;
+  onNavigate: () => void;
+  holding: SharedValue<number>;
+  armed: SharedValue<boolean>;
+  dragY: SharedValue<number>;
 }) {
-  const offset = offsetForIndex(index);
-  const colors = ITEM_COLORS[item.kind];
-  // Every item must reach itemProgress === 1 exactly when progress === 1,
-  // no matter its stagger delay, or it never settles into its final slot.
-  const start = index * STAGGER;
-  const span = 1 - (total - 1) * STAGGER;
+  const resetPlus = () => {
+    'worklet';
+    armed.value = false;
+    holding.value = withTiming(0, { duration: 150 });
+    dragY.value = withTiming(0, { duration: 150 });
+  };
 
-  const animatedStyle = useAnimatedStyle(() => {
-    const itemProgress = Math.min(Math.max((progress.value - start) / span, 0), 1);
-    return {
-      opacity: itemProgress,
-      transform: [
-        { translateY: interpolate(itemProgress, [0, 1], [16, -offset]) },
-        { scale: interpolate(itemProgress, [0, 1], [0.7, 1]) },
-      ],
-    };
-  });
+  const openCreate = () => {
+    resetPlus();
+    router.push('/create');
+  };
+
+  // A plain quick tap navigates home. `activateAfterLongPress` is
+  // gesture-handler's built-in primitive for "hold, then drag" — a
+  // single Pan that only starts tracking movement once you've held it
+  // past HOLD_DELAY, so there's no separate LongPress/Pan pair that can
+  // cancel each other out once you start dragging.
+  const tap = Gesture.Tap()
+    .maxDuration(HOLD_DELAY)
+    .onEnd((_event, success) => {
+      if (success) runOnJS(onNavigate)();
+    });
+
+  const holdAndDrag = Gesture.Pan()
+    .activateAfterLongPress(HOLD_DELAY)
+    .onStart(() => {
+      holding.value = withTiming(1, { duration: 180, easing: Easing.out(Easing.cubic) });
+    })
+    .onUpdate((event) => {
+      const next = Math.min(0, event.translationY);
+      dragY.value = next;
+      armed.value = next < -DRAG_TRIGGER;
+    })
+    .onEnd(() => {
+      if (armed.value) {
+        runOnJS(openCreate)();
+      } else {
+        resetPlus();
+      }
+    });
+
+  const gesture = Gesture.Race(tap, holdAndDrag);
+
+  const iconStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: interpolate(holding.value, [0, 1], [1, 0.9]) }],
+  }));
 
   return (
-    <Animated.View
-      pointerEvents="box-none"
-      style={[{ position: 'absolute', bottom: 0, right: 0 }, animatedStyle]}>
-      <Pressable
-        onPress={item.onPress}
-        accessibilityRole="button"
-        accessibilityLabel={item.label}
-        style={{
-          width: ITEM_WIDTH,
-          height: ITEM_HEIGHT,
-          borderRadius: 16,
-          overflow: 'hidden',
-          shadowColor: '#3d362f',
-          shadowOpacity: 0.16,
-          shadowRadius: 8,
-          shadowOffset: { width: 0, height: 3 },
-          elevation: 6,
-        }}>
-        <LiquidGlassView
-          glassType="regular"
-          glassTintColor={colors.bg}
-          glassOpacity={0.8}
-          isInteractive={false}
-          style={{
-            flex: 1,
-            flexDirection: 'row',
+    <GestureDetector gesture={gesture}>
+      <Animated.View
+        style={[
+          {
+            width: ITEM_SIZE,
+            height: ITEM_SIZE,
+            borderRadius: ITEM_SIZE / 2,
             alignItems: 'center',
-            gap: 10,
-            paddingHorizontal: 16,
-          }}>
-          <Ionicons name={item.icon} size={18} color={colors.fg} />
-          <Text style={{ fontSize: 14, fontWeight: '600', color: colors.fg }}>{item.label}</Text>
-        </LiquidGlassView>
-      </Pressable>
-    </Animated.View>
+            justifyContent: 'center',
+            backgroundColor: isActive ? ACCENT : 'transparent',
+          },
+          iconStyle,
+        ]}>
+        <Ionicons name="home" size={26} color={isActive ? CREAM : INK} />
+      </Animated.View>
+    </GestureDetector>
   );
 }
 
 export function TabBar({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
-  const { height } = useWindowDimensions();
-  const [open, setOpen] = useState(false);
-  const progress = useSharedValue(0);
-
-  useEffect(() => {
-    progress.value = withTiming(open ? 1 : 0, {
-      duration: 260,
-      easing: Easing.out(Easing.cubic),
-    });
-  }, [open, progress]);
-
-  const close = () => setOpen(false);
+  const holding = useSharedValue(0);
+  const armed = useSharedValue(false);
+  const dragY = useSharedValue(0);
 
   const goTo = (route: Route) => {
-    close();
     const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
     if (state.routes[state.index].key !== route.key && !event.defaultPrevented) {
       navigation.navigate(route.name);
@@ -155,95 +140,109 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
   };
 
   const activeRoute = state.routes[state.index];
-  const activeIcon = TAB_ICONS[activeRoute.name] ?? 'ellipse';
+  const bottomOffset = BOTTOM_MARGIN + insets.bottom;
+  const homeIndex = state.routes.findIndex((route) => route.name === 'home');
+  const plusLeft =
+    PILL_PADDING + homeIndex * (ITEM_SIZE + ITEM_GAP) + ITEM_SIZE / 2 - PLUS_SIZE / 2;
 
-  const items: MenuItem[] = [
-    {
-      key: 'create',
-      icon: 'color-palette',
-      label: 'Crear obra',
-      kind: 'action',
-      onPress: () => {
-        close();
-        router.push('/create');
-      },
-    },
-    ...state.routes.map((route): MenuItem => ({
-      key: route.key,
-      icon: TAB_ICONS[route.name] ?? 'ellipse',
-      label: TAB_LABELS[route.name] ?? route.name,
-      kind: route.key === activeRoute.key ? 'active' : 'inactive',
-      onPress: () => goTo(route),
-    })),
-  ];
-
-  const backdropStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(progress.value, [0, 1], [0, 1]),
+  const plusStyle = useAnimatedStyle(() => ({
+    opacity: holding.value,
+    transform: [
+      { translateY: interpolate(holding.value, [0, 1], [-PLUS_REST_TOP, 0]) + dragY.value * 0.4 },
+      { scale: interpolate(holding.value, [0, 1], [0.6, armed.value ? 1.18 : 1]) },
+    ],
   }));
-
-  const fabRotation = useAnimatedStyle(() => ({
-    transform: [{ rotate: `${interpolate(progress.value, [0, 1], [0, 45])}deg` }],
-  }));
-
-  const bottomOffset = STACK_BOTTOM_MARGIN + insets.bottom;
 
   return (
     <View
       pointerEvents="box-none"
-      style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: height }}>
-      {open ? (
-        <Pressable
-          onPress={close}
-          style={{ position: 'absolute', top: -height, left: 0, right: 0, bottom: 0 }}>
-          <Animated.View
-            pointerEvents="none"
-            style={[
-              { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(32,29,26,0.4)' },
-              backdropStyle,
-            ]}
-          />
-        </Pressable>
-      ) : null}
-
+      style={{
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        bottom: bottomOffset,
+        alignItems: 'center',
+      }}>
       <View
-        pointerEvents="box-none"
         style={{
-          position: 'absolute',
-          right: SIDE_MARGIN,
-          bottom: bottomOffset,
-          alignItems: 'flex-end',
+          shadowColor: '#3d362f',
+          shadowOpacity: 0.16,
+          shadowRadius: 10,
+          shadowOffset: { width: 0, height: 4 },
+          elevation: 6,
         }}>
-        {items.map((item, index) => (
-          <SpeedDialItem
-            key={item.key}
-            item={item}
-            index={index}
-            total={items.length}
-            progress={progress}
-          />
-        ))}
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            { position: 'absolute', left: plusLeft, top: PLUS_REST_TOP },
+            plusStyle,
+          ]}>
+          <View
+            style={{
+              width: PLUS_SIZE,
+              height: PLUS_SIZE,
+              borderRadius: PLUS_SIZE / 2,
+              backgroundColor: ACCENT,
+              alignItems: 'center',
+              justifyContent: 'center',
+              shadowColor: '#c2653b',
+              shadowOpacity: 0.5,
+              shadowRadius: 8,
+              shadowOffset: { width: 0, height: 3 },
+              elevation: 6,
+            }}>
+            <Ionicons name="add" size={22} color={CREAM} />
+          </View>
+        </Animated.View>
 
-        <Pressable
-          onPress={() => setOpen((value) => !value)}
-          accessibilityRole="button"
-          accessibilityLabel={open ? 'Cerrar menú' : 'Abrir menú'}
+        <View
           style={{
-            width: FAB_SIZE,
-            height: FAB_SIZE,
-            borderRadius: FAB_SIZE / 2,
-            backgroundColor: ACCENT,
-            alignItems: 'center',
-            justifyContent: 'center',
-            shadowColor: '#c2653b',
-            shadowOpacity: 0.5,
-            shadowRadius: 12,
-            shadowOffset: { width: 0, height: 6 },
-            elevation: 8,
+            borderRadius: 32,
+            overflow: 'hidden',
+            flexDirection: 'row',
+            gap: ITEM_GAP,
+            padding: PILL_PADDING,
+            backgroundColor: 'rgba(253,248,243,0.92)',
           }}>
-          <Animated.View style={fabRotation}>
-            <Ionicons name={open ? 'close' : activeIcon} size={26} color="#fdf8f3" />
-          </Animated.View>
-        </Pressable>
+          {state.routes.map((route) => {
+            const isActive = route.key === activeRoute.key;
+
+            if (route.name === 'home') {
+              return (
+                <HomeTabButton
+                  key={route.key}
+                  isActive={isActive}
+                  onNavigate={() => goTo(route)}
+                  holding={holding}
+                  armed={armed}
+                  dragY={dragY}
+                />
+              );
+            }
+
+            return (
+              <Pressable
+                key={route.key}
+                onPress={() => goTo(route)}
+                accessibilityRole="button"
+                accessibilityLabel={TAB_LABELS[route.name] ?? route.name}
+                style={{
+                  width: ITEM_SIZE,
+                  height: ITEM_SIZE,
+                  borderRadius: ITEM_SIZE / 2,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: isActive ? ACCENT : 'transparent',
+                }}>
+                <Ionicons
+                  name={TAB_ICONS[route.name] ?? 'ellipse'}
+                  size={26}
+                  color={isActive ? CREAM : INK}
+                />
+              </Pressable>
+            );
+          })}
+        </View>
       </View>
     </View>
   );

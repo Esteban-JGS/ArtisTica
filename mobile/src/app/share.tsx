@@ -1,6 +1,17 @@
+/* eslint-disable react-hooks/immutability -- Reanimated shared values (.value) are mutable refs by design, not React-compiler-managed state; this screen mutates several of them from gesture/timing callbacks. */
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
+import { useEffect } from 'react';
 import { Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, {
+  Easing,
+  interpolate,
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Avatar } from '@/components/avatar';
@@ -29,21 +40,70 @@ export default function CompartirScreen() {
   const { height: windowHeight } = useWindowDimensions();
   const sheetHeight = Math.round(windowHeight * 0.6);
 
-  return (
-    <View className="flex-1 justify-end">
-      <Pressable className="absolute inset-0 bg-ink/40" onPress={() => router.back()} />
+  const backdropOpacity = useSharedValue(0);
+  const sheetTranslateY = useSharedValue(sheetHeight);
 
-      <View className="rounded-t-3xl bg-sand-50" style={{ maxHeight: sheetHeight }}>
+  useEffect(() => {
+    backdropOpacity.value = withTiming(1, { duration: 220 });
+    sheetTranslateY.value = withTiming(0, { duration: 300, easing: Easing.out(Easing.cubic) });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- shared values are stable refs, not reactive deps
+  }, []);
+
+  const handleClose = () => {
+    backdropOpacity.value = withTiming(0, { duration: 160 });
+    sheetTranslateY.value = withTiming(
+      sheetHeight,
+      { duration: 220, easing: Easing.in(Easing.cubic) },
+      (finished) => {
+        if (finished) runOnJS(router.back)();
+      },
+    );
+  };
+
+  const backdropStyle = useAnimatedStyle(() => ({ opacity: backdropOpacity.value }));
+  const sheetStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: sheetTranslateY.value }],
+  }));
+
+  const dragGesture = Gesture.Pan()
+    .onUpdate((event) => {
+      const nextY = Math.max(0, event.translationY);
+      sheetTranslateY.value = nextY;
+      backdropOpacity.value = interpolate(nextY, [0, sheetHeight], [1, 0], 'clamp');
+    })
+    .onEnd((event) => {
+      const shouldDismiss = event.translationY > 36 || event.velocityY > 700;
+      if (shouldDismiss) {
+        runOnJS(handleClose)();
+      } else {
+        sheetTranslateY.value = withTiming(0, { duration: 200, easing: Easing.out(Easing.cubic) });
+        backdropOpacity.value = withTiming(1, { duration: 200 });
+      }
+    });
+
+  return (
+    <View style={{ flex: 1, justifyContent: 'flex-end' }}>
+      <Animated.View
+        pointerEvents="box-none"
+        style={[{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }, backdropStyle]}>
+        <Pressable className="flex-1 bg-ink/40" onPress={handleClose} />
+      </Animated.View>
+
+      <Animated.View
+        className="rounded-t-3xl bg-sand-50"
+        style={[{ maxHeight: sheetHeight }, sheetStyle]}>
         <SafeAreaView edges={['bottom']}>
-          <View className="items-center pt-2.5">
-            <View className="h-1 w-10 rounded-full bg-sand-300" />
-          </View>
+          <GestureDetector gesture={dragGesture}>
+            <View className="items-center py-3">
+              <View className="h-1 w-10 rounded-full bg-sand-300" />
+            </View>
+          </GestureDetector>
 
           <View className="flex-row items-center justify-between border-b border-sand-300 px-5 py-3">
             <Text className="text-base font-semibold text-ink">
               {authorName ? `Compartir obra de ${authorName}` : 'Compartir'}
             </Text>
-            <Pressable onPress={() => router.back()}>
+            <Pressable onPress={handleClose}>
               <Ionicons name="close" size={22} color="#201d1a" />
             </Pressable>
           </View>
@@ -64,7 +124,7 @@ export default function CompartirScreen() {
             {SHARE_ACTIONS.map((action) => (
               <Pressable
                 key={action.id}
-                onPress={() => router.back()}
+                onPress={handleClose}
                 className="flex-row items-center gap-4 px-5 py-3.5">
                 <View className="h-9 w-9 items-center justify-center rounded-full bg-sand-100">
                   <Ionicons name={action.icon} size={18} color="#3d362f" />
@@ -74,7 +134,7 @@ export default function CompartirScreen() {
             ))}
           </View>
         </SafeAreaView>
-      </View>
+      </Animated.View>
     </View>
   );
 }
