@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { LiquidGlassView } from '@sbaiahmed1/react-native-blur';
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { Image, Pressable, Text, View } from 'react-native';
@@ -434,54 +435,73 @@ export default function InicioScreen() {
 
       <View pointerEvents="box-none" className="absolute inset-x-0 top-0 pt-14">
         <View className="flex-row items-center justify-between px-5 pb-3">
-          <View
-            className="rounded-2xl bg-sand-50 px-4 py-2.5"
-            style={FLOAT_SHADOW}>
-            <View className="flex-row items-center gap-2">
-              <Image
-                source={require('@/assets/images/logo-mark.png')}
-                style={{ width: 22, height: 22 }}
-                resizeMode="contain"
-              />
-              <Text className="font-serif text-2xl italic text-ink">Artística</Text>
-            </View>
+          <View style={FLOAT_SHADOW}>
+            <LiquidGlassView
+              glassType="clear"
+              glassTintColor="#fdf8f3"
+              glassOpacity={0.5}
+              isInteractive={false}
+              style={{ borderRadius: 16, paddingHorizontal: 16, paddingVertical: 10 }}>
+              <View className="flex-row items-center gap-2">
+                <Image
+                  source={require('@/assets/images/logo-mark.png')}
+                  style={{ width: 22, height: 22 }}
+                  resizeMode="contain"
+                />
+                <Text className="font-serif text-2xl italic text-ink">Artística</Text>
+              </View>
 
-            <Animated.View
-              pointerEvents={isCollapsed ? 'auto' : 'none'}
-              style={[{ flexDirection: 'row', gap: 8, overflow: 'hidden' }, miniToggleStyle]}>
-              <Pressable
-                onPress={() => setTab('seguidos')}
-                className={
-                  tab === 'seguidos'
-                    ? 'h-7 w-7 items-center justify-center rounded-full bg-accent/15'
-                    : 'h-7 w-7 items-center justify-center rounded-full bg-sand-200'
-                }>
-                <Ionicons
-                  name="people"
-                  size={15}
-                  color={tab === 'seguidos' ? '#c2653b' : '#8b8279'}
-                />
-              </Pressable>
-              <Pressable
-                onPress={() => setTab('para-ti')}
-                className={
-                  tab === 'para-ti'
-                    ? 'h-7 w-7 items-center justify-center rounded-full bg-accent/15'
-                    : 'h-7 w-7 items-center justify-center rounded-full bg-sand-200'
-                }>
-                <Ionicons
-                  name="sparkles"
-                  size={15}
-                  color={tab === 'para-ti' ? '#c2653b' : '#8b8279'}
-                />
-              </Pressable>
-            </Animated.View>
+              <Animated.View
+                pointerEvents={isCollapsed ? 'auto' : 'none'}
+                style={[{ flexDirection: 'row', gap: 8, overflow: 'hidden' }, miniToggleStyle]}>
+                <Pressable
+                  onPress={() => setTab('seguidos')}
+                  className={
+                    tab === 'seguidos'
+                      ? 'h-7 w-7 items-center justify-center rounded-full bg-accent/15'
+                      : 'h-7 w-7 items-center justify-center rounded-full bg-sand-200'
+                  }>
+                  <Ionicons
+                    name="people"
+                    size={15}
+                    color={tab === 'seguidos' ? '#c2653b' : '#8b8279'}
+                  />
+                </Pressable>
+                <Pressable
+                  onPress={() => setTab('para-ti')}
+                  className={
+                    tab === 'para-ti'
+                      ? 'h-7 w-7 items-center justify-center rounded-full bg-accent/15'
+                      : 'h-7 w-7 items-center justify-center rounded-full bg-sand-200'
+                  }>
+                  <Ionicons
+                    name="sparkles"
+                    size={15}
+                    color={tab === 'para-ti' ? '#c2653b' : '#8b8279'}
+                  />
+                </Pressable>
+              </Animated.View>
+            </LiquidGlassView>
           </View>
-          <Pressable
-            className="h-11 w-11 items-center justify-center rounded-full bg-sand-50"
-            style={FLOAT_SHADOW}>
-            <Ionicons name="notifications-outline" size={20} color="#201d1a" />
-          </Pressable>
+
+          <View style={FLOAT_SHADOW}>
+            <Pressable accessibilityRole="button" accessibilityLabel="Notificaciones">
+              <LiquidGlassView
+                glassType="clear"
+                glassTintColor="#fdf8f3"
+                glassOpacity={0.5}
+                isInteractive={false}
+                style={{
+                  height: 44,
+                  width: 44,
+                  borderRadius: 22,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                <Ionicons name="notifications-outline" size={20} color="#201d1a" />
+              </LiquidGlassView>
+            </Pressable>
+          </View>
         </View>
 
         <Animated.View

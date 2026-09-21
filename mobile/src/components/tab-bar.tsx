@@ -1,7 +1,9 @@
 /* eslint-disable react-hooks/immutability -- this React-Compiler-oriented rule doesn't understand Reanimated's mutable shared values, which are intentionally mutated from gesture worklets below (and passed as props to share them between components). This project doesn't run the React Compiler, so the rule's assumption doesn't apply. */
 import { Ionicons } from '@expo/vector-icons';
+import { LiquidGlassView } from '@sbaiahmed1/react-native-blur';
 import { router } from 'expo-router';
 import type { BottomTabBarProps } from 'expo-router/tabs';
+import { useEffect } from 'react';
 import { Pressable, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -11,6 +13,7 @@ import Animated, {
   runOnJS,
   useAnimatedStyle,
   useSharedValue,
+  withSpring,
   withTiming,
   type SharedValue,
 } from 'react-native-reanimated';
@@ -28,6 +31,12 @@ const TAB_LABELS: Record<string, string> = {
   messages: 'Mensajes',
   profile: 'Perfil',
 };
+
+// Flip to try the real glass effect again. On devices without native
+// Liquid Glass (iOS < 26, Android < 13) it falls back to a BlurView
+// that recomputes every frame and visibly chugs, especially with the
+// feed scrolling behind it — that's why it's off by default.
+const USE_LIQUID_GLASS = true;
 
 const ACCENT = '#c2653b';
 const INK = '#201d1a';
@@ -113,10 +122,8 @@ function HomeTabButton({
           {
             width: ITEM_SIZE,
             height: ITEM_SIZE,
-            borderRadius: ITEM_SIZE / 2,
             alignItems: 'center',
             justifyContent: 'center',
-            backgroundColor: isActive ? ACCENT : 'transparent',
           },
           iconStyle,
         ]}>
@@ -145,6 +152,21 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
   const plusLeft =
     PILL_PADDING + homeIndex * (ITEM_SIZE + ITEM_GAP) + ITEM_SIZE / 2 - PLUS_SIZE / 2;
 
+  // The accent pill slides to the active tab instead of just popping
+  // up on it, so switching tabs reads like moving a toggle.
+  const indicatorX = useSharedValue(state.index * (ITEM_SIZE + ITEM_GAP));
+
+  useEffect(() => {
+    indicatorX.value = withSpring(state.index * (ITEM_SIZE + ITEM_GAP), {
+      damping: 28,
+      stiffness: 220,
+    });
+  }, [state.index, indicatorX]);
+
+  const indicatorStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: indicatorX.value }],
+  }));
+
   const plusStyle = useAnimatedStyle(() => ({
     opacity: holding.value,
     transform: [
@@ -152,6 +174,71 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
       { scale: interpolate(holding.value, [0, 1], [0.6, armed.value ? 1.18 : 1]) },
     ],
   }));
+
+  const pillStyle = {
+    borderRadius: 32,
+    overflow: 'hidden' as const,
+    flexDirection: 'row' as const,
+    gap: ITEM_GAP,
+    padding: PILL_PADDING,
+  };
+
+  const pillContent = (
+    <>
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          {
+            position: 'absolute',
+            left: PILL_PADDING,
+            top: PILL_PADDING,
+            width: ITEM_SIZE,
+            height: ITEM_SIZE,
+            borderRadius: ITEM_SIZE / 2,
+            backgroundColor: ACCENT,
+          },
+          indicatorStyle,
+        ]}
+      />
+
+      {state.routes.map((route) => {
+        const isActive = route.key === activeRoute.key;
+
+        if (route.name === 'home') {
+          return (
+            <HomeTabButton
+              key={route.key}
+              isActive={isActive}
+              onNavigate={() => goTo(route)}
+              holding={holding}
+              armed={armed}
+              dragY={dragY}
+            />
+          );
+        }
+
+        return (
+          <Pressable
+            key={route.key}
+            onPress={() => goTo(route)}
+            accessibilityRole="button"
+            accessibilityLabel={TAB_LABELS[route.name] ?? route.name}
+            style={{
+              width: ITEM_SIZE,
+              height: ITEM_SIZE,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}>
+            <Ionicons
+              name={TAB_ICONS[route.name] ?? 'ellipse'}
+              size={26}
+              color={isActive ? CREAM : INK}
+            />
+          </Pressable>
+        );
+      })}
+    </>
+  );
 
   return (
     <View
@@ -195,54 +282,20 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
           </View>
         </Animated.View>
 
-        <View
-          style={{
-            borderRadius: 32,
-            overflow: 'hidden',
-            flexDirection: 'row',
-            gap: ITEM_GAP,
-            padding: PILL_PADDING,
-            backgroundColor: 'rgba(253,248,243,0.92)',
-          }}>
-          {state.routes.map((route) => {
-            const isActive = route.key === activeRoute.key;
-
-            if (route.name === 'home') {
-              return (
-                <HomeTabButton
-                  key={route.key}
-                  isActive={isActive}
-                  onNavigate={() => goTo(route)}
-                  holding={holding}
-                  armed={armed}
-                  dragY={dragY}
-                />
-              );
-            }
-
-            return (
-              <Pressable
-                key={route.key}
-                onPress={() => goTo(route)}
-                accessibilityRole="button"
-                accessibilityLabel={TAB_LABELS[route.name] ?? route.name}
-                style={{
-                  width: ITEM_SIZE,
-                  height: ITEM_SIZE,
-                  borderRadius: ITEM_SIZE / 2,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  backgroundColor: isActive ? ACCENT : 'transparent',
-                }}>
-                <Ionicons
-                  name={TAB_ICONS[route.name] ?? 'ellipse'}
-                  size={26}
-                  color={isActive ? CREAM : INK}
-                />
-              </Pressable>
-            );
-          })}
-        </View>
+        {USE_LIQUID_GLASS ? (
+          <LiquidGlassView
+            glassType="clear"
+            glassTintColor={CREAM}
+            glassOpacity={0.4}
+            isInteractive={false}
+            style={pillStyle}>
+            {pillContent}
+          </LiquidGlassView>
+        ) : (
+          <View style={[pillStyle, { backgroundColor: 'rgba(253,248,243,0.72)' }]}>
+            {pillContent}
+          </View>
+        )}
       </View>
     </View>
   );
