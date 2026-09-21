@@ -3,7 +3,7 @@ import { FlashList } from '@shopify/flash-list';
 import { useState } from 'react';
 import { Image, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
-import { RusticTexture } from '@/components/paper-texture';
+import { AppBackground } from '@/components/app-background';
 
 const CATEGORIES = ['Todos', 'Músicos', 'Dibujantes', 'Pintores', 'Artesanos', 'Escultores'];
 
@@ -17,7 +17,7 @@ export default function ExplorarScreen() {
 
   return (
     <View className="flex-1 bg-sand-100">
-      <RusticTexture />
+      <AppBackground />
       <View className="gap-3 px-5 pb-3 pt-14">
         <View className="flex-row items-center gap-2 rounded-full bg-sand-50 px-4 py-3">
           <Ionicons name="search" size={18} color="#8b8279" />

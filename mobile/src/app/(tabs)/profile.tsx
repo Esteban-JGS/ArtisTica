@@ -2,7 +2,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { Image, Pressable, ScrollView, Text, View } from 'react-native';
 
-import { RusticTexture } from '@/components/paper-texture';
+import { AppBackground } from '@/components/app-background';
+import { BACKGROUND_OPTIONS, backgroundImageUri, useBackgroundStore } from '@/stores/background-store';
 
 const PORTFOLIO = Array.from({ length: 6 }, (_, i) => ({
   id: String(i),
@@ -11,10 +12,12 @@ const PORTFOLIO = Array.from({ length: 6 }, (_, i) => ({
 
 export default function PerfilScreen() {
   const [tab, setTab] = useState<'portafolio' | 'sobre-mi'>('portafolio');
+  const backgroundId = useBackgroundStore((state) => state.backgroundId);
+  const setBackgroundId = useBackgroundStore((state) => state.setBackgroundId);
 
   return (
     <View className="flex-1 bg-sand-100">
-      <RusticTexture />
+      <AppBackground />
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
       <View className="h-56 bg-sage">
         <Image
@@ -60,6 +63,45 @@ export default function PerfilScreen() {
           <Pressable className="flex-1 items-center rounded-full bg-sand-50 py-3">
             <Text className="font-semibold text-ink">Solicitar comisión</Text>
           </Pressable>
+        </View>
+
+        <View className="mt-6 gap-3 rounded-2xl bg-sand-50 p-4">
+          <Text className="text-sm font-semibold text-ink">Personalización</Text>
+          <Text className="text-xs text-stone-700">Elegí el fondo de la app</Text>
+          <View className="flex-row gap-3">
+            {BACKGROUND_OPTIONS.map((option) => {
+              const isSelected = option.id === backgroundId;
+              return (
+                <Pressable
+                  key={option.id}
+                  onPress={() => setBackgroundId(option.id)}
+                  className="flex-1 items-center gap-1.5">
+                  <View
+                    className={
+                      isSelected
+                        ? 'h-16 w-full overflow-hidden rounded-xl border-2 border-accent'
+                        : 'h-16 w-full overflow-hidden rounded-xl border border-sand-300'
+                    }>
+                    <Image
+                      source={{ uri: backgroundImageUri(option.id, 200) }}
+                      className="h-full w-full"
+                    />
+                    {isSelected && (
+                      <View className="absolute inset-0 items-center justify-center bg-ink/20">
+                        <Ionicons name="checkmark-circle" size={20} color="#fdf8f3" />
+                      </View>
+                    )}
+                  </View>
+                  <Text
+                    className={
+                      isSelected ? 'text-xs font-semibold text-ink' : 'text-xs text-stone-700'
+                    }>
+                    {option.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
         </View>
 
         <View className="mt-6 flex-row gap-6 border-b border-sand-300">

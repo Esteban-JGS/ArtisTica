@@ -1,15 +1,20 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Image, Pressable, Text, View } from 'react-native';
 
+import { AppBackground } from '@/components/app-background';
 import { Avatar } from '@/components/avatar';
-import { PaperTexture, RusticTexture } from '@/components/paper-texture';
 import Animated, {
+  Easing,
+  interpolate,
   runOnJS,
   useAnimatedScrollHandler,
   useAnimatedStyle,
   useSharedValue,
+  withDelay,
+  withSequence,
+  withTiming,
 } from 'react-native-reanimated';
 
 const FLOAT_SHADOW = {
@@ -36,10 +41,6 @@ const ROLE_BADGE_COLORS: Record<string, { bg: string; fg: string }> = {
   taupe: { bg: 'rgba(139,130,121,0.16)', fg: '#5c534b' },
 };
 
-// Posts read as notes pinned to the corkboard: a little crooked, each
-// one taped down at a slightly different angle.
-const CARD_ROTATIONS = [-1.6, 1.3, -1, 1.8, -1.4];
-
 const NOTE_SHADOW = {
   shadowColor: '#3d362f',
   shadowOpacity: 0.2,
@@ -47,6 +48,28 @@ const NOTE_SHADOW = {
   shadowOffset: { width: 0, height: 6 },
   elevation: 6,
 };
+
+// Posts read as notes pinned to a corkboard: each one taped down at its
+// own random tilt instead of a fixed left/right pattern.
+const NOTE_MAX_ROTATION_DEG = 3;
+const TAPE_MAX_ROTATION_DEG = 9;
+
+function randomInRange(max: number) {
+  return (Math.random() * 2 - 1) * max;
+}
+
+// Rolled once when the card mounts (not seeded by id, so it isn't stuck
+// repeating a near-identical angle for consecutive posts) and memoized
+// so it doesn't reshuffle on re-renders like scroll updates.
+function useNoteTilt() {
+  return useMemo(
+    () => ({
+      note: randomInRange(NOTE_MAX_ROTATION_DEG),
+      tape: randomInRange(TAPE_MAX_ROTATION_DEG),
+    }),
+    [],
+  );
+}
 
 function WashiTape({ color, rotation }: { color: string; rotation: number }) {
   return (
@@ -60,8 +83,10 @@ function WashiTape({ color, rotation }: { color: string; rotation: number }) {
         width: 72,
         height: 24,
         backgroundColor: color,
-        opacity: 0.8,
+        opacity: 0.85,
         borderRadius: 2,
+        zIndex: 10,
+        elevation: 10,
         transform: [{ rotate: `${rotation}deg` }],
         shadowColor: '#000',
         shadowOpacity: 0.15,
@@ -69,6 +94,57 @@ function WashiTape({ color, rotation }: { color: string; rotation: number }) {
         shadowOffset: { width: 0, height: 2 },
       }}
     />
+  );
+}
+
+// A small fan of stars that pop up and out when you tap "me gusta" —
+// each one on its own delay/angle so the burst reads as organic
+// instead of a single sprite exploding outward.
+const STAR_BURST_CONFIG = [
+  { angle: -90, delay: 0 },
+  { angle: -65, delay: 40 },
+  { angle: -115, delay: 20 },
+  { angle: -75, delay: 80 },
+  { angle: -105, delay: 60 },
+];
+const STAR_BURST_DISTANCE = 26;
+
+function BurstStar({ angle, delay, trigger }: { angle: number; delay: number; trigger: number }) {
+  const progress = useSharedValue(0);
+
+  useEffect(() => {
+    if (trigger === 0) return;
+    progress.value = 0;
+    progress.value = withDelay(delay, withTiming(1, { duration: 550, easing: Easing.out(Easing.cubic) }));
+  }, [trigger, delay, progress]);
+
+  const style = useAnimatedStyle(() => {
+    const radians = (angle * Math.PI) / 180;
+    const distance = progress.value * STAR_BURST_DISTANCE;
+    return {
+      opacity: interpolate(progress.value, [0, 0.15, 0.75, 1], [0, 1, 1, 0]),
+      transform: [
+        { translateX: Math.cos(radians) * distance },
+        { translateY: Math.sin(radians) * distance },
+        { scale: interpolate(progress.value, [0, 0.25, 1], [0.3, 1, 0.5]) },
+      ],
+    };
+  });
+
+  return (
+    <Animated.View pointerEvents="none" style={[{ position: 'absolute', left: 0, top: 0 }, style]}>
+      <Ionicons name="star" size={11} color="#d99a3f" />
+    </Animated.View>
+  );
+}
+
+function LikeBurst({ trigger }: { trigger: number }) {
+  return (
+    <View pointerEvents="none" style={{ position: 'absolute', left: 22, top: 22 }}>
+      {STAR_BURST_CONFIG.map((particle, index) => (
+        <BurstStar key={index} angle={particle.angle} delay={particle.delay} trigger={trigger} />
+      ))}
+    </View>
   );
 }
 
@@ -103,18 +179,100 @@ const POSTS = [
     shares: 3,
     acceptsCommissions: false,
   },
+  {
+    id: '3',
+    name: 'Sofi Cerámica',
+    role: 'Ceramista',
+    initial: 'S',
+    color: 'mostaza' as const,
+    time: 'hace 8 h',
+    place: 'Córdoba',
+    image: 'https://picsum.photos/seed/sofi-ceramica/800/900',
+    caption: 'Nueva tanda saliendo del horno, todavía tibia.',
+    likes: '2.1k',
+    comments: 47,
+    shares: 15,
+    acceptsCommissions: true,
+  },
+  {
+    id: '4',
+    name: 'Taller Norte',
+    role: 'Artesanos',
+    initial: 'T',
+    color: 'taupe' as const,
+    time: 'hace 12 h',
+    place: 'Mendoza',
+    image: 'https://picsum.photos/seed/taller-norte/800/900',
+    caption: 'Trabajando el cuero para el pedido de esta semana.',
+    likes: '390',
+    comments: 6,
+    shares: 2,
+    acceptsCommissions: false,
+  },
+  {
+    id: '5',
+    name: 'Vale Grabados',
+    role: 'Grabadora',
+    initial: 'V',
+    color: 'terracota' as const,
+    time: 'hace 1 d',
+    place: 'La Plata',
+    image: 'https://picsum.photos/seed/vale-grabados/800/900',
+    caption: 'Primera tirada de la serie nueva, tinta todavía fresca.',
+    likes: '1.7k',
+    comments: 31,
+    shares: 9,
+    acceptsCommissions: true,
+  },
+  {
+    id: '6',
+    name: 'Nico Escultor',
+    role: 'Escultor',
+    initial: 'N',
+    color: 'verde' as const,
+    time: 'hace 1 d',
+    place: 'Buenos Aires',
+    image: 'https://picsum.photos/seed/nico-escultor/800/900',
+    caption: 'Piedra bruta convirtiéndose en algo con forma, de a poco.',
+    likes: '654',
+    comments: 18,
+    shares: 4,
+    acceptsCommissions: false,
+  },
 ];
 
 type Post = (typeof POSTS)[number];
 
-function NoteCard({ post, rotation }: { post: Post; rotation: number }) {
+function PostCard({ post }: { post: Post }) {
+  const tilt = useNoteTilt();
+  const [liked, setLiked] = useState(false);
+  const [burstTrigger, setBurstTrigger] = useState(0);
+  const starScale = useSharedValue(1);
+
+  const handleLikePress = () => {
+    setLiked((wasLiked) => {
+      const nowLiked = !wasLiked;
+      if (nowLiked) {
+        setBurstTrigger((count) => count + 1);
+        starScale.value = withSequence(
+          withTiming(1.35, { duration: 120, easing: Easing.out(Easing.quad) }),
+          withTiming(1, { duration: 180, easing: Easing.out(Easing.quad) }),
+        );
+      }
+      return nowLiked;
+    });
+  };
+
+  const starStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: starScale.value }],
+  }));
+
   return (
     <View
-      style={[{ transform: [{ rotate: `${rotation}deg` }] }, NOTE_SHADOW]}
+      style={[{ transform: [{ rotate: `${tilt.note}deg` }] }, NOTE_SHADOW]}
       className="rounded-xl">
-      <WashiTape color={ROLE_BADGE_COLORS[post.color].fg} rotation={rotation * -2.4} />
-      <View className="gap-3 overflow-hidden rounded-xl bg-sand-50 p-4">
-        <PaperTexture width={420} height={900} speckOpacity={0.5} />
+      <WashiTape color={ROLE_BADGE_COLORS[post.color].fg} rotation={tilt.tape} />
+      <View className="gap-3 rounded-xl bg-sand-50 p-4">
         <View className="flex-row items-center gap-3">
           <Avatar initial={post.initial} color={post.color} />
           <View className="flex-1">
@@ -137,34 +295,83 @@ function NoteCard({ post, rotation }: { post: Post; rotation: number }) {
           <Ionicons name="ellipsis-horizontal" size={18} color="#8b8279" />
         </View>
 
-        <View className="overflow-hidden rounded-2xl">
-          <Image source={{ uri: post.image }} className="aspect-[4/5] w-full" />
-          {post.acceptsCommissions && (
-            <View className="absolute bottom-3 left-3 rounded-full bg-ink/70 px-3 py-1.5">
-              <Text className="text-xs font-medium text-sand-50">Acepta comisiones</Text>
+        <View className="relative mb-4">
+          <View className="overflow-hidden rounded-2xl">
+            <Image source={{ uri: post.image }} className="aspect-[4/5] w-full" />
+            {post.acceptsCommissions && (
+              <View
+                accessible
+                accessibilityLabel="Acepta comisiones"
+                className="absolute right-3 top-3 h-7 w-7 items-center justify-center rounded-full bg-gold"
+                style={FLOAT_SHADOW}>
+                <Ionicons name="cash-outline" size={15} color="#201d1a" />
+              </View>
+            )}
+          </View>
+
+          <View pointerEvents="box-none" className="absolute inset-x-0 items-center" style={{ bottom: -20 }}>
+            <View
+              className="flex-row items-center gap-1 rounded-full bg-ink/85 px-2 py-1.5"
+              style={FLOAT_SHADOW}>
+              <View className="relative">
+                <Pressable
+                  onPress={handleLikePress}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Me gusta, ${post.likes}`}
+                  className="h-11 flex-row items-center justify-center gap-1.5 px-3">
+                  <Animated.View style={starStyle}>
+                    <Ionicons name={liked ? 'star' : 'star-outline'} size={20} color="#d99a3f" />
+                  </Animated.View>
+                  <Text className="text-xs text-sand-100">{post.likes}</Text>
+                </Pressable>
+                <LikeBurst trigger={burstTrigger} />
+              </View>
+
+              <View className="h-4 w-px bg-sand-50/25" />
+
+              <Pressable
+                onPress={() =>
+                  router.push({
+                    pathname: '/comments',
+                    params: { authorName: post.name, commentsCount: String(post.comments) },
+                  })
+                }
+                accessibilityRole="button"
+                accessibilityLabel={`Comentarios, ${post.comments}`}
+                className="h-11 flex-row items-center justify-center gap-1.5 px-3">
+                <Ionicons name="chatbubble-outline" size={19} color="#fdf8f3" />
+                <Text className="text-xs text-sand-100">{post.comments}</Text>
+              </Pressable>
+
+              <View className="h-4 w-px bg-sand-50/25" />
+
+              <Pressable
+                onPress={() =>
+                  router.push({ pathname: '/share', params: { authorName: post.name } })
+                }
+                accessibilityRole="button"
+                accessibilityLabel={`Compartir, ${post.shares}`}
+                className="h-11 flex-row items-center justify-center gap-1.5 px-3">
+                <Ionicons name="paper-plane-outline" size={19} color="#fdf8f3" />
+                <Text className="text-xs text-sand-100">{post.shares}</Text>
+              </Pressable>
+
+              <View className="h-4 w-px bg-sand-50/25" />
+
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Etiquetar"
+                className="h-11 w-11 items-center justify-center">
+                <Ionicons name="pricetag-outline" size={19} color="#fdf8f3" />
+              </Pressable>
             </View>
-          )}
-        </View>
-
-        <View className="flex-row items-center gap-5">
-          <View className="flex-row items-center gap-1.5">
-            <Ionicons name="heart-outline" size={20} color="#c2653b" />
-            <Text className="text-sm text-stone-800">{post.likes}</Text>
-          </View>
-          <View className="flex-row items-center gap-1.5">
-            <Ionicons name="chatbubble-outline" size={19} color="#8b8279" />
-            <Text className="text-sm text-stone-800">{post.comments}</Text>
-          </View>
-          <View className="flex-row items-center gap-1.5">
-            <Ionicons name="paper-plane-outline" size={19} color="#8b8279" />
-            <Text className="text-sm text-stone-800">{post.shares}</Text>
-          </View>
-          <View className="flex-1 items-end">
-            <Ionicons name="bookmark-outline" size={19} color="#8b8279" />
           </View>
         </View>
 
-        <Text className="text-sm text-ink">{post.caption}</Text>
+        <Text className="font-serif text-lg italic text-ink">
+          <Text style={{ color: ROLE_BADGE_COLORS[post.color].fg }}>— </Text>
+          {post.caption}
+        </Text>
       </View>
     </View>
   );
@@ -207,7 +414,7 @@ export default function InicioScreen() {
 
   return (
     <View className="flex-1 bg-sand-100">
-      <RusticTexture />
+      <AppBackground />
       <Animated.ScrollView
         onScroll={scrollHandler}
         scrollEventThrottle={16}
@@ -225,12 +432,8 @@ export default function InicioScreen() {
           </Text>
         </Pressable>
 
-        {POSTS.map((post, index) => (
-          <NoteCard
-            key={post.id}
-            post={post}
-            rotation={CARD_ROTATIONS[index % CARD_ROTATIONS.length]}
-          />
+        {POSTS.map((post) => (
+          <PostCard key={post.id} post={post} />
         ))}
       </Animated.ScrollView>
 
