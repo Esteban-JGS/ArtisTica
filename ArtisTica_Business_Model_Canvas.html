@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ArtísTica: Business Model Canvas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --wall: #1B1714;
+    --wall-soft: #2A231E;
+    --paper: #F5EFE4;
+    --paper-edge: #E6DCCB;
+    --ink: #2A221C;
+    --ink-soft: #6B5D52;
+    --terracotta: #B85C38;
+    --terracotta-deep: #8E4226;
+    --tape: rgba(139, 106, 82, 0.88);
+    --poppy: #D2452A;
+    --iris: #3E5A8C;
+    --leaf: #5B7342;
+    --ochre: #C99A2E;
+    --rose: #C9828A;
+    --violet: #6B4F7A;
+    --serif: "Instrument Serif", "Cormorant Garamond", Georgia, "Times New Roman", serif;
+    --sans: "Instrument Sans", "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body { margin: 0; }
+
+  body {
+    background:
+      radial-gradient(ellipse at 20% 0%, rgba(184, 92, 56, 0.16), transparent 55%),
+      radial-gradient(ellipse at 90% 100%, rgba(62, 90, 140, 0.14), transparent 50%),
+      var(--wall);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.5;
+    min-height: 100vh;
+    padding: clamp(24px, 4vw, 56px) clamp(16px, 3vw, 48px) 48px;
+  }
+
+  /* Encabezado */
+  .masthead {
+    max-width: 1440px;
+    margin: 0 auto 40px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px 40px;
+    color: var(--paper);
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+  }
+
+  .mark {
+    width: 64px;
+    height: 64px;
+    border-radius: 14px;
+    background: #231E1A;
+    border: 1px solid rgba(245, 239, 228, 0.12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--sans);
+    font-weight: 600;
+    font-size: 26px;
+    letter-spacing: -1px;
+    color: var(--paper);
+    flex-shrink: 0;
+  }
+
+  .mark span { color: var(--terracotta); }
+
+  .brand h1 {
+    font-family: var(--serif);
+    font-style: italic;
+    font-weight: 400;
+    font-size: clamp(44px, 6vw, 76px);
+    line-height: 0.95;
+    margin: 0;
+  }
+
+  .tagline {
+    margin: 8px 0 0;
+    font-size: 16px;
+    color: rgba(245, 239, 228, 0.72);
+    max-width: 44ch;
+  }
+
+  .meta {
+    text-align: right;
+    font-size: 14px;
+    color: rgba(245, 239, 228, 0.6);
+    line-height: 1.6;
+  }
+
+  .meta strong {
+    display: block;
+    font-family: var(--serif);
+    font-style: italic;
+    font-weight: 400;
+    font-size: 28px;
+    color: var(--paper);
+  }
+
+  /* Canvas */
+  .canvas {
+    max-width: 1440px;
+    margin: 0 auto;
+    display: grid;
+    gap: 22px;
+    grid-template-columns: repeat(10, minmax(0, 1fr));
+    grid-template-areas:
+      "socios socios actividades actividades propuesta propuesta relaciones relaciones segmentos segmentos"
+      "socios socios recursos recursos propuesta propuesta canales canales segmentos segmentos"
+      "costes costes costes costes costes ingresos ingresos ingresos ingresos ingresos";
+  }
+
+  .block {
+    position: relative;
+    background: var(--paper);
+    border-radius: 6px;
+    padding: 30px 24px 24px;
+    box-shadow:
+      0 1px 0 var(--paper-edge) inset,
+      0 18px 36px -18px rgba(0, 0, 0, 0.55),
+      0 2px 6px rgba(0, 0, 0, 0.25);
+  }
+
+  /* Cinta que fija cada bloque a la pared */
+  .block::before {
+    content: "";
+    position: absolute;
+    top: -11px;
+    left: 50%;
+    width: 92px;
+    height: 22px;
+    background: var(--tape);
+    transform: translateX(-50%) rotate(-2.5deg);
+    border-radius: 2px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  }
+
+  .block:nth-child(even)::before { transform: translateX(-50%) rotate(2deg); }
+
+  .socios      { grid-area: socios; }
+  .actividades { grid-area: actividades; }
+  .recursos    { grid-area: recursos; }
+  .propuesta   { grid-area: propuesta; }
+  .relaciones  { grid-area: relaciones; }
+  .canales     { grid-area: canales; }
+  .segmentos   { grid-area: segmentos; }
+  .costes      { grid-area: costes; }
+  .ingresos    { grid-area: ingresos; }
+
+  .block h2 {
+    font-family: var(--serif);
+    font-style: italic;
+    font-weight: 400;
+    font-size: 30px;
+    line-height: 1.05;
+    margin: 0 0 4px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .block h2::before {
+    content: "";
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    background: var(--accent, var(--terracotta));
+    flex-shrink: 0;
+  }
+
+  .question {
+    margin: 0 0 16px;
+    font-size: 13.5px;
+    color: var(--ink-soft);
+  }
+
+  .block ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 11px;
+  }
+
+  .block li {
+    position: relative;
+    padding-left: 16px;
+    font-size: 14.5px;
+    max-width: 62ch;
+  }
+
+  .block li::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0.62em;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent, var(--terracotta));
+    opacity: 0.75;
+  }
+
+  .block strong { font-weight: 600; }
+
+  .group-title {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 19px;
+    margin: 18px 0 8px;
+    color: var(--ink);
+  }
+
+  .group-title:first-of-type { margin-top: 0; }
+
+  .note {
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px dashed var(--paper-edge);
+    font-size: 13px;
+    color: var(--ink-soft);
+  }
+
+  /* Colores de acento por bloque, tomados de la naturaleza muerta de la marca */
+  .socios      { --accent: var(--iris); }
+  .actividades { --accent: var(--leaf); }
+  .recursos    { --accent: var(--ochre); }
+  .relaciones  { --accent: var(--rose); }
+  .canales     { --accent: var(--violet); }
+  .segmentos   { --accent: var(--poppy); }
+  .costes      { --accent: var(--iris); }
+  .ingresos    { --accent: var(--leaf); }
+
+  /* Propuesta de valor: el único bloque en color de marca */
+  .propuesta {
+    background: var(--terracotta);
+    color: var(--paper);
+    --accent: var(--paper);
+  }
+
+  .propuesta::before { background: rgba(60, 30, 18, 0.55); }
+
+  .propuesta .question { color: rgba(245, 239, 228, 0.8); }
+
+  .propuesta .headline {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: clamp(28px, 2.4vw, 36px);
+    line-height: 1.1;
+    margin: 4px 0 20px;
+  }
+
+  .propuesta .group-title { color: var(--paper); }
+
+  .propuesta .note {
+    border-top-color: rgba(245, 239, 228, 0.35);
+    color: rgba(245, 239, 228, 0.85);
+  }
+
+  /* Tablas de precios */
+  .rates {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+    margin: 4px 0 6px;
+  }
+
+  .rates th,
+  .rates td {
+    text-align: left;
+    padding: 8px 10px 8px 0;
+    border-bottom: 1px solid var(--paper-edge);
+    vertical-align: top;
+  }
+
+  .rates th {
+    font-weight: 500;
+    color: var(--ink-soft);
+    font-size: 13px;
+  }
+
+  .rates td.num {
+    font-family: var(--serif);
+    font-size: 22px;
+    line-height: 1;
+    white-space: nowrap;
+    color: var(--terracotta-deep);
+  }
+
+  .two-col {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px 32px;
+  }
+
+  .scroll { overflow-x: auto; }
+
+  footer {
+    max-width: 1440px;
+    margin: 36px auto 0;
+    color: rgba(245, 239, 228, 0.55);
+    font-size: 13px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 8px 24px;
+  }
+
+  /* Responsive */
+  @media (max-width: 1180px) {
+    .canvas {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-areas:
+        "propuesta propuesta"
+        "segmentos relaciones"
+        "segmentos canales"
+        "actividades recursos"
+        "socios socios"
+        "ingresos ingresos"
+        "costes costes";
+      gap: 30px 22px;
+    }
+  }
+
+  @media (max-width: 720px) {
+    body { font-size: 14px; }
+
+    .canvas {
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-areas:
+        "propuesta"
+        "segmentos"
+        "canales"
+        "relaciones"
+        "ingresos"
+        "recursos"
+        "actividades"
+        "socios"
+        "costes";
+    }
+
+    .two-col { grid-template-columns: minmax(0, 1fr); }
+
+    .meta { text-align: left; }
+  }
+
+  @media print {
+    body { background: #fff; padding: 12px; }
+    .masthead, footer { color: var(--ink); }
+    .tagline, .meta, footer { color: var(--ink-soft); }
+    .meta strong { color: var(--ink); }
+    .block { box-shadow: none; border: 1px solid var(--paper-edge); break-inside: avoid; }
+    .block::before { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="brand">
+    <div class="mark" aria-hidden="true">A<span>T</span></div>
+    <div>
+      <h1>ArtísTica</h1>
+      <p class="tagline">Donde el trabajo se muestra, se conversa y se encarga.</p>
+    </div>
+  </div>
+  <div class="meta">
+    <strong>Business Model Canvas</strong>
+    Costa Rica, septiembre 2026<br>
+    Brian Zeledón Esquivel y Esteban Granados Sibaja
+  </div>
+</header>
+
+<main class="canvas">
+
+  <!-- Socios clave -->
+  <section class="block socios" aria-labelledby="t-socios">
+    <h2 id="t-socios">Socios clave</h2>
+    <p class="question">Quién hace posible el modelo sin que lo construyamos nosotros.</p>
+
+    <p class="group-title">Pagos</p>
+    <ul>
+      <li><strong>ONVO Pay en modo marketplace:</strong> cuentas conectadas por artista, reparto automático del cobro y onboarding con cuenta IBAN.</li>
+      <li>ONVO custodia los fondos como entidad inscrita ante SUGEF; ArtísTica no administra dinero de terceros.</li>
+      <li>Tarjeta y SINPE Móvil como métodos de pago.</li>
+    </ul>
+
+    <p class="group-title">Tecnología</p>
+    <ul>
+      <li><strong>Supabase:</strong> base de datos, autenticación (Google, Apple, correo) y almacenamiento.</li>
+      <li><strong>Railway:</strong> hosting de la API y el worker.</li>
+      <li><strong>App Store y Google Play:</strong> distribución y compras dentro de la app para Estudio y boosts (Etapa 2).</li>
+    </ul>
+
+    <p class="group-title">Comunidad y demanda</p>
+    <ul>
+      <li>Escuelas de arte y música de las universidades, casas de cultura y ferias.</li>
+      <li>Organizadores de bodas y salones de eventos.</li>
+    </ul>
+  </section>
+
+  <!-- Actividades clave -->
+  <section class="block actividades" aria-labelledby="t-actividades">
+    <h2 id="t-actividades">Actividades clave</h2>
+    <p class="question">Lo que tenemos que hacer bien todos los días.</p>
+    <ul>
+      <li>Reclutar y acompañar a los <strong>100 artistas fundadores</strong>.</li>
+      <li>Operar el flujo de pedidos por hitos y conciliarlo con ONVO.</li>
+      <li>Moderar: arte generado por IA, spam, contenido NSFW, reportes y disputas.</li>
+      <li>Curar Explorar: cuota de Nuevos talentos y tope de densidad de promocionados.</li>
+      <li>Conseguir demanda empresarial: bodas, eventos y negocios.</li>
+      <li>Desarrollar y mantener la app y el backend.</li>
+    </ul>
+  </section>
+
+  <!-- Recursos clave -->
+  <section class="block recursos" aria-labelledby="t-recursos">
+    <h2 id="t-recursos">Recursos clave</h2>
+    <p class="question">Lo que tenemos y es difícil de copiar.</p>
+    <ul>
+      <li><strong>Reputación acumulada:</strong> reseñas que solo existen si el pedido se completó en la app.</li>
+      <li>Comunidad de artistas humanos verificados por el onboarding de ONVO.</li>
+      <li>Plataforma: app en Expo, API FastAPI y worker; Supabase con pgvector.</li>
+      <li>IA propia: clasificador de estilo, detección de arte IA para revisión humana, moderación NSFW y detección de obra duplicada.</li>
+      <li>Datos de métricas: vistas, consultas y conversión.</li>
+    </ul>
+  </section>
+
+  <!-- Propuesta de valor -->
+  <section class="block propuesta" aria-labelledby="t-propuesta">
+    <h2 id="t-propuesta">Propuesta de valor</h2>
+    <p class="question">Por qué nos eligen en lugar de Instagram, WhatsApp y SINPE.</p>
+    <p class="headline">Contratá arte hecho por personas, con el pago protegido.</p>
+
+    <p class="group-title">Para quien contrata</p>
+    <ul>
+      <li>Anticipo y saldo por hitos: el dinero no se pierde si algo sale mal, y existe un proceso de disputa.</li>
+      <li>Reseñas reales, solo de trabajos completados.</li>
+      <li>Encargos, eventos y obras disponibles en un mismo flujo.</li>
+    </ul>
+
+    <p class="group-title">Para el artista</p>
+    <ul>
+      <li>Portafolio, clientes y cobro seguro sin salir de la app.</li>
+      <li>Un panel que muestra qué obras generan consultas, no solo likes.</li>
+      <li>Publicar y abrir comisiones es gratis.</li>
+    </ul>
+
+    <p class="note">Solo arte hecho por personas. Un feed que muestra lo que cada quien eligió seguir, nunca ordenado por retención.</p>
+  </section>
+
+  <!-- Relación con clientes -->
+  <section class="block relaciones" aria-labelledby="t-relaciones">
+    <h2 id="t-relaciones">Relación con clientes</h2>
+    <p class="question">Cómo nos relacionamos con cada lado.</p>
+    <ul>
+      <li><strong>Autoservicio:</strong> la consulta se convierte en pedido dentro del mismo chat.</li>
+      <li>Chat cliente-artista siempre atado a una consulta; mensajes libres entre artistas.</li>
+      <li>Aviso suave si se comparten teléfonos o SINPE: afuera no hay protección ni reseña.</li>
+      <li>Disputas mediadas por moderación.</li>
+      <li>Acompañamiento directo a los artistas fundadores.</li>
+    </ul>
+  </section>
+
+  <!-- Canales -->
+  <section class="block canales" aria-labelledby="t-canales">
+    <h2 id="t-canales">Canales</h2>
+    <p class="question">Cómo nos encuentran y cómo entregamos valor.</p>
+    <ul>
+      <li>App móvil para iOS y Android.</li>
+      <li>Reclutamiento presencial de artistas en escuelas, casas de cultura y ferias.</li>
+      <li>Alianzas con organizadores de bodas y salones de eventos.</li>
+      <li>Explorar y búsqueda por categoría y provincia; boosts segmentados.</li>
+      <li>Notificaciones push del estado de cada pedido.</li>
+    </ul>
+  </section>
+
+  <!-- Segmentos de mercado -->
+  <section class="block segmentos" aria-labelledby="t-segmentos">
+    <h2 id="t-segmentos">Segmentos de mercado</h2>
+    <p class="question">Para quién creamos valor, empezando por Costa Rica.</p>
+
+    <p class="group-title">Artistas (nichos de entrada)</p>
+    <ul>
+      <li><strong>Música y baile para eventos:</strong> mariachis, bandas y grupos de baile.</li>
+      <li><strong>Encargos visuales:</strong> retratos, ilustración, murales y logos.</li>
+      <li>Plan Taller para empezar; Estudio para quien ya genera trabajo.</li>
+    </ul>
+
+    <p class="group-title">Quienes contratan</p>
+    <ul>
+      <li>Particulares que organizan bodas, quince años y fiestas, o que encargan retratos e ilustraciones.</li>
+      <li>Empresas: organizadores de bodas, salones de eventos, restaurantes y negocios que necesitan murales o identidad visual.</li>
+    </ul>
+
+    <p class="note">Primero Costa Rica; expansión regional en la Etapa 4.</p>
+  </section>
+
+  <!-- Estructura de costes -->
+  <section class="block costes" aria-labelledby="t-costes">
+    <h2 id="t-costes">Estructura de costes</h2>
+    <p class="question">Qué nos cuesta operar, y qué no pagamos nosotros.</p>
+    <div class="two-col">
+      <ul>
+        <li><strong>Infraestructura:</strong> ≈ US$100 al mes al inicio (Supabase, Railway, Sentry, cuentas de desarrollador).</li>
+        <li><strong>Horas humanas:</strong> moderación, disputas y soporte.</li>
+        <li><strong>Almacenamiento y ancho de banda</strong> de medios: miniaturas obligatorias y video limitado.</li>
+        <li><strong>Artistas fundadores:</strong> 6 meses de Estudio gratis para los primeros 100.</li>
+      </ul>
+      <ul>
+        <li><strong>IVA de 13%</strong> sobre tarifa, suscripción y boosts.</li>
+        <li><strong>Tiendas de apps:</strong> 15% sobre Estudio y boosts vendidos dentro de la app (Etapa 2).</li>
+        <li><strong>Legal:</strong> términos de uso y Ley 8968 de protección de datos.</li>
+        <li><strong>No es costo nuestro:</strong> el procesamiento de ONVO (tarjeta 3.9% + US$0.25, SINPE Móvil 1.5%) se descuenta del lado del artista.</li>
+      </ul>
+    </div>
+    <p class="note">Meta ilustrativa: ≈ 215 pedidos al mes (≈ 7 diarios) con ticket de US$150 y 300 suscriptores de Estudio cubren ≈ US$3,200 mensuales.</p>
+  </section>
+
+  <!-- Fuentes de ingreso -->
+  <section class="block ingresos" aria-labelledby="t-ingresos">
+    <h2 id="t-ingresos">Fuentes de ingreso</h2>
+    <p class="question">De dónde viene el dinero, en orden de importancia.</p>
+    <div class="scroll">
+      <table class="rates">
+        <thead>
+          <tr>
+            <th scope="col">Fuente</th>
+            <th scope="col">Precio</th>
+            <th scope="col">Regla</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Tarifa por pedido, Taller</strong></td>
+            <td class="num">8%</td>
+            <td>Sobre encargos, eventos y obras disponibles. Pedido mínimo de US$5.</td>
+          </tr>
+          <tr>
+            <td><strong>Tarifa por pedido, Estudio</strong></td>
+            <td class="num">5%</td>
+            <td>La fuente principal: ganamos solo cuando el artista gana.</td>
+          </tr>
+          <tr>
+            <td><strong>Suscripción Estudio</strong></td>
+            <td class="num">₡2,500</td>
+            <td>Al mes (≈ ₡25,000 al año). Se paga sola desde ≈ ₡85,000 mensuales en pedidos.</td>
+          </tr>
+          <tr>
+            <td><strong>Boosts por alcance</strong></td>
+            <td class="num">₡1,000</td>
+            <td>1,000 personas; 3,000 por ≈ ₡2,500; 10,000 por ≈ ₡6,000. Alcance garantizado, ventas no. Nunca en Seguidos.</td>
+          </tr>
+          <tr>
+            <td><strong>Membresías de fans</strong></td>
+            <td class="num">Etapa 3</td>
+            <td>Apoyo mensual del público a un artista.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note">Nunca se cobra por publicar, abrir comisiones, recibir pedidos, la protección del pago ni la verificación.</p>
+  </section>
+
+</main>
+
+<footer>
+  <span>ArtísTica, modelo de negocio consolidado para el MVP y las etapas 2 a 4.</span>
+  <span>Tarifas de ONVO según su publicación de 2026; confirmar en contrato.</span>
+</footer>
+
+</body>
+</html>
