@@ -1,8 +1,8 @@
 # Correcciones al Documento Maestro
 
-Erratas detectadas al validar el documento contra el repositorio, el 23 de septiembre de 2026. Aplicar sobre `ArtisTica_Documento_Maestro.md` y subir la versión a 1.1.
+Erratas detectadas al validar el documento contra el repositorio, el 23 de septiembre de 2026. Aplicar sobre `docs/ArtisTica_Documento_Maestro.md` y subir la versión a 1.1.
 
-El Documento Maestro no está versionado en este repositorio. Conviene moverlo a `orquestacion/` para que las correcciones queden en el historial.
+El Documento Maestro vive en `docs/`, versionado. Las correcciones quedan en el historial.
 
 ---
 

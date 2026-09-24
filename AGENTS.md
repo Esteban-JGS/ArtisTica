@@ -2,7 +2,7 @@
 
 Plataforma costarricense donde se contrata arte hecho por personas, con el pago protegido. No es una red social: la parte social alimenta el momento de contratación.
 
-La fuente de verdad del producto es `ArtisTica_Documento_Maestro.md`. Las decisiones de rumbo posteriores viven en `orquestacion/BITACORA.md` y las erratas del Maestro en `orquestacion/CORRECCIONES-DOCUMENTO-MAESTRO.md`. Si algo se contradice, gana el Maestro más su errata.
+La fuente de verdad del producto es `docs/ArtisTica_Documento_Maestro.md`. Las decisiones de rumbo posteriores viven en `orquestacion/BITACORA.md` y las erratas del Maestro en `orquestacion/CORRECCIONES-DOCUMENTO-MAESTRO.md`. Si algo se contradice, gana el Maestro más su errata.
 
 ## Estructura
 
@@ -10,6 +10,7 @@ La fuente de verdad del producto es `ArtisTica_Documento_Maestro.md`. Las decisi
 monorepo/
 ├── mobile/        React Native + Expo. Territorio de Brian
 ├── backend/       FastAPI y worker en Python 3.12. Territorio de Esteban
+├── docs/          Documento Maestro y Business Model Canvas
 └── orquestacion/  Plan de lotes, bitacora y prompts de ejecucion
 ```
 
