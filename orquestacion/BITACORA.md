@@ -17,7 +17,7 @@ Veredictos posibles: Aprobado, Aprobado con deuda, Rechazado.
 | # | Título | Estado | Veredicto | Deuda |
 |---|---|---|---|---|
 | 0 | Saneamiento: que el proyecto arranque | Cerrado | Aprobado con deuda | D1 a D4 |
-| 1 | Esquema de dominio y migración única de reemplazo | Pendiente | | |
+| 1 | Esquema de dominio y migración única de reemplazo | Prompt generado | | |
 | 2 | Máquina de estados de pedidos y cobros | Pendiente | | |
 | 3 | Capa de pasarela: contrato, adaptador real y adaptador falso | Pendiente | | |
 | 4 | Identidad, roles, planes y onboarding | Pendiente | | |
