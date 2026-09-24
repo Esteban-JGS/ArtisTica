@@ -1,24 +1,22 @@
-import jwt
-from jwt import PyJWKClient
-from fastapi import HTTPException, status
-from src.core.config import settings
 import logging
+
+import jwt
+from fastapi import HTTPException, status
+from jwt import PyJWKClient
+
+from src.core.config import settings
 
 logger = logging.getLogger(__name__)
 
 # Configuración para Supabase Auth
-SUPABASE_URL = str(settings.SUPABASE_URL).rstrip('/')
+SUPABASE_URL = str(settings.SUPABASE_URL).rstrip("/")
 JWKS_URL = f"{SUPABASE_URL}/auth/v1/jwks"
 ISSUER = f"{SUPABASE_URL}/auth/v1"
 
 # El cliente JWK obtiene las claves de Supabase y las cachea para evitar
 # requests repetidos en cada autenticación (las claves rotan poco).
-jwks_client = PyJWKClient(
-    JWKS_URL,
-    cache_keys=True,
-    cache_jwk_set=True,
-    lifespan=3600
-)
+jwks_client = PyJWKClient(JWKS_URL, cache_keys=True, cache_jwk_set=True, lifespan=3600)
+
 
 def verify_token(token: str) -> dict:
     """
@@ -27,7 +25,7 @@ def verify_token(token: str) -> dict:
     """
     try:
         signing_key = jwks_client.get_signing_key_from_jwt(token)
-        
+
         # Supabase usa 'authenticated' para el claim aud de usuarios con sesión
         payload = jwt.decode(
             token,
@@ -36,11 +34,11 @@ def verify_token(token: str) -> dict:
             audience="authenticated",
             issuer=ISSUER,
             options={
-                "verify_aud": True, 
-                "verify_iss": True, 
+                "verify_aud": True,
+                "verify_iss": True,
                 "verify_exp": True,
-                "verify_signature": True
-            }
+                "verify_signature": True,
+            },
         )
         return payload
     except jwt.ExpiredSignatureError:

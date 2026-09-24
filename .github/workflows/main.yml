@@ -2,9 +2,9 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "develop" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "main", "develop" ]
 
 jobs:
   lint-and-test:
@@ -54,7 +54,6 @@ jobs:
         ALEMBIC_DATABASE_URL: postgresql+psycopg://postgres:password@localhost:5432/artistica_test
         DATABASE_URL: postgresql+psycopg://postgres:password@localhost:5432/artistica_test
         SUPABASE_URL: https://test.supabase.co
-        SUPABASE_JWT_SECRET: super_secret_jwt_for_testing
       run: |
         # Ejecutar migraciones en la base de datos de test temporal
         alembic upgrade head
@@ -77,6 +76,8 @@ jobs:
       working-directory: ./backend
       env:
         ALEMBIC_DATABASE_URL: ${{ secrets.PROD_ALEMBIC_DATABASE_URL }}
+        DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+        SUPABASE_URL: ${{ secrets.PROD_SUPABASE_URL }}
       run: |
         pip install --upgrade pip
         pip install -e .

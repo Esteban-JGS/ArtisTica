@@ -1,11 +1,10 @@
-import pytest
-from httpx import AsyncClient, ASGITransport
 import pytest_asyncio
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+from httpx import ASGITransport, AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
-from src.main import app
-from src.core.database import AsyncSessionLocal
 from src.core.config import settings
+from src.main import app
+
 
 @pytest_asyncio.fixture(scope="session")
 async def test_db():
@@ -14,13 +13,17 @@ async def test_db():
     yield engine
     await engine.dispose()
 
+
 @pytest_asyncio.fixture
 async def async_session(test_db) -> AsyncSession:
     """Provee una sesión asíncrona de base de datos para los tests."""
-    async_session_maker = async_sessionmaker(test_db, class_=AsyncSession, expire_on_commit=False)
+    async_session_maker = async_sessionmaker(
+        test_db, class_=AsyncSession, expire_on_commit=False
+    )
     async with async_session_maker() as session:
         yield session
         await session.rollback()
+
 
 @pytest_asyncio.fixture
 async def async_client():

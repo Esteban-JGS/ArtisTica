@@ -1,9 +1,10 @@
-from fastapi import FastAPI
 from contextlib import asynccontextmanager
-import sentry_sdk
 
-from src.core.config import settings
+import sentry_sdk
+from fastapi import FastAPI
+
 from src.api.v1.router import api_router
+from src.core.config import settings
 
 if settings.SENTRY_DSN:
     sentry_sdk.init(
@@ -12,11 +13,13 @@ if settings.SENTRY_DSN:
         traces_sample_rate=1.0,
     )
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Logica de inicializacion (ej. cargar configuraciones, pre-calentar caches)
     yield
     # Logica de apagado
+
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -25,6 +28,7 @@ app = FastAPI(
 )
 
 app.include_router(api_router, prefix=settings.API_V1_STR)
+
 
 @app.get("/health", tags=["health"])
 async def health_check():

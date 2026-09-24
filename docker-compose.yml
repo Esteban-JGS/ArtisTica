@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   db:
     # Imagen de Postgres 15 configurada directamente con pgvector
@@ -32,7 +30,6 @@ services:
       - DATABASE_URL=postgresql+psycopg://postgres:postgres@db:5432/artistica
       - ALEMBIC_DATABASE_URL=postgresql+psycopg://postgres:postgres@db:5432/artistica
       - SUPABASE_URL=http://supabase-mock
-      - SUPABASE_JWT_SECRET=super_secret_jwt_for_local_dev
       - ENVIRONMENT=local
     depends_on:
       db:
@@ -47,8 +44,8 @@ services:
       - ./backend:/app
     environment:
       - DATABASE_URL=postgresql+psycopg://postgres:postgres@db:5432/artistica
+      - ALEMBIC_DATABASE_URL=postgresql+psycopg://postgres:postgres@db:5432/artistica
       - SUPABASE_URL=http://supabase-mock
-      - SUPABASE_JWT_SECRET=super_secret_jwt_for_local_dev
       - ENVIRONMENT=local
     depends_on:
       db:
