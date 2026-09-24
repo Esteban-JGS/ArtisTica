@@ -16,7 +16,7 @@ Veredictos posibles: Aprobado, Aprobado con deuda, Rechazado.
 
 | # | Título | Estado | Veredicto | Deuda |
 |---|---|---|---|---|
-| 0 | Saneamiento: que el proyecto arranque | En curso, con addendum | | |
+| 0 | Saneamiento: que el proyecto arranque | Cerrado | Aprobado con deuda | D1 a D4 |
 | 1 | Esquema de dominio y migración única de reemplazo | Pendiente | | |
 | 2 | Máquina de estados de pedidos y cobros | Pendiente | | |
 | 3 | Capa de pasarela: contrato, adaptador real y adaptador falso | Pendiente | | |
@@ -35,6 +35,10 @@ Veredictos posibles: Aprobado, Aprobado con deuda, Rechazado.
 |---|---|---|
 | Lote 0 | La politica de lint quedo en un conjunto acotado de reglas. Ampliarla obligaria a reescribir codigo existente, asi que se revisa cuando el esquema nuevo este puesto | Despues del lote 1 |
 | Lote 0 | El prompt original pedia correr `ruff check --fix` y a la vez no tocar archivos fuera del alcance. Con una version de ruff mas nueva esas dos instrucciones se contradicen. Los prompts siguientes fijan la politica de lint antes de pedir un `--fix` | Corregido en el addendum |
+| Lote 0, D1 | `B904` silenciado con per-file-ignores en `src/api/deps.py` y `src/core/security.py`. Falta el `raise ... from` | Lote 4, que toca los dos archivos |
+| Lote 0, D2 | El worker solo depende de `db` en compose, asi que su primera consulta llega antes de que la API migre y loguea un `relation jobs does not exist`. El loop reintenta, pero ensucia el arranque | Lote 9, que toca el worker |
+| Lote 0, D3 | `asyncio.set_event_loop_policy` queda obsoleto en Python 3.14. El reemplazo es `asyncio.run(..., loop_factory=...)` | Cuando se suba de version de Python |
+| Lote 0, D4 | `docker-compose.yml` publica el 5432, que en la maquina de Esteban ya ocupa otro contenedor. Hoy se resuelve con un override local fuera del repositorio | Cuando estorbe |
 
 ## Preguntas abiertas que bloquean diseño
 
