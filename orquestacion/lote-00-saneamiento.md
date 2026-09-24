@@ -12,7 +12,7 @@ El backend se generó de una sola vez y nunca se ejecutó: tiene un único commi
 
 Tu lote no agrega funcionalidad. Deja el proyecto instalable, migrable y con las pruebas y el linter en verde.
 
-**Entorno.** Ya existe un entorno virtual en `backend/.venv` con Python 3.12.0. Activalo antes de cualquier comando (en PowerShell: `backend\.venv\Scriptsctivate`) y trabaja siempre dentro de el. No instales nada en el interprete global: la evidencia de los criterios de aceptacion solo vale si sale de ese entorno. En esta maquina `python` fuera del entorno cae a un stub de Microsoft Store; si necesitas el interprete sin activar, usa `py -3`.
+**Entorno.** Ya existe un entorno virtual en `backend/.venv` con Python 3.12.0. Activalo antes de cualquier comando (en PowerShell, desde la raiz del repositorio: `backend\.venv\Scripts\activate`) y trabaja siempre dentro de el. No instales nada en el interprete global: la evidencia de los criterios de aceptacion solo vale si sale de ese entorno. En esta maquina `python` fuera del entorno cae a un stub de Microsoft Store; si necesitas el interprete sin activar, usa `py -3`.
 
 ## Estado actual del repositorio
 
