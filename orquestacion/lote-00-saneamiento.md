@@ -65,7 +65,7 @@ Archivos que podés crear o modificar:
 - `backend/.env.example`
 - `backend/tests/conftest.py`
 - `backend/tests/test_health.py`
-- `backend/CLAUDE.md` (crear)
+- `backend/AGENTS.md` (crear)
 - `docker-compose.yml`
 - `.github/workflows/main.yml`
 
@@ -109,7 +109,7 @@ Además podés aplicar `ruff check --fix .` y `ruff format .` sobre `backend/`, 
 
 10. Quitar los imports sin uso y correr `ruff check --fix .` y `ruff format .` desde `backend/`.
 
-11. Crear `backend/CLAUDE.md` con, y solo con, lo siguiente: los comandos de instalación, linter, formato, migración y pruebas; la regla de que el código vive en `backend/src`; la regla de que `mobile/` no se toca; y la regla de estilo de que no se usan guiones largos ni guiones medios en comentarios ni documentación. Nada de arquitectura ni de modelo de datos: eso se escribe cuando el esquema esté definido, en un lote posterior.
+11. Crear `backend/AGENTS.md` con, y solo con, lo siguiente: los comandos de instalación, linter, formato, migración y pruebas; la regla de que el código vive en `backend/src`; la regla de que `mobile/` no se toca; y la regla de estilo de que no se usan guiones largos ni guiones medios en comentarios ni documentación. Nada de arquitectura ni de modelo de datos: eso se escribe cuando el esquema esté definido, en un lote posterior.
 
 ## Criterios de aceptación
 
