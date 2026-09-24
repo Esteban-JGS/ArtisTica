@@ -1,0 +1,27 @@
+# Secretos. Nunca subir un .env real: los .example si van versionados.
+.env
+.env.*
+!.env.example
+!*/.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+htmlcov/
+.coverage
+
+# Sistema operativo y editores
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+
+# Salidas de build locales
+dist/
+build/
