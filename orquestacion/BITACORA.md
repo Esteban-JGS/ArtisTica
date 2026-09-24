@@ -16,7 +16,7 @@ Veredictos posibles: Aprobado, Aprobado con deuda, Rechazado.
 
 | # | Título | Estado | Veredicto | Deuda |
 |---|---|---|---|---|
-| 0 | Saneamiento: que el proyecto arranque | Prompt generado | | |
+| 0 | Saneamiento: que el proyecto arranque | En curso, con addendum | | |
 | 1 | Esquema de dominio y migración única de reemplazo | Pendiente | | |
 | 2 | Máquina de estados de pedidos y cobros | Pendiente | | |
 | 3 | Capa de pasarela: contrato, adaptador real y adaptador falso | Pendiente | | |
@@ -31,7 +31,10 @@ Veredictos posibles: Aprobado, Aprobado con deuda, Rechazado.
 
 ## Deuda acumulada
 
-Ninguna todavía.
+| Origen | Deuda | Cuando se paga |
+|---|---|---|
+| Lote 0 | La politica de lint quedo en un conjunto acotado de reglas. Ampliarla obligaria a reescribir codigo existente, asi que se revisa cuando el esquema nuevo este puesto | Despues del lote 1 |
+| Lote 0 | El prompt original pedia correr `ruff check --fix` y a la vez no tocar archivos fuera del alcance. Con una version de ruff mas nueva esas dos instrucciones se contradicen. Los prompts siguientes fijan la politica de lint antes de pedir un `--fix` | Corregido en el addendum |
 
 ## Preguntas abiertas que bloquean diseño
 
