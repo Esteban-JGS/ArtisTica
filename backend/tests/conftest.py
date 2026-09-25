@@ -1,9 +1,18 @@
+import asyncio
+import sys
+
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from src.core.config import settings
 from src.main import app
+
+if sys.platform == "win32":
+
+    def pytest_asyncio_loop_factories(config, item):
+        # psycopg async no funciona con el loop Proactor, que es el de Windows
+        return {"selector": asyncio.SelectorEventLoop}
 
 
 @pytest_asyncio.fixture(scope="session")

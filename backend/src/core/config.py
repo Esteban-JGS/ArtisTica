@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from pydantic import AnyHttpUrl, PostgresDsn
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -19,6 +21,18 @@ class Settings(BaseSettings):
     # Environment
     ENVIRONMENT: str = "dev"
     SENTRY_DSN: str | None = None
+
+    # Politicas de pedido (D5). Unico lugar donde viven sus valores por defecto.
+    ANTICIPO_PORCENTAJE_MINIMO: Decimal = Decimal("30")
+    ANTICIPO_PORCENTAJE_MAXIMO: Decimal = Decimal("50")
+    ANTICIPO_PORCENTAJE_DEFECTO: Decimal = Decimal("50")
+    DIAS_VENTANA_DISPUTA: int = 7
+    CANCELACION_EVENTO_DIAS_TOTAL: int = 30
+    CANCELACION_EVENTO_DIAS_PARCIAL: int = 7
+    CANCELACION_EVENTO_PORCENTAJE_PARCIAL: Decimal = Decimal("50")
+    MONTO_MINIMO_PEDIDO: Decimal = Decimal("2500.00")
+    TARIFA_TALLER_PORCENTAJE: Decimal = Decimal("8")
+    TARIFA_ESTUDIO_PORCENTAJE: Decimal = Decimal("5")
 
     model_config = SettingsConfigDict(
         env_file=".env", env_file_encoding="utf-8", case_sensitive=True, extra="ignore"

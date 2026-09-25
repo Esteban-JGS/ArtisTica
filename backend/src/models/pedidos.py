@@ -12,6 +12,7 @@ from sqlalchemy import (
     Numeric,
     String,
     UniqueConstraint,
+    text,
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -62,11 +63,30 @@ class EstadoCobro(enum.StrEnum):
     VENCIDO = "vencido"
 
 
+OBRA_ACTIVA = "tipo = 'obra_disponible' AND estado NOT IN ('rechazado', 'cancelado')"
+
+
 class Pedido(Base, IdMixin, TimestampMixin):
     __tablename__ = "pedidos"
     __table_args__ = (
         CheckConstraint("monto_total > 0", name="monto_total_positivo"),
+        # El rango de negocio (30 a 50) es configurable y no va en la base
+        CheckConstraint(
+            "(tipo = 'obra_disponible') = (anticipo_porcentaje IS NULL)",
+            name="anticipo_solo_con_hitos",
+        ),
+        CheckConstraint(
+            "anticipo_porcentaje > 0 AND anticipo_porcentaje < 100",
+            name="anticipo_porcentaje_en_rango",
+        ),
         Index("ix_pedidos_artista_id_estado", "artista_id", "estado"),
+        # Una obra tiene como mucho un pedido vivo
+        Index(
+            "ux_pedidos_obra_activa",
+            "obra_id",
+            unique=True,
+            postgresql_where=text(OBRA_ACTIVA),
+        ),
     )
 
     consulta_id: Mapped[uuid.UUID] = mapped_column(
@@ -83,6 +103,10 @@ class Pedido(Base, IdMixin, TimestampMixin):
     moneda: Mapped[str] = mapped_column(String(3), default="CRC")
     # Tarifa vigente al crear el pedido. No cambia si el artista cambia de plan.
     tarifa_porcentaje: Mapped[Decimal] = mapped_column(Numeric(5, 2))
+    # Nulo solo en obra disponible, que se cobra en un solo hito
+    anticipo_porcentaje: Mapped[Decimal | None] = mapped_column(
+        Numeric(5, 2), nullable=True
+    )
     obra_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("obras.id"), nullable=True
     )
@@ -94,13 +118,23 @@ class Pedido(Base, IdMixin, TimestampMixin):
     fecha_entrega_estimada: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    # Se fija al entrar en saldo_pagado. Vencida, el pedido pasa a completado.
+    disputable_hasta: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
 
 class Cobro(Base, IdMixin, TimestampMixin):
     """Un hito de pago de un pedido. El dinero lo custodia la pasarela."""
 
     __tablename__ = "cobros"
-    __table_args__ = (CheckConstraint("monto > 0", name="monto_positivo"),)
+    __table_args__ = (
+        CheckConstraint("monto > 0", name="monto_positivo"),
+        CheckConstraint(
+            "monto_reembolsado >= 0 AND monto_reembolsado <= monto",
+            name="monto_reembolsado_en_rango",
+        ),
+    )
 
     pedido_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("pedidos.id"), index=True)
     tipo: Mapped[TipoCobro] = mapped_column(pg_enum(TipoCobro, "tipo_cobro"))
@@ -108,6 +142,10 @@ class Cobro(Base, IdMixin, TimestampMixin):
         pg_enum(EstadoCobro, "estado_cobro"), default=EstadoCobro.PENDIENTE
     )
     monto: Mapped[Decimal] = mapped_column(Numeric(12, 2))
+    # Hecho del cobro, no un saldo. Menor que monto en un reembolso parcial.
+    monto_reembolsado: Mapped[Decimal] = mapped_column(
+        Numeric(12, 2), default=Decimal("0")
+    )
     pasarela: Mapped[str] = mapped_column(String)
     referencia_pasarela: Mapped[str | None] = mapped_column(
         String, nullable=True, unique=True
