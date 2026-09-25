@@ -344,11 +344,15 @@ def upgrade() -> None:
         sa.Column(
             "tarifa_porcentaje", sa.Numeric(precision=5, scale=2), nullable=False
         ),
+        sa.Column(
+            "anticipo_porcentaje", sa.Numeric(precision=5, scale=2), nullable=True
+        ),
         _uuid("obra_id", nullable=True),
         _tz("fecha_evento"),
         sa.Column("lugar_evento", sa.String(), nullable=True),
         sa.Column("guia_envio", sa.String(), nullable=True),
         _tz("fecha_entrega_estimada"),
+        _tz("disputable_hasta"),
         *_timestamps(),
         _fk("pedidos", "consulta_id", "consultas"),
         _fk("pedidos", "cliente_id", "profiles"),
@@ -358,10 +362,29 @@ def upgrade() -> None:
         sa.CheckConstraint(
             "monto_total > 0", name=op.f("ck_pedidos_monto_total_positivo")
         ),
+        # El rango de negocio (30 a 50) es configurable y no va en la base
+        sa.CheckConstraint(
+            "(tipo = 'obra_disponible') = (anticipo_porcentaje IS NULL)",
+            name=op.f("ck_pedidos_anticipo_solo_con_hitos"),
+        ),
+        sa.CheckConstraint(
+            "anticipo_porcentaje > 0 AND anticipo_porcentaje < 100",
+            name=op.f("ck_pedidos_anticipo_porcentaje_en_rango"),
+        ),
         _pk("pedidos"),
     )
     op.create_index("ix_pedidos_cliente_id", "pedidos", ["cliente_id"])
     op.create_index("ix_pedidos_artista_id_estado", "pedidos", ["artista_id", "estado"])
+    # Una obra tiene como mucho un pedido vivo
+    op.create_index(
+        "ux_pedidos_obra_activa",
+        "pedidos",
+        ["obra_id"],
+        unique=True,
+        postgresql_where=sa.text(
+            "tipo = 'obra_disponible' AND estado NOT IN ('rechazado', 'cancelado')"
+        ),
+    )
 
     op.create_table(
         "cobros",
@@ -370,6 +393,7 @@ def upgrade() -> None:
         sa.Column("tipo", _enum("tipo_cobro"), nullable=False),
         sa.Column("estado", _enum("estado_cobro"), nullable=False),
         _money("monto"),
+        _money("monto_reembolsado"),
         sa.Column("pasarela", sa.String(), nullable=False),
         sa.Column("referencia_pasarela", sa.String(), nullable=True),
         _tz("autorizado_hasta"),
@@ -380,6 +404,10 @@ def upgrade() -> None:
             "referencia_pasarela", name="uq_cobros_referencia_pasarela"
         ),
         sa.CheckConstraint("monto > 0", name=op.f("ck_cobros_monto_positivo")),
+        sa.CheckConstraint(
+            "monto_reembolsado >= 0 AND monto_reembolsado <= monto",
+            name=op.f("ck_cobros_monto_reembolsado_en_rango"),
+        ),
         _pk("cobros"),
     )
     op.create_index("ix_cobros_pedido_id", "cobros", ["pedido_id"])
