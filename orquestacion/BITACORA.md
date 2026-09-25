@@ -17,7 +17,8 @@ Veredictos posibles: Aprobado, Aprobado con deuda, Rechazado.
 | # | Título | Estado | Veredicto | Deuda |
 |---|---|---|---|---|
 | 0 | Saneamiento: que el proyecto arranque | Cerrado | Aprobado con deuda | D1 a D4 |
-| 1 | Esquema de dominio y migración única de reemplazo | Prompt generado | | |
+| 1 | Esquema de dominio y migración única de reemplazo | Cerrado | Aprobado con deuda | D5 a D7 |
+| 1b | Cerrar los huecos del esquema | Prompt generado | | |
 | 2 | Máquina de estados de pedidos y cobros | Pendiente | | |
 | 3 | Capa de pasarela: contrato, adaptador real y adaptador falso | Pendiente | | |
 | 4 | Identidad, roles, planes y onboarding | Pendiente | | |
@@ -39,6 +40,10 @@ Veredictos posibles: Aprobado, Aprobado con deuda, Rechazado.
 | Lote 0, D2 | El worker solo depende de `db` en compose, asi que su primera consulta llega antes de que la API migre y loguea un `relation jobs does not exist`. El loop reintenta, pero ensucia el arranque | Lote 9, que toca el worker |
 | Lote 0, D3 | `asyncio.set_event_loop_policy` queda obsoleto en Python 3.14. El reemplazo es `asyncio.run(..., loop_factory=...)` | Cuando se suba de version de Python |
 | Lote 0, D4 | `docker-compose.yml` publica el 5432, que en la maquina de Esteban ya ocupa otro contenedor. Hoy se resuelve con un override local fuera del repositorio | Cuando estorbe |
+| Lote 1, D5 | `src/models/operation.py` quedo como reexportacion de tres lineas hacia `operacion.py`, porque `workers/main.py` importa `Job` desde ahi y estaba prohibido tocarlo | Lote 9, que toca el worker |
+| Lote 1, D6 | Los valores por defecto se asignan en Python y no con `server_default`. Un insert por SQL crudo tiene que darlos explicitos | Sin fecha. Bajo impacto mientras todo pase por SQLAlchemy |
+| Lote 1, D7 | `reportes` y `moderation_actions` conservan nombres de columna en ingles y sin llave foranea en `reporter_id` y `admin_id` | Lote 11, que toca moderacion |
+| Orquestador | El criterio de aceptacion que buscaba columnas de saldo con `grep` sobre el codigo era erroneo: los valores de enum del dominio contienen esas palabras de forma legitima. Se reemplaza por una consulta a `information_schema.columns` | Corregido desde el lote 1b |
 
 ## Preguntas abiertas que bloquean diseño
 
