@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.database import AsyncSessionLocal
 from src.core.security import verify_token
-from src.models.users import Profile, ProfileRole
+from src.models.users import Profile, RolPerfil
 
 security = HTTPBearer()
 
@@ -57,7 +57,7 @@ async def get_current_admin(
     current_user: Profile = Depends(get_current_user),
 ) -> Profile:
     """Dependencia para endpoints que requieren rol de administrador."""
-    if current_user.role != ProfileRole.ADMIN:
+    if current_user.rol != RolPerfil.ADMIN:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, detail="Permisos insuficientes"
         )

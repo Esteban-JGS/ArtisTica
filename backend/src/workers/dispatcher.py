@@ -1,5 +1,4 @@
 from .handlers.embeddings import handle_generate_embedding
-from .handlers.escrow import handle_release_escrow
 from .handlers.moderation import handle_moderate_image
 from .handlers.styles import handle_classify_style
 from .handlers.thumbnails import handle_generate_thumbnail
@@ -10,7 +9,6 @@ HANDLERS = {
     "generate_embedding": handle_generate_embedding,
     "classify_style": handle_classify_style,
     "moderate_image": handle_moderate_image,
-    "release_escrow": handle_release_escrow,
 }
 
 

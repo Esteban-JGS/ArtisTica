@@ -1,0 +1,125 @@
+import enum
+import uuid
+from datetime import datetime
+from decimal import Decimal
+
+from sqlalchemy import (
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    Numeric,
+    String,
+    UniqueConstraint,
+)
+from sqlalchemy.orm import Mapped, mapped_column
+
+from .base import Base, IdMixin, TimestampMixin, pg_enum
+
+
+class TipoPedido(enum.StrEnum):
+    ENCARGO = "encargo"
+    EVENTO = "evento"
+    OBRA_DISPONIBLE = "obra_disponible"
+
+
+class EstadoPedido(enum.StrEnum):
+    COTIZADO = "cotizado"
+    ANTICIPO_PAGADO = "anticipo_pagado"
+    EN_PROCESO = "en_proceso"
+    VISTA_PREVIA_ENTREGADA = "vista_previa_entregada"
+    SALDO_PAGADO = "saldo_pagado"
+    COMPLETADO = "completado"
+    RECHAZADO = "rechazado"
+    CANCELADO = "cancelado"
+    EN_DISPUTA = "en_disputa"
+
+
+class TipoCobro(enum.StrEnum):
+    ANTICIPO = "anticipo"
+    SALDO = "saldo"
+    TOTAL = "total"
+
+
+class EstadoCobro(enum.StrEnum):
+    PENDIENTE = "pendiente"
+    AUTORIZADO = "autorizado"
+    CAPTURADO = "capturado"
+    CANCELADO = "cancelado"
+    REEMBOLSADO = "reembolsado"
+    VENCIDO = "vencido"
+
+
+class Pedido(Base, IdMixin, TimestampMixin):
+    __tablename__ = "pedidos"
+    __table_args__ = (
+        CheckConstraint("monto_total > 0", name="monto_total_positivo"),
+        Index("ix_pedidos_artista_id_estado", "artista_id", "estado"),
+    )
+
+    consulta_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("consultas.id"), unique=True
+    )
+    cliente_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("profiles.id"))
+    artista_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("profiles.id"))
+    tipo: Mapped[TipoPedido] = mapped_column(pg_enum(TipoPedido, "tipo_pedido"))
+    estado: Mapped[EstadoPedido] = mapped_column(
+        pg_enum(EstadoPedido, "estado_pedido"), default=EstadoPedido.COTIZADO
+    )
+    descripcion: Mapped[str] = mapped_column(String)
+    monto_total: Mapped[Decimal] = mapped_column(Numeric(12, 2))
+    moneda: Mapped[str] = mapped_column(String(3), default="CRC")
+    # Tarifa vigente al crear el pedido. No cambia si el artista cambia de plan.
+    tarifa_porcentaje: Mapped[Decimal] = mapped_column(Numeric(5, 2))
+    obra_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("obras.id"), nullable=True
+    )
+    fecha_evento: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    lugar_evento: Mapped[str | None] = mapped_column(String, nullable=True)
+    guia_envio: Mapped[str | None] = mapped_column(String, nullable=True)
+    fecha_entrega_estimada: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+
+class Cobro(Base, IdMixin, TimestampMixin):
+    """Un hito de pago de un pedido. El dinero lo custodia la pasarela."""
+
+    __tablename__ = "cobros"
+    __table_args__ = (CheckConstraint("monto > 0", name="monto_positivo"),)
+
+    pedido_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("pedidos.id"), index=True)
+    tipo: Mapped[TipoCobro] = mapped_column(pg_enum(TipoCobro, "tipo_cobro"))
+    estado: Mapped[EstadoCobro] = mapped_column(
+        pg_enum(EstadoCobro, "estado_cobro"), default=EstadoCobro.PENDIENTE
+    )
+    monto: Mapped[Decimal] = mapped_column(Numeric(12, 2))
+    pasarela: Mapped[str] = mapped_column(String)
+    referencia_pasarela: Mapped[str | None] = mapped_column(
+        String, nullable=True, unique=True
+    )
+    autorizado_hasta: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    capturado_en: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+
+class Resena(Base, IdMixin, TimestampMixin):
+    __tablename__ = "resenas"
+    __table_args__ = (
+        UniqueConstraint("pedido_id", "autor_id"),
+        CheckConstraint(
+            "calificacion BETWEEN 1 AND 5", name="calificacion_entre_1_y_5"
+        ),
+    )
+
+    pedido_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("pedidos.id"))
+    autor_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("profiles.id"))
+    destinatario_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("profiles.id"))
+    calificacion: Mapped[int] = mapped_column(Integer)
+    texto: Mapped[str | None] = mapped_column(String, nullable=True)

@@ -1,44 +1,65 @@
 import enum
 import uuid
 
-from sqlalchemy import Boolean, String
-from sqlalchemy.dialects.postgresql import ARRAY, ENUM, UUID
+from sqlalchemy import Boolean, CheckConstraint, ForeignKey, String, UniqueConstraint
+from sqlalchemy.dialects.postgresql import ARRAY, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
-from .base import Base, TimestampMixin
+from .base import Base, IdMixin, TimestampMixin, pg_enum
 
 
-class ProfileRole(enum.StrEnum):
+class RolPerfil(enum.StrEnum):
+    PUBLICO = "publico"
     ARTISTA = "artista"
     ADMIN = "admin"
+
+
+class PlanArtista(enum.StrEnum):
+    TALLER = "taller"
+    ESTUDIO = "estudio"
+
+
+class EstadoOnboarding(enum.StrEnum):
+    NO_INICIADO = "no_iniciado"
+    PENDIENTE = "pendiente"
+    COMPLETADO = "completado"
+    RECHAZADO = "rechazado"
 
 
 class Profile(Base, TimestampMixin):
     __tablename__ = "profiles"
 
-    # ID proveniente de Supabase auth.users
+    # El id viene de auth.users de Supabase
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
     handle: Mapped[str] = mapped_column(String, unique=True, index=True)
-    name: Mapped[str] = mapped_column(String)
+    nombre: Mapped[str] = mapped_column(String)
     bio: Mapped[str | None] = mapped_column(String, nullable=True)
-    categories: Mapped[list[str]] = mapped_column(ARRAY(String), default=list)
+    categorias: Mapped[list[str]] = mapped_column(ARRAY(String), default=list)
+    provincia: Mapped[str | None] = mapped_column(String, nullable=True)
+    rol: Mapped[RolPerfil] = mapped_column(
+        pg_enum(RolPerfil, "rol_perfil"), default=RolPerfil.PUBLICO
+    )
+    plan: Mapped[PlanArtista] = mapped_column(
+        pg_enum(PlanArtista, "plan_artista"), default=PlanArtista.TALLER
+    )
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
-    role: Mapped[ProfileRole] = mapped_column(
-        ENUM(
-            ProfileRole,
-            name="profile_role_enum",
-            create_type=False,
-            values_callable=lambda e: [m.value for m in e],
-        ),
-        default=ProfileRole.ARTISTA,
+    pasarela_cuenta_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    pasarela_onboarding: Mapped[EstadoOnboarding] = mapped_column(
+        pg_enum(EstadoOnboarding, "estado_onboarding"),
+        default=EstadoOnboarding.NO_INICIADO,
     )
 
 
-class Follow(Base, TimestampMixin):
+class Follow(Base, IdMixin, TimestampMixin):
     __tablename__ = "follows"
-
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    __table_args__ = (
+        UniqueConstraint("seguidor_id", "seguido_id"),
+        CheckConstraint("seguidor_id <> seguido_id", name="no_autoseguimiento"),
     )
-    follower_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), index=True)
-    following_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), index=True)
+
+    seguidor_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("profiles.id", ondelete="CASCADE")
+    )
+    seguido_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("profiles.id", ondelete="CASCADE")
+    )
