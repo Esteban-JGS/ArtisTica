@@ -14,6 +14,7 @@ Las decisiones se numeran D y las deudas técnicas DT.
 | D4 | Recorte de alcance para noviembre 2026: boosts fuera del MVP, IA y métricas reducidas, webhooks completos sin recorte | 2026-09-23 |
 | D5 | Políticas de pedido por defecto, todas como configuración que se cambia sin tocar código. Ver la tabla de políticas abajo | 2026-09-24 |
 | D6 | Todo entra por rama y pull request hacia `develop`, fusionado con merge commit, que conserva los commits de la rama y deja que `develop` local se alinee con un `git pull`. Un lote, una rama. El merge es siempre humano. Detalle en `AGENTS.md` | 2026-09-24 |
+| D7 | Salidas por vencimiento de los pedidos. Resuelven las preguntas 9 y 10. Ver las dos últimas filas de la tabla de políticas | 2026-09-25 |
 
 ## Políticas de pedido vigentes (D5)
 
@@ -26,6 +27,8 @@ Las decisiones se numeran D y las deudas técnicas DT.
 | Cancelación o incumplimiento del artista | Se devuelve el 100% de lo cobrado, en cualquier tipo de pedido |
 | Anticipo en una disputa | Moderación puede ordenar su devolución total o parcial. Resuelve la errata C4: el anticipo no se devuelve cuando el cliente cancela por su cuenta, pero sí cuando el artista incumple, y la disputa es justamente como se establece un incumplimiento |
 | Monto mínimo por pedido | ₡2,500 |
+| Evento cuya fecha llega con el saldo impago (D7) | Cuenta como cancelación del cliente con menos de 7 días: el anticipo no se devuelve y el pedido pasa a `cancelado` |
+| Autorización del saldo de un encargo que vence antes de la aprobación (D7) | El cliente puede volver a autorizar el mismo cobro. Si no lo hace en 7 días desde el vencimiento, el artista puede abrir una disputa |
 
 ## Estado de los lotes
 
@@ -58,7 +61,7 @@ Las decisiones se numeran D y las deudas técnicas DT.
 | DT7 | Lote 1 | `reportes` y `moderation_actions` conservan nombres de columna en inglés y sin llave foránea en `reporter_id` y `admin_id` | Lote 11, que toca moderación |
 | DT8 | Lote 0 | La política de lint quedó en un conjunto acotado de reglas. Se revisa cuando haya código de dominio suficiente para juzgarla | Después del lote 8 |
 | DT9 | Lote 2 | El dominio importa los enums desde `src.models`. Pasa el grep de pureza, pero en ejecución carga SQLAlchemy. Hay que mover los enums a un módulo neutro | Lote 8 |
-| DT10 | Lote 2 | Faltan tres salidas por paso del tiempo: evento cuya fecha llega con el saldo impago, que queda trabado en `anticipo_pagado`; encargo cuya autorización del saldo vence en `vista_previa_entregada`, sin forma de reautorizar; y obra disponible cuya autorización vence en `en_proceso`, que está en la tabla pero sin función en el servicio | Lote 9, que vigila vencimientos. Dependen de las preguntas 9 y 10 |
+| DT10 | Lote 2 | Faltan tres salidas por paso del tiempo: evento cuya fecha llega con el saldo impago, que queda trabado en `anticipo_pagado`; encargo cuya autorización del saldo vence en `vista_previa_entregada`, sin forma de reautorizar; y obra disponible cuya autorización vence en `en_proceso`, que está en la tabla pero sin función en el servicio | Lote 9, que vigila vencimientos. Reglas decididas en D7 |
 
 ## Errores del orquestador
 
@@ -82,5 +85,5 @@ Las decisiones se numeran D y las deudas técnicas DT.
 | 6 | Si la comisión se define por cobro o solo por cuenta (pasarela) | Lote 3, mitigada por D3 | Abierta |
 | 7 | Quién absorbe contracargos y reembolsos después de liquidar (pasarela) | Lote 9, mitigada por D3 | Abierta |
 | 8 | Si una persona física sin actividad inscrita puede completar el onboarding | Lote 4 | Abierta |
-| 9 | Evento cuya fecha llega con el saldo impago. Propuesta: se trata como cancelación del cliente con menos de 7 días, así que el anticipo no se devuelve y el pedido pasa a `cancelado` | Lote 9 | Abierta, con propuesta |
-| 10 | Encargo cuya autorización del saldo vence antes de que el cliente apruebe. Propuesta: se permite reautorizar el mismo cobro; si el cliente no reautoriza en 7 días, el artista puede abrir disputa | Lote 9 | Abierta, con propuesta |
+| 9 | Evento cuya fecha llega con el saldo impago. Propuesta: se trata como cancelación del cliente con menos de 7 días, así que el anticipo no se devuelve y el pedido pasa a `cancelado` | Lote 9 | Cerrada por D7 |
+| 10 | Encargo cuya autorización del saldo vence antes de que el cliente apruebe. Propuesta: se permite reautorizar el mismo cobro; si el cliente no reautoriza en 7 días, el artista puede abrir disputa | Lote 9 | Cerrada por D7 |
