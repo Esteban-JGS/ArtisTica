@@ -231,9 +231,16 @@ Archivos que podés crear o modificar:
 - [ ] `ruff check .` pasa sin errores.
 - [ ] `pytest` pasa.
 
+## Rama
+Trabajás en la rama `feat/lote-NN-descripcion`, que ya existe y está activa.
+Verificalo con `git branch --show-current` antes de empezar. Al terminar,
+commiteá ahí con un mensaje convencional (`tipo(backend): descripcion`).
+No hagas push ni abras PR: eso lo hace el orquestador tras validar.
+
 ## Cómo entregar
-Diff completo, lista de archivos tocados, salida literal de cada comando
-de los criterios de aceptación, y una sección de observaciones al final.
+Salida de `git diff --stat develop...HEAD`, lista de archivos tocados,
+salida literal de cada comando de los criterios de aceptación, y una
+sección de observaciones al final.
 Si algo del prompt te parece equivocado, hacelo igual y anotá la objeción
 en observaciones.
 
@@ -241,6 +248,14 @@ en observaciones.
 No usar guiones largos ni guiones medios en comentarios ni documentación.
 Explicaciones breves; se prefiere código correcto a párrafos.
 ```
+
+### Flujo de ramas por lote
+
+1. Antes de entregar el prompt, crear `feat/lote-NN-descripcion` desde `develop` actualizado, commitear ahí el prompt y dejarla activa.
+2. La sesión ejecutora commitea en esa rama. No hace push.
+3. Validar con `git diff develop...HEAD`, que muestra solo lo del lote.
+4. Con veredicto aprobado: registrar en la bitácora sobre la misma rama, `git push -u origin <rama>` y abrir el PR con `gh pr create --base develop`, llenando la plantilla de `.github/pull_request_template.md`. Un correctivo va como commit nuevo en la misma rama, no como rama aparte.
+5. El merge lo hace Esteban, con squash. Nunca el orquestador.
 
 ### Reglas de división en lotes
 

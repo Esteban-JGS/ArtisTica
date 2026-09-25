@@ -40,6 +40,30 @@ Comisiones abiertas, no marketplace. Un solo motor de pedidos con tres tipos:
 
 El backend avanza por lotes definidos en `orquestacion/BITACORA.md`. Cada lote tiene un prompt autocontenido con alcance cerrado. Si estas ejecutando un lote, no salgas de su lista de archivos, y si algo del prompt te parece equivocado, hacelo igual y anotá la objecion en observaciones.
 
+## Ramas, commits y pull requests
+
+**Nadie commitea directo en `develop` ni en `main`.** Todo entra por pull request.
+
+| Rama | Para que |
+|---|---|
+| `main` | Lo entregable. Solo recibe merges desde `develop` en hitos |
+| `develop` | Integracion. Base de todas las ramas de trabajo |
+| `tipo/descripcion-corta` | Una por unidad de trabajo, siempre desde `develop` |
+
+Nombres de rama: `feat/lote-02-maquina-estados`, `fix/worker-arranque`, `design/notas-corcho-textura`, `docs/errata-maestro`. Los lotes del backend llevan siempre `lote-NN` en el nombre.
+
+**Commits** en formato convencional y en espanol: `tipo(alcance): descripcion`. Tipos: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`, `design`. Alcances: `backend`, `mobile`, `orquestacion`, `agentes`, `ci`.
+
+**Pull requests** hacia `develop`, con la plantilla de `.github/pull_request_template.md`. El titulo es un commit convencional, porque se fusiona con **squash** y el titulo queda como el commit de `develop`: un lote, un commit.
+
+Flujo de un lote del backend:
+
+1. El orquestador crea la rama desde `develop` y deja el prompt ahi.
+2. La sesion ejecutora trabaja en esa rama y commitea ahi. No hace push.
+3. El orquestador valida contra `develop` y emite veredicto.
+4. Con veredicto aprobado, el orquestador sube la rama y abre el PR.
+5. Esteban revisa y hace el merge. El merge es siempre humano.
+
 ## Estilo
 
 No usar guiones largos ni guiones medios en comentarios, mensajes de commit ni documentacion.
