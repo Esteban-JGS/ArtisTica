@@ -264,7 +264,7 @@ Explicaciones breves; se prefiere código correcto a párrafos.
 3. Validar con `git diff develop...HEAD`, que muestra solo lo del lote.
 4. Si se rechaza: el prompt de corrección le pide seguir en la misma rama, sin crear otra.
 5. Con veredicto aprobado: commitear en esa rama el prompt y la bitácora, `git push -u origin <rama>` y abrir el PR con `gh pr create --base develop`, llenando la plantilla de `.github/pull_request_template.md`.
-6. El merge lo hace Esteban, con squash. Nunca el orquestador.
+6. El merge lo hace Esteban, con merge commit. Nunca el orquestador. Después del merge, `git pull` en `develop` basta para alinear.
 
 Los cambios del propio orquestador a documentación también van por rama `docs/...` y PR.
 

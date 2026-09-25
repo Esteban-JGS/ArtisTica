@@ -13,7 +13,7 @@ Las decisiones se numeran D y las deudas técnicas DT.
 | D3 | La pasarela de pagos vive detrás de un contrato abstracto. ONVO es el primer adaptador; existe un adaptador falso para pruebas y demo. Las incógnitas de la pasarela son capacidades declaradas, no constantes en el código | 2026-09-23 |
 | D4 | Recorte de alcance para noviembre 2026: boosts fuera del MVP, IA y métricas reducidas, webhooks completos sin recorte | 2026-09-23 |
 | D5 | Políticas de pedido por defecto, todas como configuración que se cambia sin tocar código. Ver la tabla de políticas abajo | 2026-09-24 |
-| D6 | Todo entra por rama y pull request hacia `develop`, fusionado con squash. Un lote, una rama, un commit en `develop`. El merge es siempre humano. Detalle en `AGENTS.md` | 2026-09-24 |
+| D6 | Todo entra por rama y pull request hacia `develop`, fusionado con merge commit, que conserva los commits de la rama y deja que `develop` local se alinee con un `git pull`. Un lote, una rama. El merge es siempre humano. Detalle en `AGENTS.md` | 2026-09-24 |
 
 ## Políticas de pedido vigentes (D5)
 

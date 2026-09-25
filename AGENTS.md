@@ -54,7 +54,7 @@ Nombres de rama: `feat/lote-02-maquina-estados`, `fix/worker-arranque`, `design/
 
 **Commits** en formato convencional y en espanol: `tipo(alcance): descripcion`. Tipos: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`, `design`. Alcances: `backend`, `mobile`, `orquestacion`, `agentes`, `ci`.
 
-**Pull requests** hacia `develop`, con la plantilla de `.github/pull_request_template.md`. El titulo es un commit convencional, porque se fusiona con **squash** y el titulo queda como el commit de `develop`: un lote, un commit.
+**Pull requests** hacia `develop`, con la plantilla de `.github/pull_request_template.md`, y titulo en formato de commit convencional. Se fusionan con **merge commit** ("Create a merge commit"): se conservan los commits de la rama, y `develop` local se actualiza con un `git pull` normal. Por eso cada commit dentro de una rama tiene que ser convencional y tener sentido por si solo. Para ver una linea por PR: `git log --first-parent develop`.
 
 Flujo de un lote del backend:
 
