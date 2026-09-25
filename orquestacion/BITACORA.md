@@ -18,8 +18,8 @@ Veredictos posibles: Aprobado, Aprobado con deuda, Rechazado.
 |---|---|---|---|---|
 | 0 | Saneamiento: que el proyecto arranque | Cerrado | Aprobado con deuda | D1 a D4 |
 | 1 | Esquema de dominio y migración única de reemplazo | Cerrado | Aprobado con deuda | D5 a D7 |
-| 1b | Cerrar los huecos del esquema | Prompt generado | | |
-| 2 | Máquina de estados de pedidos y cobros | Pendiente | | |
+| 1b | Cerrar los huecos del esquema | Cerrado | Aprobado | Ninguna |
+| 2 | Máquina de estados de pedidos y cobros | Pendiente. Incluye el indice unico parcial sobre `pedidos(obra_id)` para obra disponible, observacion 5 del lote 1b | | |
 | 3 | Capa de pasarela: contrato, adaptador real y adaptador falso | Pendiente | | |
 | 4 | Identidad, roles, planes y onboarding | Pendiente | | |
 | 5 | Obras, servicios y medios con Storage firmado | Pendiente | | |
