@@ -54,15 +54,16 @@ Nombres de rama: `feat/lote-02-maquina-estados`, `fix/worker-arranque`, `design/
 
 **Commits** en formato convencional y en espanol: `tipo(alcance): descripcion`. Tipos: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`, `design`. Alcances: `backend`, `mobile`, `orquestacion`, `agentes`, `ci`.
 
-**Pull requests** hacia `develop`, con la plantilla de `.github/pull_request_template.md`. El titulo es un commit convencional, porque se fusiona con **squash** y el titulo queda como el commit de `develop`: un lote, un commit.
+**Pull requests** hacia `develop`, con la plantilla de `.github/pull_request_template.md`, y titulo en formato de commit convencional. Se fusionan con **merge commit** ("Create a merge commit"): se conservan los commits de la rama, y `develop` local se actualiza con un `git pull` normal. Por eso cada commit dentro de una rama tiene que ser convencional y tener sentido por si solo. Para ver una linea por PR: `git log --first-parent develop`.
 
 Flujo de un lote del backend:
 
-1. El orquestador crea la rama desde `develop` y deja el prompt ahi.
-2. La sesion ejecutora trabaja en esa rama y commitea ahi. No hace push.
-3. El orquestador valida contra `develop` y emite veredicto.
-4. Con veredicto aprobado, el orquestador sube la rama y abre el PR.
-5. Esteban revisa y hace el merge. El merge es siempre humano.
+1. El orquestador escribe el prompt en `orquestacion/` y lo deja sin commitear.
+2. **El primer paso de todo prompt es crear la rama**: la sesion ejecutora actualiza `develop` y crea desde ahi la rama con el nombre que el prompt indica, siguiendo el estandar de arriba.
+3. La sesion trabaja y commitea en esa rama solo los archivos de su alcance. No commitea nada de `orquestacion/`, no hace push ni abre PR.
+4. El orquestador valida contra `develop` y emite veredicto. Si rechaza, el correctivo va en la misma rama.
+5. Con veredicto aprobado, el orquestador commitea el prompt y la bitacora en la misma rama, la sube y abre el PR.
+6. Esteban revisa y hace el merge. El merge es siempre humano.
 
 ## Estilo
 

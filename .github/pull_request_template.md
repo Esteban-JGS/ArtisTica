@@ -1,6 +1,6 @@
 <!--
-Titulo del PR: igual que un commit convencional, porque se fusiona con squash
-y el titulo pasa a ser el commit de develop.
+Titulo del PR: igual que un commit convencional. Se fusiona con merge commit,
+asi que los commits de la rama tambien tienen que ser convencionales.
   tipo(alcance): descripcion en minusculas y sin punto final
   Ejemplo: feat(backend): lote 2, maquina de estados de pedidos y cobros
 Tipos: feat, fix, refactor, test, docs, chore, design
