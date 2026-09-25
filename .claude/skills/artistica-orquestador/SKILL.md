@@ -231,11 +231,19 @@ Archivos que podés crear o modificar:
 - [ ] `ruff check .` pasa sin errores.
 - [ ] `pytest` pasa.
 
-## Rama
-Trabajás en la rama `feat/lote-NN-descripcion`, que ya existe y está activa.
-Verificalo con `git branch --show-current` antes de empezar. Al terminar,
-commiteá ahí con un mensaje convencional (`tipo(backend): descripcion`).
-No hagas push ni abras PR: eso lo hace el orquestador tras validar.
+## Paso 0: crear la rama
+Antes de tocar cualquier archivo:
+
+    git switch develop
+    git pull --ff-only
+    git switch -c feat/lote-NN-descripcion
+
+Verificá con `git branch --show-current`. Si la rama ya existe, detenete y
+avisá: no la sobrescribas.
+
+Al terminar, commiteá en esa rama **solo los archivos del alcance**, con un
+mensaje convencional (`tipo(backend): descripcion`). No commitees nada de
+`orquestacion/`. No hagas push ni abras PR: eso lo hace el orquestador.
 
 ## Cómo entregar
 Salida de `git diff --stat develop...HEAD`, lista de archivos tocados,
@@ -251,11 +259,14 @@ Explicaciones breves; se prefiere código correcto a párrafos.
 
 ### Flujo de ramas por lote
 
-1. Antes de entregar el prompt, crear `feat/lote-NN-descripcion` desde `develop` actualizado, commitear ahí el prompt y dejarla activa.
-2. La sesión ejecutora commitea en esa rama. No hace push.
+1. Escribir el prompt en `orquestacion/` **sin commitearlo** y sin crear ninguna rama. Todo prompt empieza con el "Paso 0: crear la rama", con el nombre exacto que sigue el estándar: `feat/lote-NN-descripcion`, o `fix/lote-NN-descripcion` para un correctivo que no cabe en la rama original.
+2. La sesión ejecutora crea la rama desde `develop` actualizado, trabaja y commitea ahí solo su alcance. No hace push.
 3. Validar con `git diff develop...HEAD`, que muestra solo lo del lote.
-4. Con veredicto aprobado: registrar en la bitácora sobre la misma rama, `git push -u origin <rama>` y abrir el PR con `gh pr create --base develop`, llenando la plantilla de `.github/pull_request_template.md`. Un correctivo va como commit nuevo en la misma rama, no como rama aparte.
-5. El merge lo hace Esteban, con squash. Nunca el orquestador.
+4. Si se rechaza: el prompt de corrección le pide seguir en la misma rama, sin crear otra.
+5. Con veredicto aprobado: commitear en esa rama el prompt y la bitácora, `git push -u origin <rama>` y abrir el PR con `gh pr create --base develop`, llenando la plantilla de `.github/pull_request_template.md`.
+6. El merge lo hace Esteban, con squash. Nunca el orquestador.
+
+Los cambios del propio orquestador a documentación también van por rama `docs/...` y PR.
 
 ### Reglas de división en lotes
 

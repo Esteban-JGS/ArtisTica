@@ -58,11 +58,12 @@ Nombres de rama: `feat/lote-02-maquina-estados`, `fix/worker-arranque`, `design/
 
 Flujo de un lote del backend:
 
-1. El orquestador crea la rama desde `develop` y deja el prompt ahi.
-2. La sesion ejecutora trabaja en esa rama y commitea ahi. No hace push.
-3. El orquestador valida contra `develop` y emite veredicto.
-4. Con veredicto aprobado, el orquestador sube la rama y abre el PR.
-5. Esteban revisa y hace el merge. El merge es siempre humano.
+1. El orquestador escribe el prompt en `orquestacion/` y lo deja sin commitear.
+2. **El primer paso de todo prompt es crear la rama**: la sesion ejecutora actualiza `develop` y crea desde ahi la rama con el nombre que el prompt indica, siguiendo el estandar de arriba.
+3. La sesion trabaja y commitea en esa rama solo los archivos de su alcance. No commitea nada de `orquestacion/`, no hace push ni abre PR.
+4. El orquestador valida contra `develop` y emite veredicto. Si rechaza, el correctivo va en la misma rama.
+5. Con veredicto aprobado, el orquestador commitea el prompt y la bitacora en la misma rama, la sube y abre el PR.
+6. Esteban revisa y hace el merge. El merge es siempre humano.
 
 ## Estilo
 
