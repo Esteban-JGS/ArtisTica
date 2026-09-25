@@ -36,6 +36,17 @@ class EstadoPedido(enum.StrEnum):
     EN_DISPUTA = "en_disputa"
 
 
+class TipoEntregable(enum.StrEnum):
+    VISTA_PREVIA = "vista_previa"
+    FINAL = "final"
+
+
+class EstadoDisputa(enum.StrEnum):
+    ABIERTA = "abierta"
+    EN_REVISION = "en_revision"
+    RESUELTA = "resuelta"
+
+
 class TipoCobro(enum.StrEnum):
     ANTICIPO = "anticipo"
     SALDO = "saldo"
@@ -61,7 +72,7 @@ class Pedido(Base, IdMixin, TimestampMixin):
     consulta_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("consultas.id"), unique=True
     )
-    cliente_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("profiles.id"))
+    cliente_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("profiles.id"), index=True)
     artista_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("profiles.id"))
     tipo: Mapped[TipoPedido] = mapped_column(pg_enum(TipoPedido, "tipo_pedido"))
     estado: Mapped[EstadoPedido] = mapped_column(
@@ -123,3 +134,36 @@ class Resena(Base, IdMixin, TimestampMixin):
     destinatario_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("profiles.id"))
     calificacion: Mapped[int] = mapped_column(Integer)
     texto: Mapped[str | None] = mapped_column(String, nullable=True)
+
+
+class Entregable(Base, IdMixin, TimestampMixin):
+    """Vista previa con marca de agua o archivo final de un pedido."""
+
+    __tablename__ = "entregables"
+
+    pedido_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("pedidos.id"), index=True)
+    media_asset_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("media_assets.id"))
+    tipo: Mapped[TipoEntregable] = mapped_column(
+        pg_enum(TipoEntregable, "tipo_entregable")
+    )
+    nota: Mapped[str | None] = mapped_column(String, nullable=True)
+
+
+class Disputa(Base, IdMixin, TimestampMixin):
+    """Una por pedido. La resuelve moderacion con el chat y los entregables."""
+
+    __tablename__ = "disputas"
+
+    pedido_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("pedidos.id"), unique=True)
+    abierta_por_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("profiles.id"))
+    motivo: Mapped[str] = mapped_column(String)
+    estado: Mapped[EstadoDisputa] = mapped_column(
+        pg_enum(EstadoDisputa, "estado_disputa"), default=EstadoDisputa.ABIERTA
+    )
+    resolucion: Mapped[str | None] = mapped_column(String, nullable=True)
+    resuelta_por_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("profiles.id"), nullable=True
+    )
+    resuelta_en: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )

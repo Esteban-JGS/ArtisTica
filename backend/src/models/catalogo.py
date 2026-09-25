@@ -13,6 +13,7 @@ from .base import Base, IdMixin, SoftDeleteMixin, TimestampMixin, pg_enum
 class EstadoObra(enum.StrEnum):
     EXHIBICION = "exhibicion"
     DISPONIBLE = "disponible"
+    VENDIDA = "vendida"
 
 
 class TipoServicio(enum.StrEnum):
@@ -23,20 +24,21 @@ class TipoServicio(enum.StrEnum):
 class Obra(Base, IdMixin, TimestampMixin, SoftDeleteMixin):
     __tablename__ = "obras"
     __table_args__ = (
+        # Una obra vendida conserva su precio
         CheckConstraint(
-            "estado <> 'disponible' OR (precio IS NOT NULL AND precio > 0)",
-            name="precio_si_esta_a_la_venta",
+            "estado = 'exhibicion' OR (precio IS NOT NULL AND precio > 0)",
+            name="precio_fuera_de_exhibicion",
         ),
         Index(
             "ix_obras_style_embedding",
             "style_embedding",
             postgresql_using="hnsw",
-            postgresql_ops={"style_embedding": "vector_l2_ops"},
+            postgresql_ops={"style_embedding": "vector_cosine_ops"},
         ),
     )
 
     artista_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("profiles.id", ondelete="CASCADE")
+        ForeignKey("profiles.id", ondelete="CASCADE"), index=True
     )
     titulo: Mapped[str] = mapped_column(String)
     descripcion: Mapped[str | None] = mapped_column(String, nullable=True)
@@ -54,7 +56,7 @@ class Servicio(Base, IdMixin, TimestampMixin, SoftDeleteMixin):
     __tablename__ = "servicios"
 
     artista_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("profiles.id", ondelete="CASCADE")
+        ForeignKey("profiles.id", ondelete="CASCADE"), index=True
     )
     titulo: Mapped[str] = mapped_column(String)
     descripcion: Mapped[str | None] = mapped_column(String, nullable=True)

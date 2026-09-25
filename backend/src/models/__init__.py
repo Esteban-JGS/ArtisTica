@@ -7,11 +7,15 @@ from .metricas import PostView
 from .operacion import EstadoReporte, Job, ModerationAction, Reporte
 from .pedidos import (
     Cobro,
+    Disputa,
+    Entregable,
     EstadoCobro,
+    EstadoDisputa,
     EstadoPedido,
     Pedido,
     Resena,
     TipoCobro,
+    TipoEntregable,
     TipoPedido,
 )
 from .social import Comentario, Publicacion, Reaccion
@@ -22,8 +26,11 @@ __all__ = [
     "Cobro",
     "Comentario",
     "Consulta",
+    "Disputa",
+    "Entregable",
     "EstadoCobro",
     "EstadoConsulta",
+    "EstadoDisputa",
     "EstadoMedia",
     "EstadoObra",
     "EstadoOnboarding",
@@ -51,6 +58,7 @@ __all__ = [
     "SoftDeleteMixin",
     "TimestampMixin",
     "TipoCobro",
+    "TipoEntregable",
     "TipoPedido",
     "TipoServicio",
 ]

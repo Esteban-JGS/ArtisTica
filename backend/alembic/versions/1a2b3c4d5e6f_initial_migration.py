@@ -25,7 +25,7 @@ ENUMS: dict[str, tuple[str, ...]] = {
     "rol_perfil": ("publico", "artista", "admin"),
     "plan_artista": ("taller", "estudio"),
     "estado_onboarding": ("no_iniciado", "pendiente", "completado", "rechazado"),
-    "estado_obra": ("exhibicion", "disponible"),
+    "estado_obra": ("exhibicion", "disponible", "vendida"),
     "tipo_servicio": ("encargo", "evento"),
     "estado_consulta": ("abierta", "cotizada", "convertida", "descartada"),
     "tipo_pedido": ("encargo", "evento", "obra_disponible"),
@@ -51,6 +51,8 @@ ENUMS: dict[str, tuple[str, ...]] = {
     ),
     "estado_media": ("pendiente", "procesado", "fallido"),
     "estado_reporte": ("pendiente", "revisado", "descartado"),
+    "tipo_entregable": ("vista_previa", "final"),
+    "estado_disputa": ("abierta", "en_revision", "resuelta"),
 }
 
 # En orden de creacion; el downgrade las borra al reves
@@ -68,6 +70,8 @@ TABLES = [
     "pedidos",
     "cobros",
     "resenas",
+    "entregables",
+    "disputas",
     "ledger_entries",
     "eventos_pasarela",
     "post_views",
@@ -162,6 +166,7 @@ def upgrade() -> None:
         ),
         _pk("follows"),
     )
+    op.create_index("ix_follows_seguido_id", "follows", ["seguido_id"])
 
     # 4. Catalogo
     op.create_table(
@@ -181,15 +186,16 @@ def upgrade() -> None:
         _tz("deleted_at"),
         _fk("obras", "artista_id", "profiles", "CASCADE"),
         sa.CheckConstraint(
-            "estado <> 'disponible' OR (precio IS NOT NULL AND precio > 0)",
-            name=op.f("ck_obras_precio_si_esta_a_la_venta"),
+            "estado = 'exhibicion' OR (precio IS NOT NULL AND precio > 0)",
+            name=op.f("ck_obras_precio_fuera_de_exhibicion"),
         ),
         _pk("obras"),
     )
+    op.create_index("ix_obras_artista_id", "obras", ["artista_id"])
     op.create_index("ix_obras_hash_imagen", "obras", ["hash_imagen"])
     op.execute(
         "CREATE INDEX ix_obras_style_embedding ON obras "
-        "USING hnsw (style_embedding vector_l2_ops);"
+        "USING hnsw (style_embedding vector_cosine_ops);"
     )
 
     op.create_table(
@@ -206,6 +212,7 @@ def upgrade() -> None:
         _fk("servicios", "artista_id", "profiles", "CASCADE"),
         _pk("servicios"),
     )
+    op.create_index("ix_servicios_artista_id", "servicios", ["artista_id"])
 
     # 5. Social
     op.create_table(
@@ -214,7 +221,12 @@ def upgrade() -> None:
         _uuid("artista_id"),
         sa.Column("texto", sa.String(), nullable=False),
         _uuid("obra_id", nullable=True),
-        sa.Column("search_vector", postgresql.TSVECTOR(), nullable=True),
+        sa.Column(
+            "search_vector",
+            postgresql.TSVECTOR(),
+            sa.Computed("to_tsvector('spanish', texto)", persisted=True),
+            nullable=True,
+        ),
         *_timestamps(),
         _tz("deleted_at"),
         _fk("publicaciones", "artista_id", "profiles", "CASCADE"),
@@ -224,6 +236,11 @@ def upgrade() -> None:
     op.execute(
         "CREATE INDEX ix_publicaciones_search_vector ON publicaciones "
         "USING gin (search_vector);"
+    )
+    op.create_index(
+        "ix_publicaciones_artista_id_created_at",
+        "publicaciones",
+        ["artista_id", sa.text("created_at DESC")],
     )
 
     op.create_table(
@@ -238,6 +255,7 @@ def upgrade() -> None:
         _fk("comentarios", "profile_id", "profiles", "CASCADE"),
         _pk("comentarios"),
     )
+    op.create_index("ix_comentarios_publicacion_id", "comentarios", ["publicacion_id"])
 
     op.create_table(
         "reacciones",
@@ -311,7 +329,7 @@ def upgrade() -> None:
     )
     op.create_index("ix_mensajes_consulta_id", "mensajes", ["consulta_id"])
 
-    # 8. Pedidos, cobros y resenas. Sin CASCADE: son historia contable.
+    # 8. Pedidos, cobros, resenas, entregables y disputas. Sin CASCADE: son historia.
     op.create_table(
         "pedidos",
         _uuid("id"),
@@ -342,6 +360,7 @@ def upgrade() -> None:
         ),
         _pk("pedidos"),
     )
+    op.create_index("ix_pedidos_cliente_id", "pedidos", ["cliente_id"])
     op.create_index("ix_pedidos_artista_id_estado", "pedidos", ["artista_id", "estado"])
 
     op.create_table(
@@ -385,6 +404,38 @@ def upgrade() -> None:
             name=op.f("ck_resenas_calificacion_entre_1_y_5"),
         ),
         _pk("resenas"),
+    )
+
+    op.create_table(
+        "entregables",
+        _uuid("id"),
+        _uuid("pedido_id"),
+        _uuid("media_asset_id"),
+        sa.Column("tipo", _enum("tipo_entregable"), nullable=False),
+        sa.Column("nota", sa.String(), nullable=True),
+        *_timestamps(),
+        _fk("entregables", "pedido_id", "pedidos"),
+        _fk("entregables", "media_asset_id", "media_assets"),
+        _pk("entregables"),
+    )
+    op.create_index("ix_entregables_pedido_id", "entregables", ["pedido_id"])
+
+    op.create_table(
+        "disputas",
+        _uuid("id"),
+        _uuid("pedido_id"),
+        _uuid("abierta_por_id"),
+        sa.Column("motivo", sa.String(), nullable=False),
+        sa.Column("estado", _enum("estado_disputa"), nullable=False),
+        sa.Column("resolucion", sa.String(), nullable=True),
+        _uuid("resuelta_por_id", nullable=True),
+        _tz("resuelta_en"),
+        *_timestamps(),
+        _fk("disputas", "pedido_id", "pedidos"),
+        _fk("disputas", "abierta_por_id", "profiles"),
+        _fk("disputas", "resuelta_por_id", "profiles"),
+        sa.UniqueConstraint("pedido_id", name="uq_disputas_pedido_id"),
+        _pk("disputas"),
     )
 
     # 9. Conciliacion con la pasarela

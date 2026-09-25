@@ -61,5 +61,5 @@ class Follow(Base, IdMixin, TimestampMixin):
         ForeignKey("profiles.id", ondelete="CASCADE")
     )
     seguido_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("profiles.id", ondelete="CASCADE")
+        ForeignKey("profiles.id", ondelete="CASCADE"), index=True
     )

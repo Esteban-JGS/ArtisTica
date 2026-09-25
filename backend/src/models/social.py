@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import ForeignKey, Index, String, UniqueConstraint
+from sqlalchemy import Computed, ForeignKey, Index, String, UniqueConstraint, text
 from sqlalchemy.dialects.postgresql import TSVECTOR
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -13,6 +13,12 @@ class Publicacion(Base, IdMixin, TimestampMixin, SoftDeleteMixin):
         Index(
             "ix_publicaciones_search_vector", "search_vector", postgresql_using="gin"
         ),
+        # Acceso del feed cronologico
+        Index(
+            "ix_publicaciones_artista_id_created_at",
+            "artista_id",
+            text("created_at DESC"),
+        ),
     )
 
     artista_id: Mapped[uuid.UUID] = mapped_column(
@@ -23,14 +29,17 @@ class Publicacion(Base, IdMixin, TimestampMixin, SoftDeleteMixin):
     obra_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("obras.id", ondelete="SET NULL"), nullable=True
     )
-    search_vector = mapped_column(TSVECTOR, nullable=True)
+    # Columna generada: la mantiene PostgreSQL y SQLAlchemy nunca la escribe
+    search_vector = mapped_column(
+        TSVECTOR, Computed("to_tsvector('spanish', texto)", persisted=True)
+    )
 
 
 class Comentario(Base, IdMixin, TimestampMixin, SoftDeleteMixin):
     __tablename__ = "comentarios"
 
     publicacion_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("publicaciones.id", ondelete="CASCADE")
+        ForeignKey("publicaciones.id", ondelete="CASCADE"), index=True
     )
     profile_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("profiles.id", ondelete="CASCADE")
