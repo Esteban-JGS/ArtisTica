@@ -38,7 +38,7 @@ Las decisiones se numeran D y las deudas técnicas DT.
 | 1 | Esquema de dominio y migración única de reemplazo | Cerrado | Aprobado con deuda | DT5 a DT7 |
 | 1b | Cerrar los huecos del esquema | Cerrado | Aprobado | Ninguna |
 | 2 | Máquina de estados de pedidos y cobros | Cerrado | Aprobado con deuda | DT9, DT10 |
-| 3 | Capa de pasarela: contrato, adaptador real y adaptador falso | Pendiente | | |
+| 3 | Capa de pasarela: contrato, adaptador real y adaptador falso | Cerrado | Aprobado con deuda | DT11 a DT15 |
 | 4 | Identidad, roles, planes y onboarding | Pendiente | | |
 | 5 | Obras, servicios y medios con Storage firmado | Pendiente | | |
 | 6 | Feed Seguidos y Explorar por cursor | Pendiente | | |
@@ -62,6 +62,11 @@ Las decisiones se numeran D y las deudas técnicas DT.
 | DT8 | Lote 0 | La política de lint quedó en un conjunto acotado de reglas. Se revisa cuando haya código de dominio suficiente para juzgarla | Después del lote 8 |
 | DT9 | Lote 2 | El dominio importa los enums desde `src.models`. Pasa el grep de pureza, pero en ejecución carga SQLAlchemy. Hay que mover los enums a un módulo neutro | Lote 8 |
 | DT10 | Lote 2 | Faltan tres salidas por paso del tiempo: evento cuya fecha llega con el saldo impago, que queda trabado en `anticipo_pagado`; encargo cuya autorización del saldo vence en `vista_previa_entregada`, sin forma de reautorizar; y obra disponible cuya autorización vence en `en_proceso`, que está en la tabla pero sin función en el servicio | Lote 9, que vigila vencimientos. Reglas decididas en D7 |
+| DT11 | Lote 3 | ONVO no firma el cuerpo de los webhooks: manda el secreto tal cual en `X-Webhook-Secret`. El secreto prueba el origen, no la integridad. Regla para el lote 9: nunca mover dinero por un webhook solo; antes, consultar la intención a la pasarela. El contrato no tiene todavía una operación de consulta de cobro | Lote 9 |
+| DT12 | Lote 3 | ONVO no informa cuánto dura una autorización, así que `autorizado_hasta` vuelve nulo, pero el servicio del lote 2 exige una fecha. Hace falta una vigencia supuesta y conservadora. Ver pregunta 12 | Lote 8 |
+| DT13 | Lote 3 | 3DS no está cubierto: un pago en `requires_action` levanta `OperacionNoSoportada` | Antes de producción |
+| DT14 | Lote 3 | Nada impide usar la pasarela falsa en producción. La fábrica debería negarse cuando `ENVIRONMENT` sea producción | Antes de producción |
+| DT15 | Lote 3 | La pasarela falsa guarda su estado en memoria, una instancia por proceso. La demo tiene que correr con un solo worker de uvicorn | Antes de la demo |
 
 ## Errores del orquestador
 
@@ -72,6 +77,7 @@ Las decisiones se numeran D y las deudas técnicas DT.
 | 1 | La especificación del esquema no cubría entregables, disputas, obra vendida ni índices de llaves foráneas | Lote 1b |
 | 1b | Se pidió el índice de `follows.seguido_id` sin listar `users.py`, que es donde vive `Follow` | Aceptado el cambio fuera de alcance |
 | 2 | El plan de cancelación solo preveía liberar, reembolsar y conservar. Faltaban cancelar un cobro que nunca llegó a la pasarela, y capturar un saldo autorizado cuando moderación resuelve a favor del artista. Tampoco se previeron las salidas por vencimiento de DT10 | El ejecutor agregó las dos acciones; DT10 queda para el lote 9 |
+| 3 | La tabla de errores marcaba `PasarelaNoDisponible` siempre como reintentable. Con una pasarela sin idempotencia, reintentar una confirmación o un reembolso tras un timeout cobraría o devolvería dos veces | El ejecutor lo marcó reintentable solo cuando la operación se puede repetir sin efecto doble |
 
 ## Preguntas abiertas que bloquean diseño
 
@@ -87,3 +93,6 @@ Las decisiones se numeran D y las deudas técnicas DT.
 | 8 | Si una persona física sin actividad inscrita puede completar el onboarding | Lote 4 | Abierta |
 | 9 | Evento cuya fecha llega con el saldo impago. Propuesta: se trata como cancelación del cliente con menos de 7 días, así que el anticipo no se devuelve y el pedido pasa a `cancelado` | Lote 9 | Cerrada por D7 |
 | 10 | Encargo cuya autorización del saldo vence antes de que el cliente apruebe. Propuesta: se permite reautorizar el mismo cobro; si el cliente no reautoriza en 7 días, el artista puede abrir disputa | Lote 9 | Cerrada por D7 |
+| 11 | Con ONVO la tarifa es de la cuenta del artista, no del cobro. Si el artista cambia de plan con pedidos abiertos, sus saldos se cobrarían con la tarifa nueva, aunque el lote 2 la congela por pedido. Propuesta: el cambio de tarifa en la cuenta se aplica recién cuando el artista no tiene cobros autorizados ni pendientes; mientras tanto el plan cambia en ArtísTica pero la cuenta conserva la tarifa vieja | Lote 4 | Abierta, con propuesta |
+| 12 | Vigencia supuesta de una autorización cuando la pasarela no la informa. Propuesta: 5 días, configurable, y se reemplaza por el valor real cuando ONVO lo confirme | Lote 8 | Abierta, con propuesta |
+| 13 | Para cobrar, ONVO exige un medio de pago tokenizado en la app con la clave publicable. La tarjeta nunca pasa por nuestra API, que es lo correcto, pero obliga a coordinar con la app móvil | Lote 8 y `mobile/` | Abierta, coordinar con Brian |
