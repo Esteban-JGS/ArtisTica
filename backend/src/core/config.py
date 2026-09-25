@@ -22,6 +22,9 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "dev"
     SENTRY_DSN: str | None = None
 
+    # Pasarela de pagos. Texto libre: la valida src.payments.fabrica
+    PASARELA: str = "falsa"
+
     # Politicas de pedido (D5). Unico lugar donde viven sus valores por defecto.
     ANTICIPO_PORCENTAJE_MINIMO: Decimal = Decimal("30")
     ANTICIPO_PORCENTAJE_MAXIMO: Decimal = Decimal("50")
