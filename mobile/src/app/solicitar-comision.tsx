@@ -3,6 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
+  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -25,7 +26,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '@/theme';
 
 export default function SolicitarComisionScreen() {
-  const { artistName } = useLocalSearchParams<{ artistName?: string }>();
+  const { artistName, postImage, postCaption } = useLocalSearchParams<{
+    artistName?: string;
+    postImage?: string;
+    postCaption?: string;
+  }>();
   const { height: windowHeight } = useWindowDimensions();
   const sheetHeight = Math.round(windowHeight * 0.65);
 
@@ -72,13 +77,15 @@ export default function SolicitarComisionScreen() {
 
   const [idea, setIdea] = useState('');
   const [sent, setSent] = useState(false);
+  const [referenceAttached, setReferenceAttached] = useState(Boolean(postImage));
 
   const handleSend = () => {
     if (!idea.trim()) return;
     // Sin backend todavia: solo confirma en pantalla. Cuando exista la
-    // consulta real, esto manda la idea a la API y crea el pedido en
-    // estado "consulta". El presupuesto lo propone el artista en la
-    // cotizacion, no el cliente aca: evita anclar el precio a la baja.
+    // consulta real, esto manda la idea (mas el post de referencia, si
+    // quedo adjunto) a la API y crea el pedido en estado "consulta". El
+    // presupuesto lo propone el artista en la cotizacion, no el cliente
+    // aca: evita anclar el precio a la baja.
     setSent(true);
   };
 
@@ -127,6 +134,34 @@ export default function SolicitarComisionScreen() {
               </View>
             ) : (
               <View className="flex-1 gap-5 px-5 py-4">
+                {postImage && referenceAttached ? (
+                  <View className="flex-row items-center gap-3 rounded-2xl bg-sand-100 p-2.5">
+                    <Image source={{ uri: postImage }} className="h-14 w-14 rounded-xl" />
+                    <View className="flex-1 gap-0.5">
+                      <Text className="text-xs font-semibold uppercase text-stone-700">
+                        Quiero algo así
+                      </Text>
+                      {postCaption && (
+                        <Text className="text-xs text-stone-700" numberOfLines={2}>
+                          {postCaption}
+                        </Text>
+                      )}
+                    </View>
+                    <Pressable onPress={() => setReferenceAttached(false)} hitSlop={8}>
+                      <Ionicons name="close-circle" size={20} color={colors.stone[700]} />
+                    </Pressable>
+                  </View>
+                ) : (
+                  postImage && (
+                    <Pressable
+                      onPress={() => setReferenceAttached(true)}
+                      className="flex-row items-center gap-2 self-start rounded-full bg-sand-100 px-3 py-2">
+                      <Ionicons name="image-outline" size={16} color={colors.accent.DEFAULT} />
+                      <Text className="text-xs font-medium text-ink">Adjuntar la publicación que viste</Text>
+                    </Pressable>
+                  )
+                )}
+
                 <View className="gap-2">
                   <Text className="text-xs font-semibold uppercase text-stone-700">Contame tu idea</Text>
                   <TextInput

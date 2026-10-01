@@ -198,7 +198,10 @@ function PostCard({ post }: { post: Post }) {
             {post.acceptsCommissions && (
               <Pressable
                 onPress={() =>
-                  router.push({ pathname: '/solicitar-comision', params: { artistName: post.name } })
+                  router.push({
+                    pathname: '/solicitar-comision',
+                    params: { artistName: post.name, postImage: post.image, postCaption: post.caption },
+                  })
                 }
                 accessibilityRole="button"
                 accessibilityLabel={`Solicitar comision a ${post.name}`}
