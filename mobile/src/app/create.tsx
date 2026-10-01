@@ -5,6 +5,8 @@ import { useState } from 'react';
 import { Image, Pressable, ScrollView, Switch, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { colors } from '@/theme';
+
 const CATEGORIES = ['Dibujantes', 'Músicos', 'Pintores', 'Artesanos', 'Escultores'];
 
 export default function CrearScreen() {
@@ -47,7 +49,7 @@ export default function CrearScreen() {
             </Pressable>
           ) : (
             <View className="items-center gap-3 rounded-2xl border border-dashed border-stone-500 bg-sand-50 px-6 py-10">
-              <Ionicons name="image-outline" size={28} color="#8b8279" />
+              <Ionicons name="image-outline" size={28} color={colors.stone[700]} />
               <Text className="text-base font-semibold text-ink">Muestra tu creatividad</Text>
               <Text className="text-sm text-stone-700">Imagen, audio o video</Text>
               <View className="flex-row gap-2">
@@ -68,7 +70,7 @@ export default function CrearScreen() {
             value={caption}
             onChangeText={setCaption}
             placeholder="¿Qué estás pensando?"
-            placeholderTextColor="#8b8279"
+            placeholderTextColor={colors.stone[700]}
             multiline
             className="border-b border-sand-300 pb-3 text-base text-ink"
           />
@@ -94,7 +96,7 @@ export default function CrearScreen() {
           </View>
 
           <View className="flex-row items-center gap-3 rounded-2xl bg-sand-50 px-4 py-3">
-            <Ionicons name="lock-closed-outline" size={18} color="#c2653b" />
+            <Ionicons name="lock-closed-outline" size={18} color={colors.accent.DEFAULT} />
             <View className="flex-1">
               <Text className="text-sm font-semibold text-ink">Abierto a comisiones</Text>
               <Text className="text-xs text-stone-700">Muestra el badge en esta obra</Text>
@@ -102,8 +104,8 @@ export default function CrearScreen() {
             <Switch
               value={openToCommissions}
               onValueChange={setOpenToCommissions}
-              trackColor={{ false: '#e2ddd5', true: '#c2653b' }}
-              thumbColor="#fdf8f3"
+              trackColor={{ false: colors.sand[300], true: colors.accent.DEFAULT }}
+              thumbColor={colors.sand[50]}
             />
           </View>
         </ScrollView>

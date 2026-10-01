@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Image, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
 import { AppBackground } from '@/components/app-background';
+import { colors } from '@/theme';
 
 const CATEGORIES = ['Todos', 'Músicos', 'Dibujantes', 'Pintores', 'Artesanos', 'Escultores'];
 
@@ -20,13 +21,13 @@ export default function ExplorarScreen() {
       <AppBackground />
       <View className="gap-3 px-5 pb-3 pt-14">
         <View className="flex-row items-center gap-2 rounded-full bg-sand-50 px-4 py-3">
-          <Ionicons name="search" size={18} color="#8b8279" />
+          <Ionicons name="search" size={18} color={colors.stone[700]} />
           <TextInput
             placeholder="Buscar artistas, obras…"
-            placeholderTextColor="#8b8279"
+            placeholderTextColor={colors.stone[700]}
             className="flex-1 text-sm text-ink"
           />
-          <Ionicons name="options-outline" size={18} color="#8b8279" />
+          <Ionicons name="options-outline" size={18} color={colors.stone[700]} />
         </View>
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-2">

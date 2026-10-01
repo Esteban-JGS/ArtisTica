@@ -3,7 +3,8 @@ import { useState } from 'react';
 import { Image, Pressable, ScrollView, Text, View } from 'react-native';
 
 import { AppBackground } from '@/components/app-background';
-import { BACKGROUND_OPTIONS, backgroundImageUri, useBackgroundStore } from '@/stores/background-store';
+import { BACKGROUND_OPTIONS, backgroundSource, useBackgroundStore } from '@/stores/background-store';
+import { colors } from '@/theme';
 
 const PORTFOLIO = Array.from({ length: 6 }, (_, i) => ({
   id: String(i),
@@ -33,7 +34,7 @@ export default function PerfilScreen() {
 
         <View className="mt-3 flex-row items-center gap-1.5">
           <Text className="font-serif text-3xl italic text-ink">Luna Atelier</Text>
-          <Ionicons name="checkmark-circle" size={20} color="#c2653b" />
+          <Ionicons name="checkmark-circle" size={20} color={colors.accent.DEFAULT} />
         </View>
         <Text className="mt-1 text-sm font-medium text-accent-dark">Ilustradora digital</Text>
         <Text className="mt-2 text-sm text-stone-800">
@@ -82,13 +83,10 @@ export default function PerfilScreen() {
                         ? 'h-16 w-full overflow-hidden rounded-xl border-2 border-accent'
                         : 'h-16 w-full overflow-hidden rounded-xl border border-sand-300'
                     }>
-                    <Image
-                      source={{ uri: backgroundImageUri(option.id, 200) }}
-                      className="h-full w-full"
-                    />
+                    <Image source={backgroundSource(option.id, 200)} className="h-full w-full" />
                     {isSelected && (
                       <View className="absolute inset-0 items-center justify-center bg-ink/20">
-                        <Ionicons name="checkmark-circle" size={20} color="#fdf8f3" />
+                        <Ionicons name="checkmark-circle" size={20} color={colors.sand[50]} />
                       </View>
                     )}
                   </View>

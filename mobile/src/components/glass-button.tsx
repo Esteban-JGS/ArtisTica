@@ -2,6 +2,8 @@ import { LiquidGlassView } from '@sbaiahmed1/react-native-blur';
 import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 
+import { colors } from '@/theme';
+
 type GlassButtonVariant = 'primary' | 'glass' | 'ghost';
 
 export function GlassButton({
@@ -37,7 +39,7 @@ export function GlassButton({
           <LiquidGlassView
             glassType="clear"
             glassTintColor="#ffffff"
-            glassOpacity={0.4}
+            glassOpacity={0.7}
             isInteractive={false}
             style={[styles.glass, pressed && styles.glassPressed]}>
             <View style={styles.glassContent}>
@@ -68,20 +70,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
-    backgroundColor: '#c2653b',
+    backgroundColor: colors.accent.DEFAULT,
     borderRadius: 19,
     paddingVertical: 16,
     paddingHorizontal: 20,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.22)',
-    shadowColor: '#c2653b',
+    shadowColor: colors.accent.DEFAULT,
     shadowOpacity: 0.5,
     shadowRadius: 18,
     shadowOffset: { width: 0, height: 10 },
     elevation: 10,
   },
   primaryPressed: {
-    backgroundColor: '#a1512d',
+    backgroundColor: colors.accent.dark,
   },
   primaryLabel: {
     fontSize: 15.5,

@@ -24,6 +24,7 @@ import Animated, {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Avatar } from '@/components/avatar';
+import { colors } from '@/theme';
 
 type CommentColor = 'terracota' | 'verde' | 'mostaza' | 'taupe';
 
@@ -279,7 +280,7 @@ export default function ComentariosScreen() {
                 Comentarios · {totalCount}
               </Text>
               <Pressable onPress={handleClose}>
-                <Ionicons name="close" size={22} color="#201d1a" />
+                <Ionicons name="close" size={22} color={colors.ink.DEFAULT} />
               </Pressable>
             </View>
 
@@ -299,7 +300,7 @@ export default function ComentariosScreen() {
                       </Pressable>
                     </View>
                     <View className="items-center gap-0.5 pt-1">
-                      <Ionicons name="star-outline" size={15} color="#8b8279" />
+                      <Ionicons name="star-outline" size={15} color={colors.stone[700]} />
                       <Text className="text-xs text-stone-600">{comment.likes}</Text>
                     </View>
                   </View>
@@ -330,7 +331,7 @@ export default function ComentariosScreen() {
                   Respondiendo a <Text className="font-semibold text-ink">{replyingTo.name}</Text>
                 </Text>
                 <Pressable onPress={() => setReplyingTo(null)} hitSlop={8}>
-                  <Ionicons name="close" size={16} color="#8b8279" />
+                  <Ionicons name="close" size={16} color={colors.stone[700]} />
                 </Pressable>
               </View>
             )}
@@ -342,11 +343,11 @@ export default function ComentariosScreen() {
                 value={draft}
                 onChangeText={setDraft}
                 placeholder={replyingTo ? `Responder a ${replyingTo.name}…` : 'Agregá un comentario…'}
-                placeholderTextColor="#8b8279"
+                placeholderTextColor={colors.stone[700]}
                 className="flex-1 rounded-full bg-sand-100 px-4 py-2.5 text-sm text-ink"
               />
               <Pressable onPress={handleSend} disabled={!draft.trim()} hitSlop={8}>
-                <Ionicons name="send" size={20} color={draft.trim() ? '#c2653b' : '#c9beb2'} />
+                <Ionicons name="send" size={20} color={draft.trim() ? colors.accent.DEFAULT : '#c9beb2'} />
               </Pressable>
             </View>
           </SafeAreaView>

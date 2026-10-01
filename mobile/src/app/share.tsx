@@ -15,6 +15,7 @@ import Animated, {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Avatar } from '@/components/avatar';
+import { colors } from '@/theme';
 
 const QUICK_CONTACTS: {
   id: string;
@@ -104,7 +105,7 @@ export default function CompartirScreen() {
               {authorName ? `Compartir obra de ${authorName}` : 'Compartir'}
             </Text>
             <Pressable onPress={handleClose}>
-              <Ionicons name="close" size={22} color="#201d1a" />
+              <Ionicons name="close" size={22} color={colors.ink.DEFAULT} />
             </Pressable>
           </View>
 
@@ -127,7 +128,7 @@ export default function CompartirScreen() {
                 onPress={handleClose}
                 className="flex-row items-center gap-4 px-5 py-3.5">
                 <View className="h-9 w-9 items-center justify-center rounded-full bg-sand-100">
-                  <Ionicons name={action.icon} size={18} color="#3d362f" />
+                  <Ionicons name={action.icon} size={18} color={colors.ink[700]} />
                 </View>
                 <Text className="text-sm font-medium text-ink">{action.label}</Text>
               </Pressable>
