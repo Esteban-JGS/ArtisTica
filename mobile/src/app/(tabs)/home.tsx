@@ -118,6 +118,13 @@ function LikeBurst({ trigger }: { trigger: number }) {
   );
 }
 
+function openArtistProfile(post: Post) {
+  router.push({
+    pathname: '/artista/[id]',
+    params: { id: post.name, name: post.name, role: post.role, initial: post.initial, color: post.color },
+  });
+}
+
 function PostCard({ post }: { post: Post }) {
   const [liked, setLiked] = useState(false);
   const [burstTrigger, setBurstTrigger] = useState(0);
@@ -147,24 +154,30 @@ function PostCard({ post }: { post: Post }) {
       <Pin color={roleColors[post.color].fg} />
       <View className="gap-3 rounded-xl bg-sand-50 p-4">
         <View className="flex-row items-center gap-3">
-          <Avatar initial={post.initial} color={post.color} />
-          <View className="flex-1">
-            <View className="flex-row items-center gap-2">
-              <Text className="font-semibold text-ink">{post.name}</Text>
-              <View
-                className="rounded-full px-2 py-0.5"
-                style={{ backgroundColor: roleColors[post.color].bg }}>
-                <Text
-                  className="text-xs font-medium"
-                  style={{ color: roleColors[post.color].fg }}>
-                  {post.role}
-                </Text>
+          <Pressable
+            onPress={() => openArtistProfile(post)}
+            accessibilityRole="button"
+            accessibilityLabel={`Ver perfil de ${post.name}`}
+            className="flex-1 flex-row items-center gap-3">
+            <Avatar initial={post.initial} color={post.color} />
+            <View className="flex-1">
+              <View className="flex-row items-center gap-2">
+                <Text className="font-semibold text-ink">{post.name}</Text>
+                <View
+                  className="rounded-full px-2 py-0.5"
+                  style={{ backgroundColor: roleColors[post.color].bg }}>
+                  <Text
+                    className="text-xs font-medium"
+                    style={{ color: roleColors[post.color].fg }}>
+                    {post.role}
+                  </Text>
+                </View>
               </View>
+              <Text className="text-xs text-stone-700">
+                {post.time} · {post.place}
+              </Text>
             </View>
-            <Text className="text-xs text-stone-700">
-              {post.time} · {post.place}
-            </Text>
-          </View>
+          </Pressable>
           <Ionicons name="ellipsis-horizontal" size={18} color={colors.stone[700]} />
         </View>
 
@@ -172,13 +185,16 @@ function PostCard({ post }: { post: Post }) {
           <View className="overflow-hidden rounded-2xl">
             <Image source={{ uri: post.image }} className="aspect-[4/5] w-full" />
             {post.acceptsCommissions && (
-              <View
-                accessible
-                accessibilityLabel="Acepta comisiones"
+              <Pressable
+                onPress={() =>
+                  router.push({ pathname: '/solicitar-comision', params: { artistName: post.name } })
+                }
+                accessibilityRole="button"
+                accessibilityLabel={`Solicitar comision a ${post.name}`}
                 className="absolute right-3 top-3 h-7 w-7 items-center justify-center rounded-full bg-gold"
                 style={FLOAT_SHADOW}>
                 <Ionicons name="cash-outline" size={15} color={colors.ink.DEFAULT} />
-              </View>
+              </Pressable>
             )}
           </View>
 
@@ -387,7 +403,10 @@ export default function InicioScreen() {
           </View>
 
           <View style={FLOAT_SHADOW}>
-            <Pressable accessibilityRole="button" accessibilityLabel="Notificaciones">
+            <Pressable
+              onPress={() => router.push({ pathname: '/messages', params: { tab: 'notificaciones' } })}
+              accessibilityRole="button"
+              accessibilityLabel="Notificaciones">
               <LiquidGlassView
                 glassType="clear"
                 glassTintColor={colors.sand[50]}
