@@ -13,6 +13,7 @@ const PORTFOLIO = Array.from({ length: 6 }, (_, i) => ({
 
 export default function PerfilScreen() {
   const [tab, setTab] = useState<'portafolio' | 'sobre-mi'>('portafolio');
+  const [isFollowing, setIsFollowing] = useState(false);
   const backgroundId = useBackgroundStore((state) => state.backgroundId);
   const setBackgroundId = useBackgroundStore((state) => state.setBackgroundId);
 
@@ -58,8 +59,16 @@ export default function PerfilScreen() {
         </View>
 
         <View className="mt-4 flex-row gap-3">
-          <Pressable className="flex-1 items-center rounded-full bg-accent py-3">
-            <Text className="font-semibold text-sand-50">Seguir</Text>
+          <Pressable
+            onPress={() => setIsFollowing((value) => !value)}
+            className={
+              isFollowing
+                ? 'flex-1 items-center rounded-full bg-sand-50 py-3'
+                : 'flex-1 items-center rounded-full bg-accent py-3'
+            }>
+            <Text className={isFollowing ? 'font-semibold text-ink' : 'font-semibold text-sand-50'}>
+              {isFollowing ? 'Siguiendo' : 'Seguir'}
+            </Text>
           </Pressable>
           <Pressable className="flex-1 items-center rounded-full bg-sand-50 py-3">
             <Text className="font-semibold text-ink">Solicitar comisión</Text>

@@ -5,15 +5,42 @@ import { useState } from 'react';
 import { Image, Pressable, ScrollView, Switch, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { usePostsStore } from '@/stores/posts-store';
 import { colors } from '@/theme';
 
 const CATEGORIES = ['Dibujantes', 'Músicos', 'Pintores', 'Artesanos', 'Escultores'];
 
+// Autoria fija porque todavia no hay sesion real contra el backend.
+// Cuando exista, estos datos salen del perfil autenticado.
+const CURRENT_AUTHOR = {
+  name: 'Luna Atelier',
+  role: 'Ilustradora',
+  initial: 'L',
+  color: 'terracota' as const,
+  place: 'San José',
+};
+
 export default function CrearScreen() {
+  const addPost = usePostsStore((state) => state.addPost);
   const [image, setImage] = useState<string | null>(null);
   const [caption, setCaption] = useState('');
   const [category, setCategory] = useState('Dibujantes');
   const [openToCommissions, setOpenToCommissions] = useState(true);
+
+  const canPublish = image !== null;
+
+  const publish = () => {
+    if (!canPublish || !image) return;
+    addPost({
+      ...CURRENT_AUTHOR,
+      time: 'ahora',
+      image,
+      caption: caption.trim(),
+      tags: [category.toLowerCase()],
+      acceptsCommissions: openToCommissions,
+    });
+    router.back();
+  };
 
   const pickFromLibrary = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -37,7 +64,10 @@ export default function CrearScreen() {
             <Text className="text-base text-stone-800">Cancelar</Text>
           </Pressable>
           <Text className="text-base font-semibold text-ink">Nueva obra</Text>
-          <Pressable className="rounded-full bg-accent px-4 py-2">
+          <Pressable
+            onPress={publish}
+            disabled={!canPublish}
+            className={canPublish ? 'rounded-full bg-accent px-4 py-2' : 'rounded-full bg-accent/40 px-4 py-2'}>
             <Text className="text-sm font-semibold text-sand-50">Publicar</Text>
           </Pressable>
         </View>
