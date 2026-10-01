@@ -3,76 +3,129 @@ import { useState } from 'react';
 import { Image, Pressable, ScrollView, Text, View } from 'react-native';
 
 import { AppBackground } from '@/components/app-background';
+import { usePostsStore } from '@/stores/posts-store';
 import { BACKGROUND_OPTIONS, backgroundSource, useBackgroundStore } from '@/stores/background-store';
-import { colors } from '@/theme';
+import { colors, NOTE_SHADOW, roleColors } from '@/theme';
 
-const PORTFOLIO = Array.from({ length: 6 }, (_, i) => ({
-  id: String(i),
-  image: `https://picsum.photos/seed/portfolio-${i}/500/500`,
-}));
+const PORTFOLIO_COUNT = 6;
+const OWN_NAME = 'Luna Atelier';
+const OWN_COLOR = roleColors.terracota;
+
+// Nota pineada al corcho, igual que las publicaciones del feed (ver Pin
+// en home.tsx): se duplica a proposito en vez de compartir un componente,
+// como ya esta hecho en el resto de pantallas de perfil y las hojas.
+function Pin({ color }: { color: string }) {
+  return (
+    <View
+      pointerEvents="none"
+      style={{
+        position: 'absolute',
+        top: -9,
+        left: '50%',
+        marginLeft: -9,
+        zIndex: 10,
+        elevation: 10,
+        height: 18,
+        width: 18,
+        borderRadius: 9,
+        backgroundColor: color,
+        shadowColor: '#000',
+        shadowOpacity: 0.3,
+        shadowRadius: 3,
+        shadowOffset: { width: 0, height: 2 },
+      }}>
+      <View
+        style={{
+          position: 'absolute',
+          top: 3,
+          left: 4,
+          height: 5,
+          width: 5,
+          borderRadius: 2.5,
+          backgroundColor: 'rgba(255,255,255,0.45)',
+        }}
+      />
+    </View>
+  );
+}
 
 export default function PerfilScreen() {
   const [tab, setTab] = useState<'portafolio' | 'sobre-mi'>('portafolio');
-  const [isFollowing, setIsFollowing] = useState(false);
   const backgroundId = useBackgroundStore((state) => state.backgroundId);
   const setBackgroundId = useBackgroundStore((state) => state.setBackgroundId);
+  const allPosts = usePostsStore((state) => state.posts);
+
+  const ownPosts = allPosts.filter((post) => post.name === OWN_NAME);
+  const paddingNeeded = Math.max(0, PORTFOLIO_COUNT - ownPosts.length);
+  const portfolio = [
+    ...ownPosts.map((post) => ({ id: post.id, image: post.image })),
+    ...Array.from({ length: paddingNeeded }, (_, i) => ({
+      id: `filler-${i}`,
+      image: `https://picsum.photos/seed/luna-atelier-portfolio-${i}/500/500`,
+    })),
+  ];
 
   return (
     <View className="flex-1 bg-sand-100">
       <AppBackground />
-      <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-      <View className="h-56 bg-sage">
-        <Image
-          source={{ uri: 'https://picsum.photos/seed/profile-cover/800/500' }}
-          className="h-full w-full"
-        />
-      </View>
-
-      <View className="-mt-10 px-5">
-        <View className="h-20 w-20 items-center justify-center rounded-full border-4 border-sand-100 bg-accent">
-          <Text className="font-serif text-3xl text-sand-50">L</Text>
+      <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerClassName="px-5 pb-8 pt-16">
+        <View className="items-center py-3">
+          <View style={NOTE_SHADOW} className="rounded-xl">
+            <Pin color={OWN_COLOR.fg} />
+            <View className="items-center gap-2 rounded-xl bg-sand-50 px-6 py-5" style={{ width: 168 }}>
+              <View
+                className="h-20 w-20 items-center justify-center rounded-full"
+                style={{ backgroundColor: OWN_COLOR.base }}>
+                <Text className="font-serif text-3xl text-sand-50">L</Text>
+              </View>
+              <View className="flex-row items-center gap-1.5">
+                <Text className="font-serif text-2xl italic text-ink">{OWN_NAME}</Text>
+                <Ionicons name="checkmark-circle" size={16} color={colors.accent.DEFAULT} />
+              </View>
+              <View className="rounded-full px-2 py-0.5" style={{ backgroundColor: OWN_COLOR.bg }}>
+                <Text className="text-xs font-medium" style={{ color: OWN_COLOR.fg }}>
+                  Ilustradora digital
+                </Text>
+              </View>
+            </View>
+          </View>
         </View>
 
-        <View className="mt-3 flex-row items-center gap-1.5">
-          <Text className="font-serif text-3xl italic text-ink">Luna Atelier</Text>
-          <Ionicons name="checkmark-circle" size={20} color={colors.accent.DEFAULT} />
-        </View>
-        <Text className="mt-1 text-sm font-medium text-accent-dark">Ilustradora digital</Text>
-        <Text className="mt-2 text-sm text-stone-800">
-          Creo mundos suaves para quienes todavía creen en la magia cotidiana. Comisiones abiertas
-          hasta noviembre.
+        <Text className="text-center text-xs text-stone-700">12.4k seguidores</Text>
+        <Text className="mt-2 text-center text-sm text-stone-800">
+          Creo mundos suaves para quienes todavía creen en la magia cotidiana.
         </Text>
 
-        <View className="mt-4 flex-row justify-between rounded-2xl bg-sand-50 px-4 py-3">
+        <View className="mt-5 flex-row justify-between rounded-2xl bg-sand-50 px-4 py-3">
           <View className="items-center">
-            <Text className="text-base font-semibold text-ink">148</Text>
+            <Text className="text-base font-semibold text-ink">1d</Text>
+            <Text className="text-xs text-stone-700">RESPONDE EN</Text>
+          </View>
+          <View className="items-center">
+            <Text className="text-base font-semibold text-ink">48</Text>
+            <Text className="text-xs text-stone-700">ENTREGADAS</Text>
+          </View>
+          <View className="items-center">
+            <Text className="text-base font-semibold text-ink">{ownPosts.length || PORTFOLIO_COUNT}</Text>
             <Text className="text-xs text-stone-700">OBRAS</Text>
-          </View>
-          <View className="items-center">
-            <Text className="text-base font-semibold text-ink">12.4k</Text>
-            <Text className="text-xs text-stone-700">SEGUIDORES</Text>
-          </View>
-          <View className="items-center">
-            <Text className="text-base font-semibold text-ink">386</Text>
-            <Text className="text-xs text-stone-700">SIGUIENDO</Text>
           </View>
         </View>
 
-        <View className="mt-4 flex-row gap-3">
-          <Pressable
-            onPress={() => setIsFollowing((value) => !value)}
-            className={
-              isFollowing
-                ? 'flex-1 items-center rounded-full bg-sand-50 py-3'
-                : 'flex-1 items-center rounded-full bg-accent py-3'
-            }>
-            <Text className={isFollowing ? 'font-semibold text-ink' : 'font-semibold text-sand-50'}>
-              {isFollowing ? 'Siguiendo' : 'Seguir'}
-            </Text>
-          </Pressable>
-          <Pressable className="flex-1 items-center rounded-full bg-sand-50 py-3">
-            <Text className="font-semibold text-ink">Solicitar comisión</Text>
-          </Pressable>
+        <View className="mt-5" style={NOTE_SHADOW}>
+          <Pin color={OWN_COLOR.fg} />
+          <View className="gap-3 rounded-xl bg-sand-50 p-4">
+            <View className="flex-row items-center justify-between">
+              <Text className="text-sm font-semibold text-ink">Tu ficha de comisión</Text>
+              <View className="rounded-full px-2.5 py-1" style={{ backgroundColor: 'rgba(63,107,99,0.16)' }}>
+                <Text className="text-[11px] font-semibold uppercase" style={{ color: colors.sage }}>
+                  Abierto
+                </Text>
+              </View>
+            </View>
+            <Text className="text-sm text-stone-800">Desde ₡40k hasta ₡120k, según la pieza.</Text>
+            <Text className="text-xs text-stone-700">Tomando pedidos hasta noviembre.</Text>
+            <Text className="text-xs italic text-stone-600">Así la ven los clientes en tu perfil.</Text>
+          </View>
         </View>
 
         <View className="mt-6 gap-3 rounded-2xl bg-sand-50 p-4">
@@ -136,7 +189,7 @@ export default function PerfilScreen() {
 
         {tab === 'portafolio' ? (
           <View className="flex-row flex-wrap gap-2 py-4">
-            {PORTFOLIO.map((item) => (
+            {portfolio.map((item) => (
               <Image
                 key={item.id}
                 source={{ uri: item.image }}
@@ -153,7 +206,6 @@ export default function PerfilScreen() {
             </Text>
           </View>
         )}
-      </View>
       </ScrollView>
     </View>
   );
