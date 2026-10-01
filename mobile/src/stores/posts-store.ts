@@ -212,11 +212,12 @@ const INITIAL_POSTS: Post[] = [
 type PostsState = {
   posts: Post[];
   addPost: (post: Omit<Post, 'id' | 'likes' | 'comments' | 'shares'>) => void;
+  hidePost: (id: string) => void;
 };
 
 // Mock de sesion, sin persistencia: el feed se resetea a INITIAL_POSTS al
-// recargar la app. Cuando exista el backend, addPost se reemplaza por la
-// mutacion real y esta store se puede borrar.
+// recargar la app. Cuando exista el backend, addPost y hidePost se
+// reemplazan por la mutacion real y esta store se puede borrar.
 export const usePostsStore = create<PostsState>((set) => ({
   posts: INITIAL_POSTS,
   addPost: (post) =>
@@ -226,4 +227,5 @@ export const usePostsStore = create<PostsState>((set) => ({
         ...state.posts,
       ],
     })),
+  hidePost: (id) => set((state) => ({ posts: state.posts.filter((post) => post.id !== id) })),
 }));

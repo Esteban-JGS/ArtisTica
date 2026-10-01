@@ -178,7 +178,18 @@ function PostCard({ post }: { post: Post }) {
               </Text>
             </View>
           </Pressable>
-          <Ionicons name="ellipsis-horizontal" size={18} color={colors.stone[700]} />
+          <Pressable
+            onPress={() =>
+              router.push({
+                pathname: '/opciones-publicacion',
+                params: { postId: post.id, authorName: post.name },
+              })
+            }
+            accessibilityRole="button"
+            accessibilityLabel="Opciones de la publicación"
+            hitSlop={8}>
+            <Ionicons name="ellipsis-horizontal" size={18} color={colors.stone[700]} />
+          </Pressable>
         </View>
 
         <View className="relative mb-4">

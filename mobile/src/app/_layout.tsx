@@ -53,6 +53,14 @@ export default function RootLayout() {
               contentStyle: { backgroundColor: 'transparent' },
             }}
           />
+          <Stack.Screen
+            name="opciones-publicacion"
+            options={{
+              presentation: 'transparentModal',
+              animation: 'none',
+              contentStyle: { backgroundColor: 'transparent' },
+            }}
+          />
         </Stack>
       </QueryClientProvider>
     </GestureHandlerRootView>

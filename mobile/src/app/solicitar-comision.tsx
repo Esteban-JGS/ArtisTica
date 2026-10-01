@@ -24,8 +24,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { colors } from '@/theme';
 
-const BUDGETS = ['Menos de 50k', '50k a 150k', 'Más de 150k'];
-
 export default function SolicitarComisionScreen() {
   const { artistName } = useLocalSearchParams<{ artistName?: string }>();
   const { height: windowHeight } = useWindowDimensions();
@@ -73,14 +71,14 @@ export default function SolicitarComisionScreen() {
     });
 
   const [idea, setIdea] = useState('');
-  const [budget, setBudget] = useState(BUDGETS[0]);
   const [sent, setSent] = useState(false);
 
   const handleSend = () => {
     if (!idea.trim()) return;
     // Sin backend todavia: solo confirma en pantalla. Cuando exista la
-    // consulta real, esto manda idea + presupuesto a la API y crea el
-    // pedido en estado "consulta".
+    // consulta real, esto manda la idea a la API y crea el pedido en
+    // estado "consulta". El presupuesto lo propone el artista en la
+    // cotizacion, no el cliente aca: evita anclar el precio a la baja.
     setSent(true);
   };
 
@@ -141,26 +139,6 @@ export default function SolicitarComisionScreen() {
                     className="rounded-2xl bg-sand-100 px-4 py-3 text-sm text-ink"
                     style={{ minHeight: 100, textAlignVertical: 'top' }}
                   />
-                </View>
-
-                <View className="gap-2">
-                  <Text className="text-xs font-semibold uppercase text-stone-700">Presupuesto aproximado</Text>
-                  <View className="flex-row flex-wrap gap-2">
-                    {BUDGETS.map((item) => (
-                      <Pressable
-                        key={item}
-                        onPress={() => setBudget(item)}
-                        className={
-                          item === budget
-                            ? 'rounded-full bg-accent px-4 py-2'
-                            : 'rounded-full bg-sand-100 px-4 py-2'
-                        }>
-                        <Text className={item === budget ? 'text-sm font-semibold text-sand-50' : 'text-sm text-ink'}>
-                          {item}
-                        </Text>
-                      </Pressable>
-                    ))}
-                  </View>
                 </View>
 
                 <Pressable
