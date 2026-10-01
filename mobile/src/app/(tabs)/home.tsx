@@ -1,11 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LiquidGlassView } from '@sbaiahmed1/react-native-blur';
 import { router } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Image, Pressable, Text, View } from 'react-native';
 
 import { AppBackground } from '@/components/app-background';
 import { Avatar } from '@/components/avatar';
+import { navBarVisibility } from '@/lib/nav-visibility';
+import { colors, FLOAT_SHADOW, NOTE_SHADOW, roleColors } from '@/theme';
 import Animated, {
   Easing,
   interpolate,
@@ -18,14 +20,6 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-const FLOAT_SHADOW = {
-  shadowColor: '#3d362f',
-  shadowOpacity: 0.12,
-  shadowRadius: 10,
-  shadowOffset: { width: 0, height: 4 },
-  elevation: 5,
-};
-
 // Space reserved at the top of the scrollable content so it starts right
 // below the floating title card/bell and the floating tab pill.
 const FLOATING_HEADER_HEIGHT = 168;
@@ -35,66 +29,40 @@ const FLOATING_HEADER_HEIGHT = 168;
 const COLLAPSE_DISTANCE = 40;
 const MINI_TOGGLE_HEIGHT = 30;
 
-const ROLE_BADGE_COLORS: Record<string, { bg: string; fg: string }> = {
-  terracota: { bg: 'rgba(194,101,59,0.14)', fg: '#a1512d' },
-  verde: { bg: 'rgba(63,107,99,0.16)', fg: '#3f6b63' },
-  mostaza: { bg: 'rgba(217,154,63,0.2)', fg: '#93641f' },
-  taupe: { bg: 'rgba(139,130,121,0.16)', fg: '#5c534b' },
-};
-
-const NOTE_SHADOW = {
-  shadowColor: '#3d362f',
-  shadowOpacity: 0.2,
-  shadowRadius: 10,
-  shadowOffset: { width: 0, height: 6 },
-  elevation: 6,
-};
-
-// Posts read as notes pinned to a corkboard: each one taped down at its
-// own random tilt instead of a fixed left/right pattern.
-const NOTE_MAX_ROTATION_DEG = 3;
-const TAPE_MAX_ROTATION_DEG = 9;
-
-function randomInRange(max: number) {
-  return (Math.random() * 2 - 1) * max;
-}
-
-// Rolled once when the card mounts (not seeded by id, so it isn't stuck
-// repeating a near-identical angle for consecutive posts) and memoized
-// so it doesn't reshuffle on re-renders like scroll updates.
-function useNoteTilt() {
-  return useMemo(
-    () => ({
-      note: randomInRange(NOTE_MAX_ROTATION_DEG),
-      tape: randomInRange(TAPE_MAX_ROTATION_DEG),
-    }),
-    [],
-  );
-}
-
-function WashiTape({ color, rotation }: { color: string; rotation: number }) {
+// Posts read as notes pinned to a corkboard, held down by a single pin
+// at the top instead of a tilted strip of tape.
+function Pin({ color }: { color: string }) {
   return (
     <View
       pointerEvents="none"
       style={{
         position: 'absolute',
-        top: -12,
+        top: -9,
         left: '50%',
-        marginLeft: -36,
-        width: 72,
-        height: 24,
-        backgroundColor: color,
-        opacity: 0.85,
-        borderRadius: 2,
+        marginLeft: -9,
         zIndex: 10,
         elevation: 10,
-        transform: [{ rotate: `${rotation}deg` }],
+        height: 18,
+        width: 18,
+        borderRadius: 9,
+        backgroundColor: color,
         shadowColor: '#000',
-        shadowOpacity: 0.15,
+        shadowOpacity: 0.3,
         shadowRadius: 3,
         shadowOffset: { width: 0, height: 2 },
-      }}
-    />
+      }}>
+      <View
+        style={{
+          position: 'absolute',
+          top: 3,
+          left: 4,
+          height: 5,
+          width: 5,
+          borderRadius: 2.5,
+          backgroundColor: 'rgba(255,255,255,0.45)',
+        }}
+      />
+    </View>
   );
 }
 
@@ -134,7 +102,7 @@ function BurstStar({ angle, delay, trigger }: { angle: number; delay: number; tr
 
   return (
     <Animated.View pointerEvents="none" style={[{ position: 'absolute', left: 0, top: 0 }, style]}>
-      <Ionicons name="star" size={11} color="#d99a3f" />
+      <Ionicons name="star" size={11} color={colors.gold} />
     </Animated.View>
   );
 }
@@ -156,10 +124,12 @@ const POSTS = [
     role: 'Ilustradora',
     initial: 'L',
     color: 'terracota' as const,
-    time: 'hace 2 h',
-    place: 'Buenos Aires',
+    time: 'hace 15 min',
+    place: 'San José',
     image: 'https://picsum.photos/seed/luna-atelier/800/900',
-    caption: 'Fragmentos de luz para días que necesitan un poco más de color.',
+    caption:
+      'Fragmentos de luz para días que necesitan un poco más de color. Esta serie salió de una tarde lluviosa en la que no tenía ganas de pintar nada en particular, solo de mezclar acuarelas hasta encontrar un tono que me gustara. Terminé haciendo seis bocetos y este fue el único que sobrevivió la noche.',
+    tags: ['ilustracion', 'acuarela', 'arteCR'],
     likes: '1.3k',
     comments: 24,
     shares: 8,
@@ -171,10 +141,12 @@ const POSTS = [
     role: 'Pintor',
     initial: 'M',
     color: 'verde' as const,
-    time: 'hace 5 h',
-    place: 'Rosario',
+    time: 'hace 2 h',
+    place: 'Heredia',
     image: 'https://picsum.photos/seed/mateo-rios/800/900',
-    caption: 'Explorando texturas nuevas esta semana.',
+    caption:
+      'Explorando texturas nuevas esta semana. Dejé el pincel plano de lado y volví a las espátulas, que llevaban meses guardadas. Hay algo en raspar la pintura en vez de extenderla que me obliga a pensar la composición de otra forma, menos prolija y más honesta.',
+    tags: ['oleo', 'texturas'],
     likes: '842',
     comments: 12,
     shares: 3,
@@ -186,10 +158,12 @@ const POSTS = [
     role: 'Ceramista',
     initial: 'S',
     color: 'mostaza' as const,
-    time: 'hace 8 h',
-    place: 'Córdoba',
+    time: 'hace 5 h',
+    place: 'Cartago',
     image: 'https://picsum.photos/seed/sofi-ceramica/800/900',
-    caption: 'Nueva tanda saliendo del horno, todavía tibia.',
+    caption:
+      'Nueva tanda saliendo del horno, todavía tibia. Esta vez probé un esmalte distinto, más mate, y el resultado me sorprendió para bien. Son catorce piezas en total, cada una con su propia mancha de ceniza que nunca sale igual dos veces.',
+    tags: ['ceramica', 'hechoamano'],
     likes: '2.1k',
     comments: 47,
     shares: 15,
@@ -201,10 +175,12 @@ const POSTS = [
     role: 'Artesanos',
     initial: 'T',
     color: 'taupe' as const,
-    time: 'hace 12 h',
-    place: 'Mendoza',
+    time: 'hace 8 h',
+    place: 'Alajuela',
     image: 'https://picsum.photos/seed/taller-norte/800/900',
-    caption: 'Trabajando el cuero para el pedido de esta semana.',
+    caption:
+      'Trabajando el cuero para el pedido de esta semana. El tinte natural necesita por lo menos tres capas para agarrar bien el color, así que esto viene siendo un proceso lento que no se puede apurar. Vale la pena cuando ves el brillo final.',
+    tags: ['cuero', 'talabarteria'],
     likes: '390',
     comments: 6,
     shares: 2,
@@ -216,10 +192,12 @@ const POSTS = [
     role: 'Grabadora',
     initial: 'V',
     color: 'terracota' as const,
-    time: 'hace 1 d',
-    place: 'La Plata',
+    time: 'hace 12 h',
+    place: 'Grecia',
     image: 'https://picsum.photos/seed/vale-grabados/800/900',
-    caption: 'Primera tirada de la serie nueva, tinta todavía fresca.',
+    caption:
+      'Primera tirada de la serie nueva, tinta todavía fresca. Son veinte ejemplares numerados, grabados a mano en linóleo, y cada uno lleva una pequeña variación porque el rodillo nunca reparte la tinta exactamente igual. Me gusta que ninguno sea idéntico al otro.',
+    tags: ['grabado', 'serigrafia'],
     likes: '1.7k',
     comments: 31,
     shares: 9,
@@ -231,23 +209,110 @@ const POSTS = [
     role: 'Escultor',
     initial: 'N',
     color: 'verde' as const,
-    time: 'hace 1 d',
-    place: 'Buenos Aires',
+    time: 'ayer',
+    place: 'Puntarenas',
     image: 'https://picsum.photos/seed/nico-escultor/800/900',
-    caption: 'Piedra bruta convirtiéndose en algo con forma, de a poco.',
+    caption:
+      'Piedra bruta convirtiéndose en algo con forma, de a poco. Llevo tres semanas con este bloque de mármol y todavía me falta pulir la base. Hay días en que el cincel no coopera y otros en que todo fluye solo, hoy fue de los buenos.',
+    tags: ['escultura', 'piedra'],
     likes: '654',
     comments: 18,
     shares: 4,
     acceptsCommissions: false,
+  },
+  {
+    id: '7',
+    name: 'Cami Lentes',
+    role: 'Fotógrafa',
+    initial: 'C',
+    color: 'mostaza' as const,
+    time: 'ayer',
+    place: 'Escazú',
+    image: 'https://picsum.photos/seed/cami-lentes/800/900',
+    caption:
+      'Rollo revelado de la sesión del fin de semana, todavía con olor a químico. Volví a usar película de 35mm después de mucho tiempo solo con digital y se siente distinto, más lento, más pensado. De treinta y seis tomas me quedo con estas cuatro.',
+    tags: ['fotografia', 'analoga'],
+    likes: '975',
+    comments: 21,
+    shares: 6,
+    acceptsCommissions: true,
+  },
+  {
+    id: '8',
+    name: 'Diego Tinta',
+    role: 'Tatuador',
+    initial: 'D',
+    color: 'taupe' as const,
+    time: 'hace 2 d',
+    place: 'Liberia',
+    image: 'https://picsum.photos/seed/diego-tinta/800/900',
+    caption:
+      'Diseño flash disponible para quien se anime primero. Lo dibujé pensando en líneas simples que envejezcan bien con los años, nada de detalles que se van a perder con el tiempo. Si te late, escribime y coordinamos la cita.',
+    tags: ['tatuaje', 'lineart'],
+    likes: '1.1k',
+    comments: 38,
+    shares: 11,
+    acceptsCommissions: false,
+  },
+  {
+    id: '9',
+    name: 'Pau Murales',
+    role: 'Muralista',
+    initial: 'P',
+    color: 'terracota' as const,
+    time: 'hace 2 d',
+    place: 'Turrialba',
+    image: 'https://picsum.photos/seed/pau-murales/800/900',
+    caption:
+      'Último día de andamio, la pared ya respira otro color. Fueron casi dos semanas de trabajo, entre el calor del mediodía y la gente que paraba a preguntar qué estaba pintando. Ver el mural terminado desde la otra cuadra fue la mejor parte de todo el proceso.',
+    tags: ['mural', 'streetart', 'arteCR'],
+    likes: '2.4k',
+    comments: 52,
+    shares: 19,
+    acceptsCommissions: true,
+  },
+  {
+    id: '10',
+    name: 'Rita Telar',
+    role: 'Tejedora',
+    initial: 'R',
+    color: 'verde' as const,
+    time: 'hace 3 d',
+    place: 'Zarcero',
+    image: 'https://picsum.photos/seed/rita-telar/800/900',
+    caption:
+      'Hilos teñidos con plantas del patio, cada tanda sale distinta. Esta vez usé cáscara de cebolla y hojas de aguacate, y el resultado fue un marrón cálido que no esperaba. Ya está montado en el telar, en unos días les muestro cómo va quedando la pieza.',
+    tags: ['textil', 'telar'],
+    likes: '703',
+    comments: 14,
+    shares: 5,
+    acceptsCommissions: false,
+  },
+  {
+    id: '11',
+    name: 'Fabián Sarchí',
+    role: 'Luthier',
+    initial: 'F',
+    color: 'mostaza' as const,
+    time: 'hace 1 sem',
+    place: 'Sarchí',
+    image: 'https://picsum.photos/seed/fabian-sarchi/800/900',
+    caption:
+      'Afinando la última guitarra de la tanda antes de entregarla. Esta la hice con cedro y laurel, una combinación que me enseñó mi papá y que todavía prefiero sobre cualquier madera importada. Suena cálida, como esperaba.',
+    tags: ['luthier', 'madera', 'hechoamano'],
+    likes: '1.5k',
+    comments: 29,
+    shares: 13,
+    acceptsCommissions: true,
   },
 ];
 
 type Post = (typeof POSTS)[number];
 
 function PostCard({ post }: { post: Post }) {
-  const tilt = useNoteTilt();
   const [liked, setLiked] = useState(false);
   const [burstTrigger, setBurstTrigger] = useState(0);
+  const [captionExpanded, setCaptionExpanded] = useState(false);
   const starScale = useSharedValue(1);
 
   const handleLikePress = () => {
@@ -269,10 +334,8 @@ function PostCard({ post }: { post: Post }) {
   }));
 
   return (
-    <View
-      style={[{ transform: [{ rotate: `${tilt.note}deg` }] }, NOTE_SHADOW]}
-      className="rounded-xl">
-      <WashiTape color={ROLE_BADGE_COLORS[post.color].fg} rotation={tilt.tape} />
+    <View style={NOTE_SHADOW} className="rounded-xl">
+      <Pin color={roleColors[post.color].fg} />
       <View className="gap-3 rounded-xl bg-sand-50 p-4">
         <View className="flex-row items-center gap-3">
           <Avatar initial={post.initial} color={post.color} />
@@ -281,10 +344,10 @@ function PostCard({ post }: { post: Post }) {
               <Text className="font-semibold text-ink">{post.name}</Text>
               <View
                 className="rounded-full px-2 py-0.5"
-                style={{ backgroundColor: ROLE_BADGE_COLORS[post.color].bg }}>
+                style={{ backgroundColor: roleColors[post.color].bg }}>
                 <Text
                   className="text-xs font-medium"
-                  style={{ color: ROLE_BADGE_COLORS[post.color].fg }}>
+                  style={{ color: roleColors[post.color].fg }}>
                   {post.role}
                 </Text>
               </View>
@@ -293,7 +356,7 @@ function PostCard({ post }: { post: Post }) {
               {post.time} · {post.place}
             </Text>
           </View>
-          <Ionicons name="ellipsis-horizontal" size={18} color="#8b8279" />
+          <Ionicons name="ellipsis-horizontal" size={18} color={colors.stone[700]} />
         </View>
 
         <View className="relative mb-4">
@@ -305,14 +368,14 @@ function PostCard({ post }: { post: Post }) {
                 accessibilityLabel="Acepta comisiones"
                 className="absolute right-3 top-3 h-7 w-7 items-center justify-center rounded-full bg-gold"
                 style={FLOAT_SHADOW}>
-                <Ionicons name="cash-outline" size={15} color="#201d1a" />
+                <Ionicons name="cash-outline" size={15} color={colors.ink.DEFAULT} />
               </View>
             )}
           </View>
 
           <View pointerEvents="box-none" className="absolute inset-x-0 items-center" style={{ bottom: -20 }}>
             <View
-              className="flex-row items-center gap-1 rounded-full bg-ink/85 px-2 py-1.5"
+              className="flex-row items-center gap-1 rounded-full bg-ink-700/90 px-2 py-1.5"
               style={FLOAT_SHADOW}>
               <View className="relative">
                 <Pressable
@@ -321,7 +384,7 @@ function PostCard({ post }: { post: Post }) {
                   accessibilityLabel={`Me gusta, ${post.likes}`}
                   className="h-11 flex-row items-center justify-center gap-1.5 px-3">
                   <Animated.View style={starStyle}>
-                    <Ionicons name={liked ? 'star' : 'star-outline'} size={20} color="#d99a3f" />
+                    <Ionicons name={liked ? 'star' : 'star-outline'} size={20} color={colors.gold} />
                   </Animated.View>
                   <Text className="text-xs text-sand-100">{post.likes}</Text>
                 </Pressable>
@@ -335,7 +398,7 @@ function PostCard({ post }: { post: Post }) {
                 accessibilityRole="button"
                 accessibilityLabel={`Comentarios, ${post.comments}`}
                 className="h-11 flex-row items-center justify-center gap-1.5 px-3">
-                <Ionicons name="chatbubble-outline" size={19} color="#fdf8f3" />
+                <Ionicons name="chatbubble-outline" size={19} color={colors.sand[50]} />
                 <Text className="text-xs text-sand-100">{post.comments}</Text>
               </Pressable>
 
@@ -348,7 +411,7 @@ function PostCard({ post }: { post: Post }) {
                 accessibilityRole="button"
                 accessibilityLabel={`Compartir, ${post.shares}`}
                 className="h-11 flex-row items-center justify-center gap-1.5 px-3">
-                <Ionicons name="paper-plane-outline" size={19} color="#fdf8f3" />
+                <Ionicons name="paper-plane-outline" size={19} color={colors.sand[50]} />
                 <Text className="text-xs text-sand-100">{post.shares}</Text>
               </Pressable>
 
@@ -358,15 +421,28 @@ function PostCard({ post }: { post: Post }) {
                 accessibilityRole="button"
                 accessibilityLabel="Etiquetar"
                 className="h-11 w-11 items-center justify-center">
-                <Ionicons name="pricetag-outline" size={19} color="#fdf8f3" />
+                <Ionicons name="pricetag-outline" size={19} color={colors.sand[50]} />
               </Pressable>
             </View>
           </View>
         </View>
 
-        <Text className="font-serif text-lg italic text-ink">
-          <Text style={{ color: ROLE_BADGE_COLORS[post.color].fg }}>— </Text>
+        <Text
+          className="font-serif text-lg italic text-ink"
+          numberOfLines={captionExpanded ? undefined : 2}
+          ellipsizeMode="tail">
+          <Text style={{ color: roleColors[post.color].fg }}>— </Text>
           {post.caption}
+        </Text>
+
+        <Pressable onPress={() => setCaptionExpanded((value) => !value)} hitSlop={4}>
+          <Text className="text-xs font-semibold text-stone-700">
+            {captionExpanded ? 'Ver menos' : 'Ver más'}
+          </Text>
+        </Pressable>
+
+        <Text className="text-xs font-medium" style={{ color: roleColors[post.color].fg }}>
+          {post.tags.map((tag) => `#${tag}`).join('  ')}
         </Text>
       </View>
     </View>
@@ -378,6 +454,7 @@ export default function InicioScreen() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const scrollY = useSharedValue(0);
   const wasCollapsed = useSharedValue(false);
+  const lastScrollY = useSharedValue(0);
 
   const scrollHandler = useAnimatedScrollHandler((event) => {
     const y = event.contentOffset.y;
@@ -388,6 +465,21 @@ export default function InicioScreen() {
       wasCollapsed.value = shouldCollapse;
       runOnJS(setIsCollapsed)(shouldCollapse);
     }
+
+    // Hide the floating navbar while scrolling down, bring it back
+    // scrolling up (or once you're back near the top). The top header
+    // itself no longer hides: it only collapses the pill below, so
+    // there's a single animation driving it instead of this direction
+    // based one fighting with the collapse.
+    const delta = y - lastScrollY.value;
+    if (y <= 10) {
+      navBarVisibility.value = withTiming(1, { duration: 200 });
+    } else if (delta > 6) {
+      navBarVisibility.value = withTiming(0, { duration: 200 });
+    } else if (delta < -6) {
+      navBarVisibility.value = withTiming(1, { duration: 200 });
+    }
+    lastScrollY.value = y;
   });
 
   const pillStyle = useAnimatedStyle(() => {
@@ -410,7 +502,7 @@ export default function InicioScreen() {
 
   return (
     <View className="flex-1 bg-sand-100">
-      <AppBackground />
+      <AppBackground scrollY={scrollY} />
       <Animated.ScrollView
         onScroll={scrollHandler}
         scrollEventThrottle={16}
@@ -421,7 +513,7 @@ export default function InicioScreen() {
           onPress={() => router.push('/create')}
           className="flex-row items-center gap-3 rounded-3xl bg-sand-50 p-4">
           <View className="h-12 w-12 items-center justify-center rounded-full bg-accent/10">
-            <Ionicons name="add" size={24} color="#c2653b" />
+            <Ionicons name="add" size={24} color={colors.accent.DEFAULT} />
           </View>
           <Text className="flex-1 text-sm font-medium text-stone-700">
             ¿Qué querés compartir hoy?
@@ -438,8 +530,8 @@ export default function InicioScreen() {
           <View style={FLOAT_SHADOW}>
             <LiquidGlassView
               glassType="clear"
-              glassTintColor="#fdf8f3"
-              glassOpacity={0.5}
+              glassTintColor={colors.sand[50]}
+              glassOpacity={0.7}
               isInteractive={false}
               style={{ borderRadius: 16, paddingHorizontal: 16, paddingVertical: 10 }}>
               <View className="flex-row items-center gap-2">
@@ -464,7 +556,7 @@ export default function InicioScreen() {
                   <Ionicons
                     name="people"
                     size={15}
-                    color={tab === 'seguidos' ? '#c2653b' : '#8b8279'}
+                    color={tab === 'seguidos' ? colors.accent.DEFAULT : colors.stone[700]}
                   />
                 </Pressable>
                 <Pressable
@@ -477,7 +569,7 @@ export default function InicioScreen() {
                   <Ionicons
                     name="sparkles"
                     size={15}
-                    color={tab === 'para-ti' ? '#c2653b' : '#8b8279'}
+                    color={tab === 'para-ti' ? colors.accent.DEFAULT : colors.stone[700]}
                   />
                 </Pressable>
               </Animated.View>
@@ -488,8 +580,8 @@ export default function InicioScreen() {
             <Pressable accessibilityRole="button" accessibilityLabel="Notificaciones">
               <LiquidGlassView
                 glassType="clear"
-                glassTintColor="#fdf8f3"
-                glassOpacity={0.5}
+                glassTintColor={colors.sand[50]}
+                glassOpacity={0.7}
                 isInteractive={false}
                 style={{
                   height: 44,
@@ -498,7 +590,7 @@ export default function InicioScreen() {
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}>
-                <Ionicons name="notifications-outline" size={20} color="#201d1a" />
+                <Ionicons name="notifications-outline" size={20} color={colors.ink.DEFAULT} />
               </LiquidGlassView>
             </Pressable>
           </View>

@@ -5,6 +5,7 @@ import { Pressable, ScrollView, Text, View } from 'react-native';
 import { AppBackground } from '@/components/app-background';
 import { Avatar } from '@/components/avatar';
 import { StatusBadge, type CommissionStatus } from '@/components/status-badge';
+import { colors } from '@/theme';
 
 const CHATS: {
   id: string;
@@ -62,7 +63,7 @@ export default function MensajesScreen() {
       <View className="flex-row items-center justify-between px-5 pb-3 pt-14">
         <Text className="font-serif text-3xl italic text-ink">Mensajes</Text>
         <Pressable className="h-10 w-10 items-center justify-center rounded-full bg-sand-50">
-          <Ionicons name="search" size={18} color="#201d1a" />
+          <Ionicons name="search" size={18} color={colors.ink.DEFAULT} />
         </Pressable>
       </View>
 

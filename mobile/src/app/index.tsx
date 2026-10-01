@@ -7,6 +7,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { GlassButton } from '@/components/glass-button';
 import { LoginGallery } from '@/components/login-gallery';
+import { colors } from '@/theme';
 
 function getGreeting(hour: number) {
   if (hour < 12) return 'Buenos días';
@@ -64,11 +65,11 @@ export default function AuthScreen() {
               fontFamily: 'InstrumentSerif_400Regular_Italic',
               fontStyle: 'italic',
               fontSize: 44,
-              color: '#fdf8f3',
+              color: colors.sand[50],
             }}>
             Artística
           </Text>
-          <Text style={{ fontSize: 18, fontWeight: '700', color: '#fdf8f3' }}>
+          <Text style={{ fontSize: 18, fontWeight: '700', color: colors.sand[50] }}>
             Acá tu talento se ve, se valora y se paga.
           </Text>
           <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)', lineHeight: 20 }}>

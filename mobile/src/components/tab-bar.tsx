@@ -7,6 +7,9 @@ import { useEffect } from 'react';
 import { Pressable, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import { navBarVisibility } from '@/lib/nav-visibility';
+import { colors, PILL_SHADOW } from '@/theme';
 import Animated, {
   Easing,
   interpolate,
@@ -38,9 +41,9 @@ const TAB_LABELS: Record<string, string> = {
 // feed scrolling behind it — that's why it's off by default.
 const USE_LIQUID_GLASS = true;
 
-const ACCENT = '#c2653b';
-const INK = '#201d1a';
-const CREAM = '#fdf8f3';
+const ACCENT = colors.accent.DEFAULT;
+const INK = colors.ink.DEFAULT;
+const CREAM = colors.sand[50];
 const ITEM_SIZE = 56;
 const ITEM_GAP = 10;
 const PILL_PADDING = 8;
@@ -161,7 +164,14 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
       damping: 28,
       stiffness: 220,
     });
-  }, [state.index, indicatorX]);
+
+    // Only the Home feed drives navBarVisibility (it's a module-level
+    // value shared across screens). Force it back on when leaving Home
+    // so it can't get stuck hidden on a tab with no scroll handler for it.
+    if (activeRoute.name !== 'home') {
+      navBarVisibility.value = withTiming(1, { duration: 200 });
+    }
+  }, [state.index, indicatorX, activeRoute.name]);
 
   const indicatorStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: indicatorX.value }],
@@ -173,6 +183,13 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
       { translateY: interpolate(holding.value, [0, 1], [-PLUS_REST_TOP, 0]) + dragY.value * 0.4 },
       { scale: interpolate(holding.value, [0, 1], [0.6, armed.value ? 1.18 : 1]) },
     ],
+  }));
+
+  // Hides the whole navbar by sliding it down and fading it out when
+  // the feed scrolls down, driven from home.tsx via the shared value.
+  const visibilityStyle = useAnimatedStyle(() => ({
+    opacity: navBarVisibility.value,
+    transform: [{ translateY: interpolate(navBarVisibility.value, [0, 1], [90, 0]) }],
   }));
 
   const pillStyle = {
@@ -241,23 +258,19 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
   );
 
   return (
-    <View
+    <Animated.View
       pointerEvents="box-none"
-      style={{
-        position: 'absolute',
-        left: 0,
-        right: 0,
-        bottom: bottomOffset,
-        alignItems: 'center',
-      }}>
-      <View
-        style={{
-          shadowColor: '#3d362f',
-          shadowOpacity: 0.16,
-          shadowRadius: 10,
-          shadowOffset: { width: 0, height: 4 },
-          elevation: 6,
-        }}>
+      style={[
+        {
+          position: 'absolute',
+          left: 0,
+          right: 0,
+          bottom: bottomOffset,
+          alignItems: 'center',
+        },
+        visibilityStyle,
+      ]}>
+      <View style={PILL_SHADOW}>
         <Animated.View
           pointerEvents="none"
           style={[
@@ -272,7 +285,7 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
               backgroundColor: ACCENT,
               alignItems: 'center',
               justifyContent: 'center',
-              shadowColor: '#c2653b',
+              shadowColor: ACCENT,
               shadowOpacity: 0.5,
               shadowRadius: 8,
               shadowOffset: { width: 0, height: 3 },
@@ -286,7 +299,7 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
           <LiquidGlassView
             glassType="clear"
             glassTintColor={CREAM}
-            glassOpacity={0.4}
+            glassOpacity={0.7}
             isInteractive={false}
             style={pillStyle}>
             {pillContent}
@@ -297,6 +310,6 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
           </View>
         )}
       </View>
-    </View>
+    </Animated.View>
   );
 }
