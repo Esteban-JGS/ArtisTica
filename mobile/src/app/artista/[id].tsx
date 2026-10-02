@@ -9,7 +9,7 @@ import { usePostsStore } from '@/stores/posts-store';
 import { colors, NOTE_SHADOW, roleColors } from '@/theme';
 
 const FEATURED_COUNT = 3;
-const PORTFOLIO_COUNT = 6;
+const PORTFOLIO_COUNT = 12;
 const OPEN_UNTIL_MONTHS = ['enero', 'marzo', 'mayo', 'julio', 'setiembre', 'noviembre'];
 
 // Nota pineada al corcho, igual que las publicaciones del feed (ver Pin
@@ -86,11 +86,10 @@ function mockCommissionStats(seed: string) {
 }
 
 export default function PerfilArtistaScreen() {
-  const { id, name, role, initial, color } = useLocalSearchParams<{
+  const { id, name, role, color } = useLocalSearchParams<{
     id: string;
     name?: string;
     role?: string;
-    initial?: string;
     color?: string;
   }>();
   const [isFollowing, setIsFollowing] = useState(false);
@@ -109,15 +108,23 @@ export default function PerfilArtistaScreen() {
   const artistPosts = allPosts.filter((post) => post.name === displayName);
   const paddingNeeded = Math.max(0, PORTFOLIO_COUNT - artistPosts.length);
   const seed = encodeURIComponent(id);
+  const avatarPhoto = `https://picsum.photos/seed/${seed}-avatar/300/300`;
   const portfolio = [
-    ...artistPosts.map((post) => ({ id: post.id, image: post.image })),
+    ...artistPosts.map((post) => ({ id: post.id, image: post.image, caption: post.caption })),
     ...Array.from({ length: paddingNeeded }, (_, i) => ({
       id: `filler-${i}`,
       image: `https://picsum.photos/seed/${seed}-fill-${i}/500/500`,
+      caption: undefined as string | undefined,
     })),
   ];
   const featured = portfolio.slice(0, FEATURED_COUNT);
   const rest = portfolio.slice(FEATURED_COUNT);
+
+  const openObra = (item: { image: string; caption?: string }) =>
+    router.push({
+      pathname: '/ver-obra',
+      params: { image: item.image, caption: item.caption, authorName: displayName },
+    });
 
   return (
     <View className="flex-1 bg-sand-100">
@@ -139,19 +146,20 @@ export default function PerfilArtistaScreen() {
             <View style={[NOTE_SHADOW, { width: 104 }]} className="rounded-xl">
               <Pin color={roleColor.fg} />
               <View
-                className="items-center justify-center rounded-xl bg-sand-50"
+                className="items-center justify-center overflow-hidden rounded-xl bg-sand-50"
                 style={{ width: 104, height: 120 }}>
                 <View
-                  className="h-14 w-14 items-center justify-center rounded-full"
-                  style={{ backgroundColor: roleColor.base }}>
-                  <Text className="font-serif text-2xl text-sand-50">{initial ?? displayName?.[0]}</Text>
+                  className="h-16 w-16 items-center justify-center overflow-hidden rounded-full"
+                  style={{ borderWidth: 2, borderColor: roleColor.base }}>
+                  <Image source={{ uri: avatarPhoto }} className="h-full w-full" />
                 </View>
               </View>
             </View>
 
             {featured.map((item, index) => (
-              <View
+              <Pressable
                 key={item.id}
+                onPress={() => openObra(item)}
                 style={[
                   NOTE_SHADOW,
                   {
@@ -165,7 +173,7 @@ export default function PerfilArtistaScreen() {
                 ]}
                 className="overflow-hidden rounded-xl bg-sand-50">
                 <Image source={{ uri: item.image }} className="h-full w-full" />
-              </View>
+              </Pressable>
             ))}
           </View>
 
@@ -248,12 +256,13 @@ export default function PerfilArtistaScreen() {
           {tab === 'portafolio' ? (
             <View className="flex-row flex-wrap gap-2 py-4">
               {rest.map((item) => (
-                <Image
-                  key={item.id}
-                  source={{ uri: item.image }}
-                  className="rounded-xl"
-                  style={{ width: gridItemSize, height: gridItemSize }}
-                />
+                <Pressable key={item.id} onPress={() => openObra(item)}>
+                  <Image
+                    source={{ uri: item.image }}
+                    className="rounded-xl"
+                    style={{ width: gridItemSize, height: gridItemSize }}
+                  />
+                </Pressable>
               ))}
             </View>
           ) : (

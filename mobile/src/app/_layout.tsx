@@ -61,6 +61,7 @@ export default function RootLayout() {
               contentStyle: { backgroundColor: 'transparent' },
             }}
           />
+          <Stack.Screen name="ver-obra" options={{ presentation: 'fullScreenModal' }} />
         </Stack>
       </QueryClientProvider>
     </GestureHandlerRootView>

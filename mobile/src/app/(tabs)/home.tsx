@@ -121,7 +121,7 @@ function LikeBurst({ trigger }: { trigger: number }) {
 function openArtistProfile(post: Post) {
   router.push({
     pathname: '/artista/[id]',
-    params: { id: post.name, name: post.name, role: post.role, initial: post.initial, color: post.color },
+    params: { id: post.name, name: post.name, role: post.role, color: post.color },
   });
 }
 

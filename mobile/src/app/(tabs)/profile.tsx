@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import { useState } from 'react';
 import { Image, Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native';
 
@@ -8,9 +9,10 @@ import { BACKGROUND_OPTIONS, backgroundSource, useBackgroundStore } from '@/stor
 import { colors, NOTE_SHADOW, roleColors } from '@/theme';
 
 const FEATURED_COUNT = 3;
-const PORTFOLIO_COUNT = 6;
+const PORTFOLIO_COUNT = 12;
 const OWN_NAME = 'Luna Atelier';
 const OWN_COLOR = roleColors.terracota;
+const OWN_AVATAR = 'https://picsum.photos/seed/luna-atelier-avatar/300/300';
 
 // Nota pineada al corcho, igual que las publicaciones del feed (ver Pin
 // en home.tsx): se duplica a proposito en vez de compartir un componente,
@@ -64,14 +66,21 @@ export default function PerfilScreen() {
   const ownPosts = allPosts.filter((post) => post.name === OWN_NAME);
   const paddingNeeded = Math.max(0, PORTFOLIO_COUNT - ownPosts.length);
   const portfolio = [
-    ...ownPosts.map((post) => ({ id: post.id, image: post.image })),
+    ...ownPosts.map((post) => ({ id: post.id, image: post.image, caption: post.caption })),
     ...Array.from({ length: paddingNeeded }, (_, i) => ({
       id: `filler-${i}`,
       image: `https://picsum.photos/seed/luna-atelier-portfolio-${i}/500/500`,
+      caption: undefined as string | undefined,
     })),
   ];
   const featured = portfolio.slice(0, FEATURED_COUNT);
   const rest = portfolio.slice(FEATURED_COUNT);
+
+  const openObra = (item: { image: string; caption?: string }) =>
+    router.push({
+      pathname: '/ver-obra',
+      params: { image: item.image, caption: item.caption, authorName: OWN_NAME },
+    });
 
   return (
     <View className="flex-1 bg-sand-100">
@@ -83,19 +92,20 @@ export default function PerfilScreen() {
           <View style={[NOTE_SHADOW, { width: 104 }]} className="rounded-xl">
             <Pin color={OWN_COLOR.fg} />
             <View
-              className="items-center justify-center rounded-xl bg-sand-50"
+              className="items-center justify-center overflow-hidden rounded-xl bg-sand-50"
               style={{ width: 104, height: 120 }}>
               <View
-                className="h-14 w-14 items-center justify-center rounded-full"
-                style={{ backgroundColor: OWN_COLOR.base }}>
-                <Text className="font-serif text-2xl text-sand-50">L</Text>
+                className="h-16 w-16 items-center justify-center overflow-hidden rounded-full"
+                style={{ borderWidth: 2, borderColor: OWN_COLOR.base }}>
+                <Image source={{ uri: OWN_AVATAR }} className="h-full w-full" />
               </View>
             </View>
           </View>
 
           {featured.map((item, index) => (
-            <View
+            <Pressable
               key={item.id}
+              onPress={() => openObra(item)}
               style={[
                 NOTE_SHADOW,
                 {
@@ -109,7 +119,7 @@ export default function PerfilScreen() {
               ]}
               className="overflow-hidden rounded-xl bg-sand-50">
               <Image source={{ uri: item.image }} className="h-full w-full" />
-            </View>
+            </Pressable>
           ))}
         </View>
 
@@ -127,7 +137,7 @@ export default function PerfilScreen() {
             Creo mundos suaves para quienes todavía creen en la magia cotidiana.
           </Text>
           <Text className="mt-1 text-xs text-stone-700">
-            Responde en 1d · 48 entregadas · 12.4k seguidores
+            Responde en 1d · 156 entregadas · 12.4k seguidores
           </Text>
         </View>
 
@@ -210,12 +220,13 @@ export default function PerfilScreen() {
         {tab === 'portafolio' ? (
           <View className="flex-row flex-wrap gap-2 py-4">
             {rest.map((item) => (
-              <Image
-                key={item.id}
-                source={{ uri: item.image }}
-                className="rounded-xl"
-                style={{ width: gridItemSize, height: gridItemSize }}
-              />
+              <Pressable key={item.id} onPress={() => openObra(item)}>
+                <Image
+                  source={{ uri: item.image }}
+                  className="rounded-xl"
+                  style={{ width: gridItemSize, height: gridItemSize }}
+                />
+              </Pressable>
             ))}
           </View>
         ) : (
