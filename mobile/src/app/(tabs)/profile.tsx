@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
-import { Image, Pressable, ScrollView, Text, View } from 'react-native';
+import { Image, Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native';
 
 import { AppBackground } from '@/components/app-background';
 import { usePostsStore } from '@/stores/posts-store';
@@ -55,6 +55,11 @@ export default function PerfilScreen() {
   const backgroundId = useBackgroundStore((state) => state.backgroundId);
   const setBackgroundId = useBackgroundStore((state) => state.setBackgroundId);
   const allPosts = usePostsStore((state) => state.posts);
+  const { width: windowWidth } = useWindowDimensions();
+  // aspect-square con ancho en porcentaje no resuelve la altura dentro de
+  // un flex-wrap en este motor de layout: las imagenes quedan en 0px de
+  // alto y desaparecen. Se calcula un tamano fijo en su lugar.
+  const gridItemSize = (windowWidth - 40 - 16) / 3;
 
   const ownPosts = allPosts.filter((post) => post.name === OWN_NAME);
   const paddingNeeded = Math.max(0, PORTFOLIO_COUNT - ownPosts.length);
@@ -208,8 +213,8 @@ export default function PerfilScreen() {
               <Image
                 key={item.id}
                 source={{ uri: item.image }}
-                className="aspect-square rounded-xl"
-                style={{ width: '31.5%' }}
+                className="rounded-xl"
+                style={{ width: gridItemSize, height: gridItemSize }}
               />
             ))}
           </View>

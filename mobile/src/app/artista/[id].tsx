@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Image, Pressable, ScrollView, Text, View } from 'react-native';
+import { Image, Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppBackground } from '@/components/app-background';
@@ -94,7 +94,13 @@ export default function PerfilArtistaScreen() {
     color?: string;
   }>();
   const [isFollowing, setIsFollowing] = useState(false);
+  const [tab, setTab] = useState<'portafolio' | 'sobre-mi'>('portafolio');
   const allPosts = usePostsStore((state) => state.posts);
+  const { width: windowWidth } = useWindowDimensions();
+  // aspect-square con ancho en porcentaje no resuelve la altura dentro de
+  // un flex-wrap en este motor de layout: las imagenes quedan en 0px de
+  // alto y desaparecen. Se calcula un tamano fijo en su lugar.
+  const gridItemSize = (windowWidth - 40 - 16) / 3;
 
   const roleColor = color && color in roleColors ? roleColors[color as keyof typeof roleColors] : roleColors.terracota;
   const displayName = name ?? id;
@@ -216,11 +222,47 @@ export default function PerfilArtistaScreen() {
             </View>
           </View>
 
-          <View className="mt-6 flex-row flex-wrap gap-2">
-            {rest.map((item) => (
-              <Image key={item.id} source={{ uri: item.image }} className="aspect-square rounded-xl" style={{ width: '31.5%' }} />
-            ))}
+          <View className="mt-6 flex-row gap-6 border-b border-sand-300">
+            <Pressable onPress={() => setTab('portafolio')} className="pb-3">
+              <Text
+                className={
+                  tab === 'portafolio'
+                    ? 'border-b-2 border-ink pb-3 text-sm font-semibold text-ink'
+                    : 'text-sm text-stone-700'
+                }>
+                Portafolio
+              </Text>
+            </Pressable>
+            <Pressable onPress={() => setTab('sobre-mi')} className="pb-3">
+              <Text
+                className={
+                  tab === 'sobre-mi'
+                    ? 'border-b-2 border-ink pb-3 text-sm font-semibold text-ink'
+                    : 'text-sm text-stone-700'
+                }>
+                Sobre mí
+              </Text>
+            </Pressable>
           </View>
+
+          {tab === 'portafolio' ? (
+            <View className="flex-row flex-wrap gap-2 py-4">
+              {rest.map((item) => (
+                <Image
+                  key={item.id}
+                  source={{ uri: item.image }}
+                  className="rounded-xl"
+                  style={{ width: gridItemSize, height: gridItemSize }}
+                />
+              ))}
+            </View>
+          ) : (
+            <View className="py-4">
+              <Text className="text-sm text-stone-800">
+                {role ?? 'Artista'} independiente. Trabaja por comisión y responde directo por acá.
+              </Text>
+            </View>
+          )}
         </ScrollView>
       </SafeAreaView>
     </View>
