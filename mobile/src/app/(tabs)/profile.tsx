@@ -7,6 +7,7 @@ import { usePostsStore } from '@/stores/posts-store';
 import { BACKGROUND_OPTIONS, backgroundSource, useBackgroundStore } from '@/stores/background-store';
 import { colors, NOTE_SHADOW, roleColors } from '@/theme';
 
+const FEATURED_COUNT = 3;
 const PORTFOLIO_COUNT = 6;
 const OWN_NAME = 'Luna Atelier';
 const OWN_COLOR = roleColors.terracota;
@@ -64,54 +65,68 @@ export default function PerfilScreen() {
       image: `https://picsum.photos/seed/luna-atelier-portfolio-${i}/500/500`,
     })),
   ];
+  const featured = portfolio.slice(0, FEATURED_COUNT);
+  const rest = portfolio.slice(FEATURED_COUNT);
 
   return (
     <View className="flex-1 bg-sand-100">
       <AppBackground />
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerClassName="px-5 pb-8 pt-16">
-        <View className="items-center py-3">
-          <View style={NOTE_SHADOW} className="rounded-xl">
+        {/* Foto de perfil pineada a la par de tus propias obras, no sola
+            arriba de una caja de stats. */}
+        <View className="flex-row justify-center" style={{ paddingLeft: 36 }}>
+          <View style={[NOTE_SHADOW, { width: 104 }]} className="rounded-xl">
             <Pin color={OWN_COLOR.fg} />
-            <View className="items-center gap-2 rounded-xl bg-sand-50 px-6 py-5" style={{ width: 168 }}>
+            <View
+              className="items-center justify-center rounded-xl bg-sand-50"
+              style={{ width: 104, height: 120 }}>
               <View
-                className="h-20 w-20 items-center justify-center rounded-full"
+                className="h-14 w-14 items-center justify-center rounded-full"
                 style={{ backgroundColor: OWN_COLOR.base }}>
-                <Text className="font-serif text-3xl text-sand-50">L</Text>
-              </View>
-              <View className="flex-row items-center gap-1.5">
-                <Text className="font-serif text-2xl italic text-ink">{OWN_NAME}</Text>
-                <Ionicons name="checkmark-circle" size={16} color={colors.accent.DEFAULT} />
-              </View>
-              <View className="rounded-full px-2 py-0.5" style={{ backgroundColor: OWN_COLOR.bg }}>
-                <Text className="text-xs font-medium" style={{ color: OWN_COLOR.fg }}>
-                  Ilustradora digital
-                </Text>
+                <Text className="font-serif text-2xl text-sand-50">L</Text>
               </View>
             </View>
           </View>
+
+          {featured.map((item, index) => (
+            <View
+              key={item.id}
+              style={[
+                NOTE_SHADOW,
+                {
+                  width: 92,
+                  height: 92,
+                  marginLeft: -22,
+                  marginTop: index % 2 === 0 ? 16 : 26,
+                  transform: [{ rotate: `${index % 2 === 0 ? -6 : 5}deg` }],
+                  zIndex: FEATURED_COUNT - index,
+                },
+              ]}
+              className="overflow-hidden rounded-xl bg-sand-50">
+              <Image source={{ uri: item.image }} className="h-full w-full" />
+            </View>
+          ))}
         </View>
 
-        <Text className="text-center text-xs text-stone-700">12.4k seguidores</Text>
-        <Text className="mt-2 text-center text-sm text-stone-800">
-          Creo mundos suaves para quienes todavía creen en la magia cotidiana.
-        </Text>
-
-        <View className="mt-5 flex-row justify-between rounded-2xl bg-sand-50 px-4 py-3">
-          <View className="items-center">
-            <Text className="text-base font-semibold text-ink">1d</Text>
-            <Text className="text-xs text-stone-700">RESPONDE EN</Text>
+        <View className="mt-5 items-center gap-1.5">
+          <View className="flex-row items-center gap-1.5">
+            <Text className="font-serif text-2xl italic text-ink">{OWN_NAME}</Text>
+            <Ionicons name="checkmark-circle" size={16} color={colors.accent.DEFAULT} />
           </View>
-          <View className="items-center">
-            <Text className="text-base font-semibold text-ink">48</Text>
-            <Text className="text-xs text-stone-700">ENTREGADAS</Text>
+          <View className="rounded-full px-2 py-0.5" style={{ backgroundColor: OWN_COLOR.bg }}>
+            <Text className="text-xs font-medium" style={{ color: OWN_COLOR.fg }}>
+              Ilustradora digital
+            </Text>
           </View>
-          <View className="items-center">
-            <Text className="text-base font-semibold text-ink">{ownPosts.length || PORTFOLIO_COUNT}</Text>
-            <Text className="text-xs text-stone-700">OBRAS</Text>
-          </View>
+          <Text className="mt-1 text-center text-sm text-stone-800">
+            Creo mundos suaves para quienes todavía creen en la magia cotidiana.
+          </Text>
+          <Text className="mt-1 text-xs text-stone-700">
+            Responde en 1d · 48 entregadas · 12.4k seguidores
+          </Text>
         </View>
 
-        <View className="mt-5" style={NOTE_SHADOW}>
+        <View className="mt-6" style={[NOTE_SHADOW, { alignSelf: 'stretch' }]}>
           <Pin color={OWN_COLOR.fg} />
           <View className="gap-3 rounded-xl bg-sand-50 p-4">
             <View className="flex-row items-center justify-between">
@@ -189,7 +204,7 @@ export default function PerfilScreen() {
 
         {tab === 'portafolio' ? (
           <View className="flex-row flex-wrap gap-2 py-4">
-            {portfolio.map((item) => (
+            {rest.map((item) => (
               <Image
                 key={item.id}
                 source={{ uri: item.image }}

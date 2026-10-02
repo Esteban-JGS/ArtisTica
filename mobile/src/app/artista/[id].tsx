@@ -8,12 +8,17 @@ import { AppBackground } from '@/components/app-background';
 import { usePostsStore } from '@/stores/posts-store';
 import { colors, NOTE_SHADOW, roleColors } from '@/theme';
 
+const FEATURED_COUNT = 3;
 const PORTFOLIO_COUNT = 6;
 const OPEN_UNTIL_MONTHS = ['enero', 'marzo', 'mayo', 'julio', 'setiembre', 'noviembre'];
 
 // Nota pineada al corcho, igual que las publicaciones del feed (ver Pin
 // en home.tsx): se duplica a proposito en vez de compartir un componente,
-// siguiendo como ya esta hecho el resto de hojas de esta pantalla.
+// siguiendo como ya esta hecho el resto de hojas de esta pantalla. El
+// contenedor que la usa SIEMPRE tiene que declarar el mismo ancho que la
+// tarjeta interna (ver uso abajo): el "50%" del pin se calcula contra
+// ese ancho, y si el padre lo deja ambiguo (p. ej. un "items-center" sin
+// ancho propio) el pin termina flotando fuera de la tarjeta.
 function Pin({ color }: { color: string }) {
   return (
     <View
@@ -105,6 +110,8 @@ export default function PerfilArtistaScreen() {
       image: `https://picsum.photos/seed/${seed}-fill-${i}/500/500`,
     })),
   ];
+  const featured = portfolio.slice(0, FEATURED_COUNT);
+  const rest = portfolio.slice(FEATURED_COUNT);
 
   return (
     <View className="flex-1 bg-sand-100">
@@ -119,54 +126,65 @@ export default function PerfilArtistaScreen() {
         </View>
 
         <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerClassName="px-5 pb-8">
-          <View className="items-center py-3">
-            <View style={NOTE_SHADOW} className="rounded-xl">
+          {/* Foto de perfil pineada a la par de unas obras, no sola arriba
+              de una caja de stats: asi el perfil abre mostrando quien
+              sos y que haces en el mismo gesto, no en dos bloques separados. */}
+          <View className="flex-row justify-center pt-4" style={{ paddingLeft: 36 }}>
+            <View style={[NOTE_SHADOW, { width: 104 }]} className="rounded-xl">
               <Pin color={roleColor.fg} />
-              <View className="items-center gap-2 rounded-xl bg-sand-50 px-6 py-5" style={{ width: 168 }}>
+              <View
+                className="items-center justify-center rounded-xl bg-sand-50"
+                style={{ width: 104, height: 120 }}>
                 <View
-                  className="h-20 w-20 items-center justify-center rounded-full"
+                  className="h-14 w-14 items-center justify-center rounded-full"
                   style={{ backgroundColor: roleColor.base }}>
-                  <Text className="font-serif text-3xl text-sand-50">{initial ?? displayName?.[0]}</Text>
+                  <Text className="font-serif text-2xl text-sand-50">{initial ?? displayName?.[0]}</Text>
                 </View>
-                <Text className="font-serif text-2xl italic text-ink">{displayName}</Text>
-                {role && (
-                  <View className="rounded-full px-2 py-0.5" style={{ backgroundColor: roleColor.bg }}>
-                    <Text className="text-xs font-medium" style={{ color: roleColor.fg }}>
-                      {role}
-                    </Text>
-                  </View>
-                )}
               </View>
             </View>
+
+            {featured.map((item, index) => (
+              <View
+                key={item.id}
+                style={[
+                  NOTE_SHADOW,
+                  {
+                    width: 92,
+                    height: 92,
+                    marginLeft: -22,
+                    marginTop: index % 2 === 0 ? 16 : 26,
+                    transform: [{ rotate: `${index % 2 === 0 ? -6 : 5}deg` }],
+                    zIndex: FEATURED_COUNT - index,
+                  },
+                ]}
+                className="overflow-hidden rounded-xl bg-sand-50">
+                <Image source={{ uri: item.image }} className="h-full w-full" />
+              </View>
+            ))}
           </View>
 
-          <View className="flex-row items-center justify-center gap-3">
-            <Text className="text-xs text-stone-700">{stats.followers} seguidores</Text>
+          <View className="mt-5 items-center gap-1.5">
+            <Text className="font-serif text-2xl italic text-ink">{displayName}</Text>
+            {role && (
+              <View className="rounded-full px-2 py-0.5" style={{ backgroundColor: roleColor.bg }}>
+                <Text className="text-xs font-medium" style={{ color: roleColor.fg }}>
+                  {role}
+                </Text>
+              </View>
+            )}
+            <Text className="mt-1 text-xs text-stone-700">
+              Responde en {stats.responseDays}d · {stats.delivered} entregadas · {stats.followers} seguidores
+            </Text>
             <Pressable
               onPress={() => setIsFollowing((value) => !value)}
-              className={isFollowing ? 'rounded-full bg-sand-50 px-5 py-2' : 'rounded-full bg-accent px-5 py-2'}>
+              className={isFollowing ? 'mt-2 rounded-full bg-sand-50 px-6 py-2' : 'mt-2 rounded-full bg-accent px-6 py-2'}>
               <Text className={isFollowing ? 'text-sm font-semibold text-ink' : 'text-sm font-semibold text-sand-50'}>
                 {isFollowing ? 'Siguiendo' : 'Seguir'}
               </Text>
             </Pressable>
           </View>
 
-          <View className="mt-5 flex-row justify-between rounded-2xl bg-sand-50 px-4 py-3">
-            <View className="items-center">
-              <Text className="text-base font-semibold text-ink">{stats.responseDays}d</Text>
-              <Text className="text-xs text-stone-700">RESPONDE EN</Text>
-            </View>
-            <View className="items-center">
-              <Text className="text-base font-semibold text-ink">{stats.delivered}</Text>
-              <Text className="text-xs text-stone-700">ENTREGADAS</Text>
-            </View>
-            <View className="items-center">
-              <Text className="text-base font-semibold text-ink">{artistPosts.length || PORTFOLIO_COUNT}</Text>
-              <Text className="text-xs text-stone-700">OBRAS</Text>
-            </View>
-          </View>
-
-          <View className="mt-5" style={NOTE_SHADOW}>
+          <View className="mt-6" style={[NOTE_SHADOW, { alignSelf: 'stretch' }]}>
             <Pin color={roleColor.fg} />
             <View className="gap-3 rounded-xl bg-sand-50 p-4">
               <View className="flex-row items-center justify-between">
@@ -199,7 +217,7 @@ export default function PerfilArtistaScreen() {
           </View>
 
           <View className="mt-6 flex-row flex-wrap gap-2">
-            {portfolio.map((item) => (
+            {rest.map((item) => (
               <Image key={item.id} source={{ uri: item.image }} className="aspect-square rounded-xl" style={{ width: '31.5%' }} />
             ))}
           </View>
