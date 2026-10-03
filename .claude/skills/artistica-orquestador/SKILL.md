@@ -265,6 +265,7 @@ Explicaciones breves; se prefiere código correcto a párrafos.
 4. Si se rechaza: el prompt de corrección le pide seguir en la misma rama, sin crear otra.
 5. Con veredicto aprobado: commitear en esa rama el prompt y la bitácora, `git push -u origin <rama>` y abrir el PR con `gh pr create --base develop`, llenando la plantilla de `.github/pull_request_template.md`.
 6. El merge lo hace Esteban, con merge commit. Nunca el orquestador. Después del merge, `git pull` en `develop` basta para alinear.
+7. En la rama del lote siguiente, el orquestador borra de `orquestacion/` el prompt del lote ya fusionado, y sus correctivos o addendums. En `orquestacion/` solo queda el prompt del lote en curso. Lo borrado sigue en el historial: `git log --diff-filter=D --oneline -- orquestacion/<archivo>` da el commit del borrado, y `git show <commit>^:orquestacion/<archivo>` lo muestra.
 
 Los cambios del propio orquestador a documentación también van por rama `docs/...` y PR.
 
