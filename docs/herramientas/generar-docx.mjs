@@ -2,6 +2,8 @@
 // Uso: npm run generar -- [entrada.md] [salida.docx]
 // Cubre el subconjunto de Markdown que usa la documentacion: portada, titulos
 // de nivel 2 a 4, parrafos con negrita y codigo, listas, tablas y separadores.
+// "## Índice" se reemplaza por una tabla de contenido de Word; para llenarla
+// con los numeros de pagina hay que correr despues actualizar-indice.ps1.
 
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
@@ -13,6 +15,7 @@ import {
   Footer,
   HeadingLevel,
   LevelFormat,
+  LineRuleType,
   Packer,
   PageBreak,
   PageNumber,
@@ -20,6 +23,7 @@ import {
   ShadingType,
   Table,
   TableCell,
+  TableOfContents,
   TableRow,
   TextRun,
   WidthType,
@@ -36,6 +40,14 @@ const TINTA_SUAVE = "6B5D52";
 const PAPEL = "F5EFE4";
 const BORDE = "D9CDBA";
 
+// Tipografia: Arial en todo el documento. Word mide en medios puntos
+const FUENTE = "Arial";
+const PT = (puntos) => puntos * 2;
+const TAM_TEXTO = PT(12);
+const TAM_TABLA = PT(10);
+const TAM_PIE = PT(9);
+const INTERLINEADO = 276; // 1.15 lineas
+
 // Carta con margenes de una pulgada: 12240 menos 2 por 1440
 const ANCHO_UTIL = 9360;
 
@@ -47,7 +59,7 @@ function tramos(texto, base = {}) {
       return new TextRun({ ...base, text: parte.slice(2, -2), bold: true });
     }
     if (parte.startsWith("`") && parte.endsWith("`")) {
-      return new TextRun({ ...base, text: parte.slice(1, -1), font: "Consolas", size: 19 });
+      return new TextRun({ ...base, text: parte.slice(1, -1), font: "Consolas" });
     }
     return new TextRun({ ...base, text: parte });
   });
@@ -57,13 +69,15 @@ function celdas(linea) {
   return linea.trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map((c) => c.trim());
 }
 
-// Ancho de cada columna proporcional al texto mas largo, con un minimo
+// Ancho de cada columna proporcional al texto mas largo, sin partir palabras
 function anchos(filas) {
   const columnas = filas[0].length;
-  const largo = Array.from({ length: columnas }, (_, i) =>
-    Math.max(...filas.map((f) => (f[i] ?? "").replace(/\*\*|`/g, "").length)),
+  const limpio = (f, i) => (f[i] ?? "").replace(/\*\*|`/g, "");
+  const largo = Array.from({ length: columnas }, (_, i) => Math.max(...filas.map((f) => limpio(f, i).length)));
+  const palabra = Array.from({ length: columnas }, (_, i) =>
+    Math.max(...filas.flatMap((f) => limpio(f, i).split(/\s+/).map((p) => p.length))),
   );
-  const peso = largo.map((l) => Math.max(8, Math.min(l, 70)));
+  const peso = largo.map((l, i) => Math.max(palabra[i] + 4, Math.min(l, 50)));
   const total = peso.reduce((a, b) => a + b, 0);
   const res = peso.map((p) => Math.floor((p / total) * ANCHO_UTIL));
   res[res.length - 1] += ANCHO_UTIL - res.reduce((a, b) => a + b, 0);
@@ -81,6 +95,7 @@ function tabla(filas) {
       (fila, i) =>
         new TableRow({
           tableHeader: i === 0,
+          cantSplit: true,
           children: fila.map(
             (texto, j) =>
               new TableCell({
@@ -90,8 +105,8 @@ function tabla(filas) {
                 margins: { top: 60, bottom: 60, left: 100, right: 100 },
                 children: [
                   new Paragraph({
-                    spacing: { after: 0 },
-                    children: tramos(texto, { size: 19, bold: i === 0 ? true : undefined }),
+                    spacing: { after: 0, line: 240 },
+                    children: tramos(texto, { size: TAM_TABLA, bold: i === 0 ? true : undefined }),
                   }),
                 ],
               }),
@@ -103,6 +118,14 @@ function tabla(filas) {
 
 const salto = () => new Paragraph({ children: [new PageBreak()] });
 
+// Titulo de nivel 1 que no entra al indice: Control de versiones e Índice
+const tituloSinIndice = (texto, pageBreakBefore) =>
+  new Paragraph({
+    pageBreakBefore,
+    spacing: { after: 160 },
+    children: [new TextRun({ text: texto, size: PT(16), bold: true, color: TERRACOTA })],
+  });
+
 function portada(lineas) {
   const bloque = [];
   for (const linea of lineas) {
@@ -112,24 +135,24 @@ function portada(lineas) {
       bloque.push(
         new Paragraph({
           alignment: AlignmentType.CENTER,
-          spacing: { before: 2400, after: 200 },
-          children: [new TextRun({ text: t.slice(2), size: 72, bold: true, color: TERRACOTA })],
+          spacing: { before: 2800, after: 200 },
+          children: [new TextRun({ text: t.slice(2), size: PT(32), bold: true, color: TERRACOTA })],
         }),
       );
     } else if (t.startsWith("**")) {
       bloque.push(
         new Paragraph({
           alignment: AlignmentType.CENTER,
-          spacing: { after: 1200 },
-          children: [new TextRun({ text: t.replace(/\*\*/g, ""), italics: true, size: 28, color: TINTA_SUAVE })],
+          spacing: { after: 1600 },
+          children: [new TextRun({ text: t.replace(/\*\*/g, ""), italics: true, size: PT(14), color: TINTA_SUAVE })],
         }),
       );
     } else {
       bloque.push(
         new Paragraph({
           alignment: AlignmentType.CENTER,
-          spacing: { after: 160 },
-          children: [new TextRun({ text: t, size: 24 })],
+          spacing: { after: 120 },
+          children: [new TextRun({ text: t })],
         }),
       );
     }
@@ -141,21 +164,42 @@ function cuerpo(lineas) {
   const bloque = [];
   let listaNumerada = 0;
   let enLista = false;
+  // "---" abre pagina nueva. Se aplica como salto antes del titulo siguiente y no
+  // como parrafo propio, que deja una pagina en blanco si cae justo al final de otra
+  let nuevaPagina = true;
+  const tomarSalto = () => {
+    const s = nuevaPagina;
+    nuevaPagina = false;
+    return s;
+  };
   for (let i = 0; i < lineas.length; i++) {
     const linea = lineas[i];
     const t = linea.trim();
 
     if (!/^\d+\.\s/.test(t) && !t.startsWith("- ")) enLista = false;
     if (!t) continue;
+    if (t !== "---" && !t.startsWith("## ") && tomarSalto()) bloque.push(salto());
 
     if (t === "---") {
-      bloque.push(salto());
+      nuevaPagina = true;
+    } else if (t === "## Índice") {
+      // El indice escrito a mano en el Markdown se reemplaza por el de Word
+      bloque.push(tituloSinIndice("Índice", tomarSalto()));
+      bloque.push(new TableOfContents("Índice", { hyperlink: true, headingStyleRange: "1-2" }));
+      while (i + 1 < lineas.length && lineas[i + 1].trim() !== "---") i++;
     } else if (t.startsWith("#### ")) {
       bloque.push(new Paragraph({ heading: HeadingLevel.HEADING_3, children: tramos(t.slice(5)) }));
     } else if (t.startsWith("### ")) {
       bloque.push(new Paragraph({ heading: HeadingLevel.HEADING_2, children: tramos(t.slice(4)) }));
     } else if (t.startsWith("## ")) {
-      bloque.push(new Paragraph({ heading: HeadingLevel.HEADING_1, children: tramos(t.slice(3)) }));
+      // Solo las secciones numeradas entran al indice
+      const texto = t.slice(3);
+      const pageBreakBefore = tomarSalto();
+      bloque.push(
+        /^\d/.test(texto)
+          ? new Paragraph({ heading: HeadingLevel.HEADING_1, pageBreakBefore, children: tramos(texto) })
+          : tituloSinIndice(texto, pageBreakBefore),
+      );
     } else if (t.startsWith("|")) {
       const filas = [];
       while (i < lineas.length && lineas[i].trim().startsWith("|")) {
@@ -165,7 +209,7 @@ function cuerpo(lineas) {
       }
       i--;
       bloque.push(tabla(filas));
-      bloque.push(new Paragraph({ spacing: { after: 120 }, children: [] }));
+      bloque.push(new Paragraph({ spacing: { before: 0, after: 0, line: 200, lineRule: LineRuleType.EXACT }, children: [] }));
     } else if (t.startsWith("- ")) {
       bloque.push(new Paragraph({ numbering: { reference: "vinetas", level: 0 }, children: tramos(t.slice(2)) }));
     } else if (/^\d+\.\s/.test(t)) {
@@ -181,7 +225,7 @@ function cuerpo(lineas) {
     } else if (t.startsWith("```")) {
       i++;
       while (i < lineas.length && !lineas[i].trim().startsWith("```")) {
-        bloque.push(new Paragraph({ children: [new TextRun({ text: lineas[i], font: "Consolas", size: 18 })] }));
+        bloque.push(new Paragraph({ children: [new TextRun({ text: lineas[i], font: "Consolas", size: TAM_TABLA })] }));
         i++;
       }
     } else {
@@ -200,39 +244,43 @@ const lineasCuerpo = lineas.slice(fin + 1);
 const titulo = (lineasPortada.find((l) => l.startsWith("# ")) ?? "# ArtisTica").slice(2);
 const entrega = lineasPortada.map((l) => l.trim()).find((l) => /avance/i.test(l)) ?? "";
 
+// Titulos: 16, 14 y 12 puntos, siempre pegados al parrafo que sigue
+const estiloTitulo = (id, nivel, puntos, color, antes, despues) => ({
+  id,
+  name: id.replace(/(\d)/, " $1"),
+  basedOn: "Normal",
+  next: "Normal",
+  quickFormat: true,
+  run: { font: FUENTE, size: PT(puntos), bold: true, color },
+  paragraph: { spacing: { before: antes, after: despues, line: 240 }, keepNext: true, outlineLevel: nivel },
+});
+
+const estiloIndice = (id, sangria, negrita) => ({
+  id,
+  name: id.replace(/(\d)/, " $1"),
+  basedOn: "Normal",
+  next: "Normal",
+  run: { font: FUENTE, size: TAM_TEXTO, bold: negrita },
+  paragraph: { spacing: { before: negrita ? 60 : 0, after: 20, line: 240 }, indent: { left: sangria } },
+});
+
 const documento = new Document({
   creator: "Brian José Zeledón Esquivel y Esteban Granados Sibaja",
   title: `${titulo}, documentación del proyecto`,
+  features: { updateFields: true },
   styles: {
-    default: { document: { run: { font: "Calibri", size: 22, color: TINTA } } },
+    default: {
+      document: {
+        run: { font: FUENTE, size: TAM_TEXTO, color: TINTA },
+        paragraph: { spacing: { after: 160, line: INTERLINEADO } },
+      },
+    },
     paragraphStyles: [
-      {
-        id: "Heading1",
-        name: "Heading 1",
-        basedOn: "Normal",
-        next: "Normal",
-        quickFormat: true,
-        run: { size: 36, bold: true, color: TERRACOTA },
-        paragraph: { spacing: { before: 240, after: 200 }, outlineLevel: 0 },
-      },
-      {
-        id: "Heading2",
-        name: "Heading 2",
-        basedOn: "Normal",
-        next: "Normal",
-        quickFormat: true,
-        run: { size: 28, bold: true, color: TINTA },
-        paragraph: { spacing: { before: 280, after: 120 }, outlineLevel: 1 },
-      },
-      {
-        id: "Heading3",
-        name: "Heading 3",
-        basedOn: "Normal",
-        next: "Normal",
-        quickFormat: true,
-        run: { size: 24, bold: true, color: TERRACOTA },
-        paragraph: { spacing: { before: 220, after: 100 }, outlineLevel: 2 },
-      },
+      estiloTitulo("Heading1", 0, 16, TERRACOTA, 0, 240),
+      estiloTitulo("Heading2", 1, 14, TINTA, 320, 120),
+      estiloTitulo("Heading3", 2, 12, TERRACOTA, 200, 80),
+      estiloIndice("TOC1", 0, true),
+      estiloIndice("TOC2", 360, false),
     ],
   },
   numbering: {
@@ -245,7 +293,7 @@ const documento = new Document({
             format: LevelFormat.BULLET,
             text: "•",
             alignment: AlignmentType.LEFT,
-            style: { paragraph: { indent: { left: 540, hanging: 270 } } },
+            style: { paragraph: { indent: { left: 540, hanging: 270 }, spacing: { after: 80 } } },
           },
         ],
       },
@@ -257,7 +305,7 @@ const documento = new Document({
             format: LevelFormat.DECIMAL,
             text: "%1.",
             alignment: AlignmentType.LEFT,
-            style: { paragraph: { indent: { left: 540, hanging: 360 } } },
+            style: { paragraph: { indent: { left: 540, hanging: 360 }, spacing: { after: 80 } } },
           },
         ],
       },
@@ -278,15 +326,15 @@ const documento = new Document({
             new Paragraph({
               alignment: AlignmentType.RIGHT,
               children: [
-                new TextRun({ text: `${titulo}, ${entrega}    `, size: 16, color: TINTA_SUAVE }),
-                new TextRun({ children: [PageNumber.CURRENT], size: 16, color: TINTA_SUAVE }),
+                new TextRun({ text: `${titulo}, ${entrega}    `, size: TAM_PIE, color: TINTA_SUAVE }),
+                new TextRun({ children: [PageNumber.CURRENT], size: TAM_PIE, color: TINTA_SUAVE }),
               ],
             }),
           ],
         }),
         first: new Footer({ children: [] }),
       },
-      children: [...portada(lineasPortada), salto(), ...cuerpo(lineasCuerpo)],
+      children: [...portada(lineasPortada), ...cuerpo(lineasCuerpo)],
     },
   ],
 });
