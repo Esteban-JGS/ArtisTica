@@ -178,7 +178,7 @@ Cuesta ≈ ₡2,500 al mes o ≈ ₡25,000 al año. Incluye la tarifa de 5%, cal
 
 Se paga sola a partir de ≈ ₡85,000 al mes en pedidos. Por ejemplo, un grupo musical con cuatro contrataciones de ₡150,000 paga ₡48,000 de tarifa en Taller y ₡32,500 en Estudio, suscripción incluida.
 
-Al cambiar de plan, cada pedido conserva la tarifa vigente cuando se creó, de modo que nadie paga una tarifa distinta a la que aceptó al cotizar.
+Al cambiar de plan, cada pedido conserva la tarifa vigente cuando se creó, de modo que nadie paga una tarifa distinta a la que aceptó al cotizar. En el MVP, Estudio se activa sin cobro real; el cobro de la suscripción llega en la etapa 2.
 
 ### 3.4 Promociones
 
@@ -267,6 +267,14 @@ Con un pedido promedio de US$150, una tarifa promedio de 7% y 300 suscriptores d
 
 **Resolución.** Cada pedido conserva su tarifa y el sistema ajusta la de la cuenta justo antes de cada cobro. Se consultó a ONVO si admite una tarifa por cobro.
 
+#### Artistas informales y el registro en la pasarela
+
+**Situación.** ONVO no ha confirmado si una persona sin actividad inscrita en Hacienda puede completar su registro como cuenta de cobro.
+
+**Impacto.** Muchos artistas costarricenses son informales y podrían quedar fuera de la plataforma.
+
+**Resolución.** El registro en la pasarela se exige solo al primer cobro: antes, el artista exhibe su obra, recibe consultas y cotiza. La insignia de verificado se obtiene al completar ese registro y no se vende.
+
 ### 4.2 Técnicas y de equipo
 
 #### Backend inicial no ejecutable
@@ -301,6 +309,14 @@ Con un pedido promedio de US$150, una tarifa promedio de 7% y 300 suscriptores d
 
 **Resolución.** La pasarela quedó detrás de un contrato con una implementación simulada y otra de ONVO, y ningún aviso mueve dinero sin consultar antes el cobro.
 
+#### Verificación de sesiones
+
+**Situación.** La verificación de las sesiones, heredada de la primera versión, buscaba las claves públicas de Supabase en una dirección equivocada y aceptaba un solo tipo de firma.
+
+**Impacto.** Ningún usuario real habría podido iniciar sesión, y las pruebas no lo detectaban porque aún no existían endpoints.
+
+**Resolución.** Se corrigió la dirección, se aceptan los dos tipos de firma asimétrica que usa Supabase y se agregaron pruebas con sesiones firmadas.
+
 #### Cambios cruzados en el repositorio
 
 **Situación.** Al inicio los cambios iban directo a la rama de integración, y uno quedó en la rama equivocada.
@@ -322,8 +338,8 @@ Con un pedido promedio de US$150, una tarifa promedio de 7% y 300 suscriptores d
 | Backend: esquema de base de datos | Completo para el MVP |
 | Backend: reglas de pedidos y cobros | Completo y probado |
 | Backend: capa de pagos | Completa, con pasarela simulada y adaptador de ONVO |
-| Backend: identidad, roles y planes | En desarrollo |
-| Endpoints de negocio e integración con la aplicación | Pendiente |
+| Backend: identidad, roles y planes | Completo y probado |
+| Endpoints de negocio e integración con la aplicación | En desarrollo: perfiles y planes disponibles |
 
 ### 5.2 Backend
 
@@ -333,10 +349,11 @@ Con un pedido promedio de US$150, una tarifa promedio de 7% y 300 suscriptores d
 | Esquema de datos | 21 tablas con seguridad a nivel de filas: perfiles, obras, publicaciones, consultas, pedidos, cobros, disputas, métricas y moderación, entre otras |
 | Reglas de pedidos | Todas las transiciones de pedidos y cobros, cálculo de anticipo y saldo, cancelaciones, disputas y vencimientos |
 | Capa de pagos | Contrato de pasarela, pasarela simulada completa y adaptador de ONVO |
+| Identidad y planes | Registro y edición de perfiles, roles, cambio de plan que respeta la tarifa de cada pedido y registro del artista en la pasarela |
 
 Indicadores al cierre del avance:
 
-- 207 pruebas automatizadas.
+- 237 pruebas automatizadas.
 - Ningún saldo almacenado en la base de datos: ArtísTica no custodia dinero.
 - Montos calculados con aritmética decimal exacta.
 
@@ -348,7 +365,6 @@ Pantallas implementadas con el rediseño visual Liquid Glass: Inicio (feed con e
 
 | Etapa | Contenido |
 |---|---|
-| Identidad y planes | Perfiles, roles, cambio de plan y registro del artista en la pasarela |
 | Contenido | Obras, servicios, carga de imágenes y feed |
 | Contratación | Consultas, chat, pedidos y recepción de avisos de pago |
 | Métricas y moderación | Panel del artista, reportes y clasificación para revisión humana |
@@ -360,7 +376,7 @@ La demostración de noviembre usa la pasarela simulada, que reproduce autorizaci
 
 | Riesgo | Mitigación |
 |---|---|
-| Plazo: quedan ocho etapas de backend y la integración | Las promociones ya salieron del MVP; si hace falta, Explorar queda solo por categorías |
+| Plazo: quedan siete etapas de backend y la integración | Las promociones ya salieron del MVP; si hace falta, Explorar queda solo por categorías |
 | ONVO no responde a tiempo | La demostración no depende de ONVO |
 | La integración llega tarde | Los endpoints se construyen en el orden en que la aplicación los necesita |
 

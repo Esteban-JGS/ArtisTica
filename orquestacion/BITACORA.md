@@ -17,6 +17,8 @@ Las decisiones se numeran D y las deudas técnicas DT.
 | D7 | Salidas por vencimiento de los pedidos. Resuelven las preguntas 9 y 10. Ver las dos últimas filas de la tabla de políticas | 2026-09-25 |
 | D8 | Cambio de plan y tarifa. Resuelve la pregunta 11. Ver la tabla de políticas | 2026-10-02 |
 | D9 | Vigencia supuesta de una autorización: 5 días, configurable. Resuelve la pregunta 12 y la mitad de DT12 | 2026-10-02 |
+| D10 | El onboarding de la pasarela se exige solo al primer cobro: sin cuenta conectada, el artista exhibe, recibe consultas y cotiza. `is_verified` es verdadero si y solo si el onboarding está completado. Mitiga la pregunta 8 sin cerrarla | 2026-10-02 |
+| D11 | En el MVP, Estudio es una bandera sin cobro real y el artista cambia de plan solo. Bajar a Taller con más servicios u obras que el límite no oculta ni borra nada: solo impide crear nuevos hasta quedar por debajo. El bloqueo por artista de D8 es la fila de `profiles` con `SELECT ... FOR UPDATE` | 2026-10-02 |
 
 ## Políticas de pedido vigentes (D5)
 
@@ -44,7 +46,7 @@ Las decisiones se numeran D y las deudas técnicas DT.
 | 1b | Cerrar los huecos del esquema | Cerrado | Aprobado | Ninguna |
 | 2 | Máquina de estados de pedidos y cobros | Cerrado | Aprobado con deuda | DT9, DT10 |
 | 3 | Capa de pasarela: contrato, adaptador real y adaptador falso | Cerrado | Aprobado con deuda | DT11 a DT15 |
-| 4 | Identidad, roles, planes y onboarding | Pendiente | | |
+| 4 | Identidad, roles, planes y onboarding | Cerrado | Aprobado con deuda | DT16 a DT18 |
 | 5 | Obras, servicios y medios con Storage firmado | Pendiente | | |
 | 6 | Feed Seguidos y Explorar por cursor | Pendiente | | |
 | 7 | Consultas y chat | Pendiente | | |
@@ -64,7 +66,7 @@ Las decisiones se numeran D y las deudas técnicas DT.
 
 | # | Origen | Deuda | Cuándo se paga |
 |---|---|---|---|
-| DT1 | Lote 0 | `B904` silenciado con per-file-ignores en `src/api/deps.py` y `src/core/security.py`. Falta el `raise ... from` | Lote 4, que toca los dos archivos |
+| DT1 | Lote 0 | `B904` silenciado con per-file-ignores en `src/api/deps.py` y `src/core/security.py`. Falta el `raise ... from` | Pagada en el lote 4 |
 | DT2 | Lote 0 | El worker solo depende de `db` en compose, así que su primera consulta llega antes de que la API migre y loguea un `relation jobs does not exist`. El loop reintenta, pero ensucia el arranque | Lote 9, que toca el worker |
 | DT3 | Lote 0 | `asyncio.set_event_loop_policy` queda obsoleto en Python 3.14. El reemplazo es `asyncio.run(..., loop_factory=...)` | Cuando se suba de versión de Python |
 | DT4 | Lote 0 | `docker-compose.yml` publica el 5432, que en la máquina de Esteban ya ocupa otro contenedor. Hoy se resuelve con un override local fuera del repositorio | Cuando estorbe |
@@ -79,6 +81,9 @@ Las decisiones se numeran D y las deudas técnicas DT.
 | DT13 | Lote 3 | 3DS no está cubierto: un pago en `requires_action` levanta `OperacionNoSoportada` | Antes de producción |
 | DT14 | Lote 3 | Nada impide usar la pasarela falsa en producción. La fábrica debería negarse cuando `ENVIRONMENT` sea producción | Antes de producción |
 | DT15 | Lote 3 | La pasarela falsa guarda su estado en memoria, una instancia por proceso. La demo tiene que correr con un solo worker de uvicorn | Antes de la demo |
+| DT16 | Lote 4 | Por D11, cualquier artista pasa a Estudio sin pagar y su tarifa baja de 8% a 5%. Sirve para la demo; en producción vacía la tarifa | Antes de producción: el cambio a Estudio queda atado al cobro real o a una asignación de admin |
+| DT17 | Lote 4 | Si la pasarela crea la cuenta conectada y después falla el commit, la cuenta queda huérfana y el siguiente intento crea otra. `crear_cuenta_conectada` no recibe clave de idempotencia ni metadatos | Lote 8, que vuelve a tocar el contrato de pagos |
+| DT18 | Lote 4 | Las llamadas a la pasarela se hacen con el `FOR UPDATE` del perfil tomado (D8). Con Supavisor en modo transacción, una pasarela lenta retiene una conexión del pool hasta el timeout de 15 s | Revisar con carga antes de producción |
 
 ## Errores del orquestador
 
@@ -90,6 +95,8 @@ Las decisiones se numeran D y las deudas técnicas DT.
 | 1b | Se pidió el índice de `follows.seguido_id` sin listar `users.py`, que es donde vive `Follow` | Aceptado el cambio fuera de alcance |
 | 2 | El plan de cancelación solo preveía liberar, reembolsar y conservar. Faltaban cancelar un cobro que nunca llegó a la pasarela, y capturar un saldo autorizado cuando moderación resuelve a favor del artista. Tampoco se previeron las salidas por vencimiento de DT10 | El ejecutor agregó las dos acciones; DT10 queda para el lote 9 |
 | 3 | La tabla de errores marcaba `PasarelaNoDisponible` siempre como reintentable. Con una pasarela sin idempotencia, reintentar una confirmación o un reembolso tras un timeout cobraría o devolvería dos veces | El ejecutor lo marcó reintentable solo cuando la operación se puede repetir sin efecto doble |
+| 0 | La auditoría dio `src/core/security.py` por bueno para rescatar tal cual. Tenía la URL del JWKS equivocada (`/auth/v1/jwks` en vez de `/auth/v1/.well-known/jwks.json`) y solo aceptaba `RS256`, cuando Supabase firma con `ES256` o `RS256`: la autenticación nunca habría funcionado contra un proyecto real | Lote 4 corrige los dos defectos y lo prueba con tokens firmados en la prueba |
+| 4 | El criterio que listaba rutas con `app.routes` falla en FastAPI 0.141, donde `include_router` deja un `_IncludedRouter` sin `path` | Se verifica con `app.openapi()["paths"]`, que no depende de la estructura interna |
 
 ## Preguntas abiertas que bloquean diseño
 
@@ -102,7 +109,7 @@ Las decisiones se numeran D y las deudas técnicas DT.
 | 5 | Si el modo marketplace acepta SINPE Móvil (pasarela) | Lote 3, mitigada por D3 | Abierta |
 | 6 | Si la comisión se define por cobro o solo por cuenta (pasarela) | Lote 3, mitigada por D3 | Abierta |
 | 7 | Quién absorbe contracargos y reembolsos después de liquidar (pasarela) | Lote 9, mitigada por D3 | Abierta |
-| 8 | Si una persona física sin actividad inscrita puede completar el onboarding | Lote 4 | Abierta |
+| 8 | Si una persona física sin actividad inscrita puede completar el onboarding | Lote 4, mitigada por D10 | Abierta |
 | 9 | Evento cuya fecha llega con el saldo impago. Propuesta: se trata como cancelación del cliente con menos de 7 días, así que el anticipo no se devuelve y el pedido pasa a `cancelado` | Lote 9 | Cerrada por D7 |
 | 10 | Encargo cuya autorización del saldo vence antes de que el cliente apruebe. Propuesta: se permite reautorizar el mismo cobro; si el cliente no reautoriza en 7 días, el artista puede abrir disputa | Lote 9 | Cerrada por D7 |
 | 11 | Con ONVO la tarifa es de la cuenta del artista, no del cobro. Si el artista cambia de plan con pedidos abiertos, sus saldos se cobrarían con la tarifa nueva, aunque el lote 2 la congela por pedido. Propuesta: el cambio de tarifa en la cuenta se aplica recién cuando el artista no tiene cobros autorizados ni pendientes; mientras tanto el plan cambia en ArtísTica pero la cuenta conserva la tarifa vieja | Lote 4 | Cerrada por D8 |
