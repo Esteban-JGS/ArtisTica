@@ -304,6 +304,7 @@ Los cambios del propio orquestador a documentación también van por rama `docs/
 - [ ] Si hubo migración: es reversible o está justificado que no lo sea, y no borra datos sin decirlo.
 - [ ] Si tocó pagos: el estado del pedido y el del cobro cambian en la misma transacción.
 - [ ] Si tocó modelos: no apareció ninguna columna de saldo mutable.
+- [ ] La documentación oficial está actualizada según la skill `documentacion-proyecto`, o el PR deja escrito por qué no aplica. Si el lote no la actualizó, el orquestador la actualiza en la misma rama antes de abrir el PR.
 
 **No bloqueantes (se anotan como deuda en la bitácora):**
 
