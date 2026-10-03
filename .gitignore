@@ -25,3 +25,6 @@ Thumbs.db
 # Salidas de build locales
 dist/
 build/
+
+# Dependencias de Node fuera de mobile/ (herramientas de docs)
+node_modules/
