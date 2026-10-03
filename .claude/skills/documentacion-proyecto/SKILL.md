@@ -62,10 +62,13 @@ El público es el cuerpo docente del curso, no el equipo de desarrollo.
    cd docs/herramientas
    npm install
    npm run generar -- ../ArtisTica_Documentacion_Oficial.md ../entregas/ArtisTica_<N>_Avance.docx
+   npm run indice -- ../entregas/ArtisTica_<N>_Avance.docx -Pdf
    ```
 
-   El conversor cubre el Markdown que usa la documentación: portada hasta el primer `---`, títulos de nivel 2 a 4, párrafos con negrita y código, listas, tablas, y `---` como salto de página. Si se agrega otro elemento de Markdown, hay que extender `docs/herramientas/generar-docx.mjs`.
-4. Abrir el Word y revisarlo a ojo antes de entregarlo: el conversor no tiene vista previa.
+   El conversor cubre el Markdown que usa la documentación: portada hasta el primer `---`, títulos de nivel 2 a 4, párrafos con negrita y código, listas, tablas, y `---` como salto de página. `## Índice` se reemplaza por la tabla de contenido de Word, con los títulos de nivel 2 y 3 del Markdown. Formato fijo: Arial 12 en el texto, títulos de 16, 14 y 12 puntos, tablas en 10. Si se agrega otro elemento de Markdown, hay que extender `docs/herramientas/generar-docx.mjs`.
+
+   `npm run indice` necesita Microsoft Word: calcula los números de página del índice y, con `-Pdf`, exporta una copia en PDF para revisar.
+4. Revisar el PDF a ojo antes de entregar: que ninguna sección deje una página casi vacía ni una tabla partida. Extensión de referencia: 13 páginas en el II Avance. Se prefiere una frase menos a una página más.
 5. Registrar la entrega en la tabla **Entregas del curso** de la bitácora.
 
 ## Verificación rápida
