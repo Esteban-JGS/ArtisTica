@@ -1,4 +1,6 @@
 from fastapi import APIRouter
 
-# Sin rutas hasta que los lotes siguientes reescriban los endpoints
+from src.api.v1 import perfiles
+
 api_router = APIRouter()
+api_router.include_router(perfiles.router)

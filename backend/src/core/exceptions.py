@@ -32,3 +32,15 @@ class FueraDePlazo(ReglaDeNegocioViolada):
 
 class HechosInconsistentes(ReglaDeNegocioViolada):
     """Los hechos de la pasarela no coinciden con el plan que exige el dominio."""
+
+
+class PerfilYaRegistrado(ReglaDeNegocioViolada):
+    pass
+
+
+class HandleNoDisponible(ReglaDeNegocioViolada):
+    pass
+
+
+class CobroNoHabilitado(ReglaDeNegocioViolada):
+    """El artista no completo el onboarding de la pasarela."""
