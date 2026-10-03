@@ -21,6 +21,7 @@ Revisamos la documentación pública y la especificación OpenAPI. Estas son las
 
 4. ¿SINPE Móvil funciona con `onBehalfOf` en modo marketplace?
 5. ¿Hay forma de fijar la comisión por intención de pago, y no solo con `marketplaceAppFee` de la cuenta? Si la tarifa de la cuenta cambia entre la autorización y la captura, ¿cuál se aplica?
+   Si no existe comisión por intención: ¿hay algún límite para actualizar `marketplaceAppFee` con frecuencia? Mientras un artista tenga pedidos abiertos con tarifas distintas, necesitaríamos ajustarla justo antes de cada cobro.
 6. ¿Se puede retener la liquidación al vendedor de una intención concreta hasta que la liberemos?
 7. Si un reembolso ocurre después de liquidar al vendedor, ¿de qué cuenta sale el dinero? ¿Se devuelve el `marketplaceAppFee`? ¿Quién absorbe los contracargos?
 
