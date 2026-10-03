@@ -64,6 +64,7 @@ Flujo de un lote del backend:
 4. El orquestador valida contra `develop` y emite veredicto. Si rechaza, el correctivo va en la misma rama.
 5. Con veredicto aprobado, el orquestador commitea el prompt y la bitacora en la misma rama, la sube y abre el PR.
 6. Esteban revisa y hace el merge. El merge es siempre humano.
+7. En la rama del lote siguiente, el orquestador borra el prompt del lote ya fusionado. En `orquestacion/` solo queda el prompt en curso; los anteriores se recuperan del historial con `git log --diff-filter=D -- orquestacion/<archivo>`.
 
 ## Documentacion oficial
 
