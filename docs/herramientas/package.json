@@ -4,7 +4,8 @@
   "description": "Genera la documentacion oficial en Word a partir del Markdown de docs/",
   "type": "module",
   "scripts": {
-    "generar": "node generar-docx.mjs"
+    "generar": "node generar-docx.mjs",
+    "indice": "powershell -NoProfile -ExecutionPolicy Bypass -File actualizar-indice.ps1"
   },
   "dependencies": {
     "docx": "^9.5.0"

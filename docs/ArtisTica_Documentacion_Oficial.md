@@ -16,14 +16,10 @@ II Avance, 9 de octubre de 2026
 
 ## Control de versiones
 
-| Versión | Entrega | Fecha | Contenido |
-|---|---|---|---|
-| 1.0 | I Avance | Septiembre 2026 | Propuesta técnica y de diseño: stack tecnológico y pantallas |
-| 2.0 | II Avance | 9 de octubre de 2026 | Propuesta a desarrollar, estrategia de distribución, esquema de generación de dinero, situaciones presentadas en el desarrollo y avance de desarrollo |
-
-Este documento es la documentación oficial del proyecto y se actualiza en cada avance. Los montos en colones usan un tipo de cambio de referencia de ₡500 por US$1 y son aproximados.
-
----
+| Versión | Fecha | Contenido |
+|---|---|---|
+| 1.0 | Septiembre 2026 | I Avance: propuesta técnica y de diseño |
+| 2.0 | Octubre 2026 | II Avance: propuesta, distribución, generación de dinero, situaciones y avance |
 
 ## Índice
 
@@ -38,222 +34,155 @@ Este documento es la documentación oficial del proyecto y se actualiza en cada 
 
 ## 1. Propuesta a desarrollar
 
-### 1.1 El problema
+### 1.1 Problema
 
-En Costa Rica, contratar arte funciona hoy con tres herramientas que no fueron pensadas para eso:
+En Costa Rica, contratar a un artista se resuelve hoy con tres herramientas que no fueron diseñadas para eso:
 
 | Herramienta | Qué resuelve | Qué deja sin resolver |
 |---|---|---|
-| Instagram | Es la vitrina: permite ver el trabajo del artista | No permite contratar ni cobrar |
-| WhatsApp | Permite negociar el encargo | No deja registro formal ni reglas |
-| SINPE Móvil | Permite pagar rápido y sin costo | No ofrece protección a ninguna de las partes |
+| Instagram | Muestra el trabajo del artista | No permite contratar ni cobrar |
+| WhatsApp | Permite negociar | No deja registro ni reglas |
+| SINPE Móvil | Pago inmediato y sin costo | No protege a ninguna de las partes |
 
-El resultado es desconfianza en los dos sentidos. El cliente teme pagar el adelanto y que el artista desaparezca o entregue algo distinto a lo acordado. El artista teme hacer el trabajo, o presentarse al evento, y que el cliente no pague el saldo.
+La consecuencia es desconfianza en ambos sentidos: el cliente teme pagar el adelanto y no recibir lo acordado, y el artista teme hacer el trabajo o presentarse al evento sin cobrar el saldo.
 
-### 1.2 La solución
+### 1.2 Propuesta
 
-**ArtísTica es donde en Costa Rica se contrata arte hecho por personas, con el pago protegido.**
+ArtísTica es una aplicación móvil donde se descubre y se contrata arte hecho por personas, con el pago protegido. Reúne en un mismo lugar el portafolio del artista, la negociación y el cobro. El cobro se hace por hitos, el dinero lo custodia una pasarela inscrita ante la SUGEF y, si algo sale mal, existe un proceso de disputa. La parte social (galería, feed y comentarios) existe para que el cliente encuentre al artista adecuado.
 
-No es solo una red social para artistas: es el lugar donde una persona descubre a un artista y lo contrata con confianza. La parte social (galería, feed, comentarios y reacciones) existe para alimentar el momento de la contratación.
+| Para quien contrata | Para el artista |
+|---|---|
+| Paga por hitos y puede abrir una disputa | Portafolio, clientes y cobro en un solo lugar |
+| Reseñas que solo provienen de trabajos completados | Métricas de consultas reales, no de reacciones |
+| Un mismo flujo para encargos, eventos y obras | Publicar y recibir pedidos es gratuito |
 
-ArtísTica une la vitrina y la transacción protegida en un mismo lugar. El pago se hace por hitos dentro de la aplicación, el dinero lo custodia una entidad financiera regulada y, si algo sale mal, existe un proceso de disputa.
-
-### 1.3 Propuesta de valor
-
-**Para quien contrata:**
-
-- El anticipo y el saldo se pagan por hitos. El dinero no se pierde si algo sale mal, y existe un proceso de disputa.
-- Las reseñas son reales: solo provienen de trabajos completados dentro de la aplicación.
-- Encargos, eventos y obras terminadas se contratan con un mismo flujo.
-
-**Para el artista:**
-
-- Portafolio, clientes y cobro seguro en un solo lugar.
-- Un panel que muestra qué obras generan consultas reales, no solo reacciones.
-- Publicar y abrir comisiones es gratuito.
-
-### 1.4 Usuarios
+### 1.3 Usuarios
 
 | Rol | Descripción |
 |---|---|
-| **Público** | Gratuito. Explora, sigue, reacciona, comenta, consulta a artistas, contrata y compra obras disponibles. No publica obra |
-| **Artista, plan Taller** | Gratuito. Publica, abre comisiones y recibe pedidos sin límite. Tarifa de servicio de 8% |
-| **Artista, plan Estudio** | Suscripción de ≈ ₡2,500 al mes. Tarifa de 5% y herramientas profesionales |
-| **Administración y moderación** | Atiende reportes, revisa contenido sospechoso de haber sido generado por IA y resuelve disputas |
-| **Agrupación** (etapa 2) | Perfil con varios miembros administradores: bandas, mariachis y compañías de baile |
+| **Público** | Gratuito. Explora, sigue, comenta, consulta, contrata y compra. No publica obra |
+| **Artista, plan Taller** | Gratuito. Publica y recibe pedidos sin límite. Tarifa de servicio de 8% |
+| **Artista, plan Estudio** | ≈ ₡2,500 al mes. Tarifa de 5% y herramientas profesionales |
+| **Moderación** | Atiende reportes, revisa contenido sospechoso de ser generado por IA y resuelve disputas |
+| **Agrupación** (etapa 2) | Perfil con varios administradores: bandas, mariachis, compañías de baile |
 
-### 1.5 Modelo operativo: comisiones abiertas
+### 1.4 Modelo operativo
 
-ArtísTica funciona con **comisiones abiertas**: el artista muestra lo que hace y declara que acepta trabajos. No sube productos a una tienda, porque lo que se vende es su habilidad, no un inventario.
+El artista no sube productos a una tienda: muestra su trabajo y declara que acepta encargos (comisiones abiertas). Un solo motor de pedidos atiende tres tipos:
 
-Hay un solo motor de pedidos con tres tipos:
-
-| Tipo de pedido | Ejemplo | Cómo se cobra |
+| Tipo | Ejemplo | Cobro |
 |---|---|---|
-| **Encargo** | Un retrato, un mural, un logo | Anticipo al aceptar la cotización. El saldo se autoriza cuando el artista entrega una vista previa con marca de agua, y se cobra cuando el cliente la aprueba. Después se libera el archivo final |
-| **Evento** | Un mariachi para una boda, un grupo de baile para quince años | Anticipo al reservar la fecha. Saldo antes del evento |
-| **Obra disponible** | Una pintura ya terminada con precio fijo | Se autoriza al confirmar la compra y se cobra cuando el artista despacha con número de guía |
+| **Encargo** | Retrato, mural, logo | Anticipo al aceptar la cotización. El saldo se autoriza con la vista previa y se cobra cuando el cliente la aprueba |
+| **Evento** | Mariachi para una boda | Anticipo al reservar la fecha y saldo antes del evento |
+| **Obra disponible** | Pintura terminada a precio fijo | Se autoriza al comprar y se cobra al despachar con número de guía |
 
-Toda contratación sigue el mismo camino:
+Toda contratación sigue el mismo camino: consulta, cotización, cobros por hitos, entrega con plazo de disputa y reseña. Las conversaciones entre cliente y artista siempre nacen de una consulta, de modo que cada una queda ligada a un posible pedido y sirve como evidencia ante una disputa.
 
-1. **Consulta.** El cliente abre una conversación sobre un servicio o una obra del artista.
-2. **Cotización.** El artista envía una propuesta formal con descripción, plazo y precio. Mientras el cliente no la acepte, el artista puede ajustarla: así funciona la contraoferta.
-3. **Cobros por hitos.** Cada pedido tiene uno o más cobros, que la pasarela ejecuta.
-4. **Entrega y ventana de disputa.** Después de la entrega hay un plazo para reclamar.
-5. **Reseña.** Ambas partes califican el pedido completado.
+### 1.5 Principios
 
-Toda conversación entre cliente y artista nace atada a una consulta. No existe el mensaje directo suelto, para que cada conversación quede ligada a un posible pedido y sirva como evidencia en una disputa. Entre artistas, los mensajes son libres.
+1. **Arte hecho por personas.** Un clasificador marca el contenido sospechoso de ser generado por IA para revisión humana; nunca bloquea una cuenta de forma automática.
+2. **Feed auténtico.** Seguidos es cronológico y nunca incluye contenido promocionado.
+3. **Artista, no tienda.** Se vende la habilidad del artista: no hay catálogo, existencias ni reventa.
+4. **Métricas honestas.** Se mide respuesta real (consultas y conversión), no viralidad.
+5. **Lo esencial es gratis.** Publicar, recibir pedidos, la protección del pago y la verificación no se cobran.
 
-### 1.6 Principios del producto
+### 1.6 Competencia
 
-1. **Arte hecho por personas.** Se prohíbe el contenido generado por IA. Un clasificador marca lo sospechoso para revisión humana, y nunca bloquea una cuenta de forma automática, porque acusar a un artista humano por un falso positivo es el peor error posible para esta comunidad.
-2. **Feed auténtico.** El feed de Seguidos es cronológico y nunca lleva contenido promocionado. Explorar se ordena por las categorías que el usuario eligió, no por predicción de comportamiento.
-3. **Artista, no tienda.** Se vende la habilidad del artista. No hay catálogo, existencias ni reventa.
-4. **Métricas honestas.** El panel del artista mide respuesta real, como consultas y conversión, no viralidad.
-5. **Lo esencial es gratis.** Nunca se cobra por publicar, abrir comisiones, recibir pedidos, la protección del pago ni la verificación de identidad.
-
-### 1.7 Competencia y posicionamiento
-
-| Alternativa | Fortaleza | Por qué no resuelve el problema |
+| Alternativa | Fortaleza | Limitación |
 |---|---|---|
-| Instagram | Audiencia enorme y vitrina gratuita | Vitrina sin transacción |
-| WhatsApp y SINPE Móvil | Inmediatos y sin costo | Transacción sin protección ni reputación |
-| Fiverr y plataformas globales | Protegen el pago | Cobran en dólares y no cubren contrataciones locales, como un mariachi para el sábado |
+| Instagram | Audiencia y vitrina gratuita | No permite contratar ni cobrar |
+| WhatsApp y SINPE Móvil | Inmediatos y sin costo | Sin protección ni reputación |
+| Fiverr y plataformas globales | Protegen el pago | Cobran en dólares y no cubren contrataciones locales como eventos |
 
-La ventaja defendible a largo plazo es **la reputación acumulada**. Un artista con decenas de encargos completados y reseñados dentro de ArtísTica no se va a otra plataforma a empezar de cero.
+La ventaja sostenible es la reputación acumulada: un artista con decenas de trabajos reseñados en ArtísTica no tiene incentivo para empezar de cero en otra plataforma.
 
-### 1.8 Alcance por etapas
+### 1.7 Alcance por etapas
 
 | Etapa | Alcance |
 |---|---|
-| **MVP, entrega académica de noviembre de 2026** | Roles Público y Artista, con el plan Estudio activo como configuración pero sin cobro real. Galería, publicaciones, feed de Seguidos y Explorar. Pedidos de encargo, evento y obra disponible con anticipo y saldo, contra el entorno de pruebas de la pasarela. Métricas, clasificador de estilo, reportes y moderación básica |
-| **Etapa 2** | Cobro real de la suscripción y de las promociones, reseñas, agrupaciones, detección de datos de contacto en el chat, disputas completas y programa de artistas fundadores |
-| **Etapa 3** | Membresías de fans. Marketplace completo, solo si los datos de obras disponibles lo justifican |
+| **MVP, noviembre de 2026** | Público y Artista, galería, feed, Explorar, los tres tipos de pedido con anticipo y saldo sobre el entorno de pruebas de la pasarela, métricas y moderación básica |
+| **Etapa 2** | Cobro real de Estudio, promociones, reseñas, agrupaciones, disputas completas y artistas fundadores |
+| **Etapa 3** | Membresías de fans. Venta de obra a mayor escala solo si los datos lo justifican |
 | **Etapa 4** | Expansión regional |
 
-### 1.9 Arquitectura
+### 1.8 Arquitectura
 
-El proyecto es un repositorio único con dos módulos y dos responsables:
-
-| Módulo | Tecnología | Responsable |
+| Capa | Tecnología | Responsable |
 |---|---|---|
-| `mobile/` | React Native con Expo, Expo Router y TypeScript | Brian Zeledón Esquivel |
-| `backend/` | Python 3.12, FastAPI, SQLAlchemy asíncrono y un worker de trabajos en segundo plano | Esteban Granados Sibaja |
+| Aplicación móvil | React Native con Expo y TypeScript | Brian Zeledón Esquivel |
+| API y procesos en segundo plano | Python 3.12 y FastAPI | Esteban Granados Sibaja |
+| Datos, autenticación y archivos | Supabase sobre PostgreSQL 15 | Compartido |
+| Pagos | ONVO Pay, modo marketplace | Esteban Granados Sibaja |
 
-La base de datos, la autenticación y el almacenamiento de archivos son de Supabase, sobre PostgreSQL 15 con pgvector. Los pagos se procesan con ONVO Pay en modo marketplace. El stack completo, con la justificación de cada herramienta, está en la versión 1.0 de este documento.
-
-Tres decisiones de arquitectura cambiaron desde el I Avance y se explican en la sección 4: la protección del pago ya no es un escrow propio, la seguridad a nivel de filas de la base de datos está activa, y la pasarela de pagos quedó detrás de un contrato abstracto.
+La aplicación nunca accede a la base de datos directamente: todo pasa por la API. El detalle del stack está en la versión 1.0 de este documento.
 
 ---
 
 ## 2. Estrategia de distribución
 
-### 2.1 Canal del producto
+### 2.1 Canal
 
-ArtísTica se distribuye como **aplicación móvil para iOS y Android**, a través de App Store y Google Play. Las versiones se compilan con EAS, el servicio de compilación de Expo, lo que permite publicar en las dos tiendas desde un mismo código.
+ArtísTica se publica como aplicación para iOS y Android en App Store y Google Play, compilada desde un mismo código con EAS, el servicio de compilación de Expo. Antes del lanzamiento público se distribuye como beta cerrada a los artistas fundadores. El primer mercado es Costa Rica, y no se invierte en publicidad pagada hasta que haya pedidos orgánicos.
 
-Antes del lanzamiento público, la aplicación se distribuye como **beta cerrada** a los artistas fundadores, por medio de los canales de prueba de cada tienda. Así la plataforma se abre al público con oferta real ya cargada.
+### 2.2 Arranque del mercado
 
-### 2.2 El reto principal: arrancar un mercado de dos lados
+Sin artistas no llegan clientes y sin clientes los artistas no se quedan. Por eso se empieza por la oferta, con pocos artistas y perfiles completos, en dos nichos donde el pago anticipado es un problema real:
 
-Una plataforma de contratación tiene un problema de arranque: sin artistas no llegan clientes, y sin clientes los artistas no se quedan. La estrategia ataca primero la oferta, con artistas buenos y perfiles completos, y después la demanda, buscándola donde ya se contrata arte.
-
-El criterio es de calidad sobre cantidad: **una aplicación con 30 artistas buenos vale más que una con 300 perfiles vacíos.**
-
-### 2.3 Dos nichos de entrada
-
-| Nicho | Ejemplos | Por qué se empieza por aquí |
+| Nicho de entrada | Ejemplos | Motivo |
 |---|---|---|
-| **Música y baile para eventos** | Mariachis, bandas, grupos de baile para bodas, quince años y eventos de empresa | Ticket alto y el problema del adelanto es muy frecuente |
-| **Encargos visuales** | Retratos, ilustración, murales y logos | Ticket alto y entrega verificable con vista previa |
+| **Música y baile para eventos** | Mariachis, bandas, grupos de baile para bodas y quince años | Monto alto y el adelanto es una fuente frecuente de conflicto |
+| **Encargos visuales** | Retratos, ilustración, murales, logos | Monto alto y entrega verificable con vista previa |
 
-### 2.4 Oferta: los 100 artistas fundadores
+### 2.3 Oferta y demanda
 
-- Los primeros 100 artistas reciben el plan Estudio gratis durante seis meses.
-- Se reclutan de forma presencial, antes del lanzamiento, en escuelas de arte y música de las universidades, casas de cultura y ferias.
-- Reciben acompañamiento directo del equipo durante el arranque.
+- **Artistas fundadores.** Los primeros 100 reciben el plan Estudio gratis por seis meses. Se reclutan en persona en escuelas de arte y música, casas de cultura y ferias.
+- **Nuevos talentos.** Explorar reserva una cuota fija para artistas con pocos seguidores, sin necesidad de pagar promociones.
+- **Clientes.** Se buscan donde ya se contrata arte: organizadores de bodas, salones de eventos, restaurantes y comercios. Se prioriza al cliente empresarial porque repite.
 
-### 2.5 Demanda: donde ya se contrata arte
+### 2.4 Contratación dentro de la aplicación
 
-- **Organizadores de bodas y salones de eventos**, que contratan música y baile con frecuencia.
-- **Restaurantes y negocios** que necesitan murales o identidad visual.
-- **Particulares** que organizan bodas, quince años y fiestas, o que buscan retratos e ilustraciones.
-
-Se prioriza al cliente empresarial, porque repite y paga más que un particular.
-
-### 2.6 Descubrimiento justo
-
-Explorar reserva una cuota fija para **Nuevos talentos**, artistas con pocos seguidores. Demuestra que la visibilidad en ArtísTica no depende de pagar una promoción, y le da a cada artista nuevo una oportunidad real desde el primer día.
-
-### 2.7 Mantener la contratación dentro de la aplicación
-
-Eliminar el chat no evita que un cliente contrate por fuera: encuentra al artista en Instagram en segundos. La estrategia es que el camino por dentro sea el más conveniente:
-
-1. **Protección solo adentro:** anticipo y saldo protegidos, con proceso de disputa.
-2. **Reputación solo adentro:** las reseñas vienen únicamente de pedidos completados en la aplicación.
-3. **Aviso informativo:** si en el chat aparecen teléfonos, "SINPE" o "WhatsApp", se recuerda que fuera de la aplicación no hay protección ni reseña. Informa, no bloquea.
-4. **Perfil sin teléfonos ni enlaces de WhatsApp.** El enlace a Instagram sí se permite, porque es vitrina y no canal de cobro.
-5. **SINPE Móvil dentro de la aplicación,** si la pasarela lo permite en modo marketplace.
-6. **Tarifa moderada,** de 8% y 5%, para que la diferencia frente a cobrar por fuera sea razonable.
-
-### 2.8 Inversión y expansión
-
-- No se invierte en publicidad pagada hasta que los artistas reciban pedidos de forma orgánica.
-- La infraestructura inicial cuesta cerca de US$100 al mes.
-- El primer mercado es Costa Rica. La expansión regional está prevista para la etapa 4, y como ONVO Pay opera en otros países, no obliga a cambiar de pasarela.
+Un cliente puede encontrar al artista en Instagram y contratarlo por fuera. Para evitarlo, el camino interno debe ser el más conveniente: la protección del pago y las reseñas solo existen dentro de la aplicación, el perfil no admite teléfonos ni enlaces de WhatsApp, el chat muestra un aviso si detecta datos de contacto y la tarifa es moderada.
 
 ---
 
 ## 3. Esquema de generación de dinero
 
+Los montos en colones usan un tipo de cambio de referencia de ₡500 por US$1 y son aproximados.
+
 ### 3.1 Fuentes de ingreso
 
-| Fuente | Mecanismo | Rol |
+| Fuente | Mecanismo | Peso |
 |---|---|---|
-| **Tarifa por pedido** | 8% en el plan Taller, 5% en Estudio | Principal. ArtísTica gana solo cuando el artista gana |
-| **Suscripción Estudio** | ≈ ₡2,500 al mes | Secundaria. Para artistas que ya venden |
-| **Promociones** | Paquetes por alcance de personas | Complementaria y menor. Etapa 2 |
-| **Membresías de fans** | Apoyo mensual del público a un artista | Futura. Etapa 3 |
-
-El negocio escala con el volumen contratado, no con la cantidad de suscriptores.
+| **Tarifa por pedido** | 8% en Taller, 5% en Estudio | Principal: ArtísTica gana solo cuando el artista gana |
+| **Suscripción Estudio** | ≈ ₡2,500 al mes | Secundaria |
+| **Promociones** | Paquetes por personas alcanzadas | Complementaria, desde la etapa 2 |
+| **Membresías de fans** | Apoyo mensual del público a un artista | Futura, etapa 3 |
 
 ### 3.2 Tarifa por pedido
 
-- Aplica a los tres tipos de pedido.
-- Es una sola tarifa por plan. No varía por tipo de pedido, porque eso invita a clasificar mal los pedidos.
-- **Monto mínimo por pedido: ₡2,500 (≈ US$5).** El costo fijo de procesamiento golpea proporcionalmente más a los montos pequeños.
-- El costo de procesamiento de la pasarela (tarjeta: 3.9% más US$0.25; SINPE Móvil: 1.5%) y la retención tributaria de 2% se descuentan del lado del artista. La tarifa de ArtísTica es ingreso limpio para la plataforma.
+- Una sola tarifa por plan, igual para los tres tipos de pedido, para no incentivar que se clasifiquen mal.
+- Monto mínimo por pedido de ₡2,500, porque el costo fijo de procesamiento pesa más en montos pequeños.
+- El procesamiento de la pasarela (tarjeta: 3.9% más US$0.25; SINPE Móvil: 1.5%) y la retención tributaria de 2% se descuentan al artista. La tarifa es ingreso neto de la plataforma.
 
-Ejemplos con pago por tarjeta, en dólares:
+Ejemplos con pago por tarjeta, en dólares y sin incluir la retención de 2%:
 
-| Precio del pedido | Taller: ArtísTica recibe | Taller: el artista recibe | Estudio: ArtísTica recibe | Estudio: el artista recibe |
+| Pedido | Taller: plataforma | Taller: artista | Estudio: plataforma | Estudio: artista |
 |---|---|---|---|---|
 | 20 | 1.60 | 17.37 | 1.00 | 17.97 |
-| 50 | 4.00 | 43.80 | 2.50 | 45.30 |
 | 100 | 8.00 | 87.85 | 5.00 | 90.85 |
-| 250 | 20.00 | 220.00 | 12.50 | 227.50 |
 | 1,000 | 80.00 | 880.75 | 50.00 | 910.75 |
-
-Con SINPE Móvil, en un pedido de US$1,000 el procesamiento baja de US$39.25 a US$15.
 
 ### 3.3 Suscripción Estudio
 
-**Precio:** ≈ ₡2,500 al mes, o ≈ ₡25,000 al año.
+Cuesta ≈ ₡2,500 al mes o ≈ ₡25,000 al año. Incluye la tarifa de 5%, calendario sincronizado, plantillas de cotización, métricas completas, perfil personalizable y una promoción mensual.
 
-Un artista que no vende no va a pagar, y está bien: el negocio vive de la tarifa por pedido. Estudio es para quien ya genera trabajo, con cuatro argumentos:
+Se paga sola a partir de ≈ ₡85,000 al mes en pedidos. Por ejemplo, un grupo musical con cuatro contrataciones de ₡150,000 paga ₡48,000 de tarifa en Taller y ₡32,500 en Estudio, suscripción incluida.
 
-1. **Ahorra dinero.** La tarifa baja de 8% a 5%. Con esa diferencia, Estudio se paga solo a partir de ≈ ₡85,000 al mes en pedidos.
-2. **Organiza el trabajo:** calendario sincronizado, servicios ilimitados, plantillas de cotización y cupos de comisiones.
-3. **Muestra qué funciona:** métricas completas orientadas a decisiones.
-4. **Da presencia:** perfil personalizable, obras destacadas y una promoción mensual incluida.
+Al cambiar de plan, cada pedido conserva la tarifa vigente cuando se creó, de modo que nadie paga una tarifa distinta a la que aceptó al cotizar.
 
-**Ejemplo:** un grupo musical con cuatro contrataciones de ₡150,000 al mes paga ₡48,000 de tarifa en Taller. En Estudio paga ₡30,000 de tarifa más ₡2,500 de suscripción: ahorra más de ₡15,000 al mes.
+### 3.4 Promociones
 
-**Cambio de plan.** El plan cambia de inmediato, pero cada pedido conserva la tarifa del plan vigente cuando se creó. Si un artista sube de Taller a Estudio, sus pedidos abiertos siguen al 8% y los que se crean después van al 5%. Así nadie paga una tarifa distinta a la que aceptó al cotizar.
-
-### 3.4 Promociones por alcance
-
-Se venden **personas alcanzadas**, no días ni vistas sueltas. Una persona cuenta como alcanzada cuando la publicación estuvo al menos 50% visible durante un segundo, frente a una cuenta que no es del artista, tiene al menos siete días de antigüedad y no lo sigue todavía.
+Se vende alcance, no días ni vistas: una persona cuenta como alcanzada cuando la publicación estuvo al menos 50% visible en su pantalla durante un segundo, no sigue al artista y su cuenta tiene siete días o más.
 
 | Paquete | Precio |
 |---|---|
@@ -261,197 +190,124 @@ Se venden **personas alcanzadas**, no días ni vistas sueltas. Una persona cuent
 | 3,000 personas | ≈ ₡2,500 |
 | 10,000 personas | ≈ ₡6,000 |
 
-Reglas que protegen la calidad del feed:
-
-- Nunca aparecen en Seguidos ni en notificaciones, y siempre llevan la etiqueta "Promocionado".
-- En Explorar, como máximo una publicación promocionada cada ocho elementos.
-- Antes de comprar, el sistema muestra cuántas personas elegibles hay. **No se vende lo que no se puede entregar.**
-- **Se garantiza el alcance, no las ventas.** Esta frase aparece en la pantalla de compra.
-
-Las promociones quedaron fuera del MVP de noviembre y se implementan en la etapa 2.
+Nunca aparecen en Seguidos, siempre llevan la etiqueta "Promocionado" y en Explorar ocupan como máximo uno de cada ocho elementos. Antes de comprar, el sistema muestra cuántas personas elegibles hay, para no vender un alcance que no se puede entregar.
 
 ### 3.5 Reglas del dinero en cada pedido
 
 | Regla | Valor |
 |---|---|
-| Anticipo de encargos y eventos | El artista lo elige entre 30% y 50% en cada cotización. Si no elige, 50% |
-| Ventana de disputa | 7 días desde la entrega. Para eventos, desde la fecha del evento. Si nadie reclama, el pedido se completa solo |
-| Cancelación de un evento por el cliente | Más de 30 días de anticipación: se devuelve el 100%. De 7 a 30 días: 50%. Menos de 7 días: nada |
-| Cancelación de un encargo por el cliente | Antes del anticipo, sin costo. Después, el anticipo no se devuelve |
-| Cancelación o incumplimiento del artista | Se devuelve el 100% de lo cobrado |
-| Anticipo en una disputa | Moderación puede ordenar devolverlo, total o parcialmente |
-| Evento cuya fecha llega con el saldo impago | Cuenta como cancelación del cliente con menos de 7 días |
+| Anticipo de encargos y eventos | Entre 30% y 50%, a elección del artista. Por defecto, 50% |
+| Plazo de disputa | 7 días desde la entrega o desde la fecha del evento. Sin reclamo, el pedido se completa |
+| Cliente cancela un evento | Más de 30 días antes: se devuelve 100%. De 7 a 30 días: 50%. Menos de 7 días: nada |
+| Cliente cancela un encargo | Sin costo antes del anticipo. Después, el anticipo no se devuelve |
+| Artista cancela o incumple | Se devuelve el 100% de lo cobrado |
+| Evento que llega con el saldo sin pagar | Se trata como cancelación del cliente con menos de 7 días |
 
-Todas estas reglas son configurables sin modificar el código.
+Todas las reglas son configurables sin modificar el código.
 
-### 3.6 Lo que nunca se cobra
+### 3.6 Costos
 
-Publicar, abrir comisiones, recibir pedidos y la cantidad de pedidos activos, la protección del pago y las disputas, aparecer en la exploración orgánica, y la verificación de identidad.
-
-**Razón:** si el plan gratuito se queda sin poder recibir trabajo, el artista se va a WhatsApp y ArtísTica pierde la tarifa, que representa más dinero que la suscripción. Por la misma razón la verificación no se vende: si la insignia se compra, deja de significar "esta persona es quien dice ser" y pasa a significar "esta persona pagó".
-
-### 3.7 Costos
-
-| Costo | Monto o regla |
+| Costo | Monto |
 |---|---|
-| Infraestructura | ≈ US$100 al mes al inicio: base de datos, hosting, monitoreo de errores y cuentas de desarrollador |
-| IVA | 13% sobre la tarifa, la suscripción y las promociones. ArtísTica conserva ≈ 88.5% |
-| Tiendas de aplicaciones | 15% sobre la suscripción y las promociones vendidas dentro de la aplicación, desde la etapa 2. Encargos, eventos y obras físicas no pagan esta comisión |
-| Artistas fundadores | Seis meses de Estudio gratis para los primeros 100 |
-| Horas humanas | Moderación, disputas y soporte |
-| Legal | Términos de uso y cumplimiento de la Ley 8968 de protección de datos |
+| Infraestructura | ≈ US$100 al mes al inicio |
+| IVA | 13% sobre tarifa, suscripción y promociones |
+| Tiendas de aplicaciones | 15% sobre suscripción y promociones vendidas dentro de la aplicación, desde la etapa 2 |
+| Artistas fundadores | Seis meses de Estudio gratis para 100 artistas |
+| Operación y legal | Horas de moderación y soporte; cumplimiento de la Ley 8968 de protección de datos |
 
-### 3.8 Orden de magnitud
+### 3.7 Viabilidad
 
-Supuestos ilustrativos: ticket promedio de US$150, tarifa promedio de 7%, 300 suscriptores de Estudio, y una meta de ≈ US$3,200 al mes, equivalente a dos salarios modestos más la infraestructura.
+Con un pedido promedio de US$150, una tarifa promedio de 7% y 300 suscriptores de Estudio, alcanzar ≈ US$3,200 al mes (dos salarios modestos más infraestructura) requiere ≈ 215 pedidos al mes, unos siete por día. Cada pedido deja ≈ US$9 netos después de IVA y las suscripciones aportan ≈ US$1,200.
 
-- Cada pedido deja ≈ US$9 netos después de IVA.
-- Las suscripciones aportan ≈ US$1,200.
-- El resto requiere **≈ 215 pedidos al mes, unos 7 por día.**
+### 3.8 Ideas descartadas
 
-### 3.9 Ideas de monetización descartadas
-
-| Idea | Por qué se descartó |
+| Idea | Motivo |
 |---|---|
-| Cobrar por convertirse en artista | Vacía la plataforma: sin oferta no hay contenido, ni usuarios, ni compradores |
-| Un plan de US$3 | Demasiado cerca del de US$5; después de IVA y tiendas quedan ≈ US$2.25 |
-| Una promoción que elimina la tarifa de la venta | Canibaliza la tarifa justo en los pedidos de mayor valor y se presta a abuso |
+| Cobrar por ser artista | Sin oferta no hay contenido ni compradores |
+| Verificación pagada | La insignia dejaría de significar identidad confirmada |
+| Tarifa distinta por tipo de pedido | Incentiva clasificar mal y la pasarela no la soporta |
 | Promociones por tiempo | En categorías pequeñas se paga por casi nada |
-| Verificación pagada | Le quita el significado a la insignia |
-| Tarifa distinta por tipo de pedido | Invita a clasificar mal y la pasarela no la soporta |
-| Venta de inventario o catálogo | Contradice la propuesta y compite con Facebook Marketplace |
+| Venta de inventario | Contradice la propuesta y compite con Facebook Marketplace |
 
 ---
 
 ## 4. Situaciones presentadas en el desarrollo
 
-Cada situación se presenta con su impacto y con la forma en que se resolvió.
+### 4.1 Producto y negocio
 
-### 4.1 Producto y modelo de negocio
+#### Custodia del dinero
 
-#### Cambio de modelo: de escrow propio a pago custodiado por una entidad regulada
+**Situación.** La propuesta del I Avance retenía el pago en un escrow propio hasta aprobar la entrega.
 
-**Situación.** La propuesta del I Avance planteaba una red social solo de artistas, con el pago retenido en un escrow propio hasta aprobar la entrega.
+**Impacto.** Custodiar dinero de terceros exige inscripción ante la SUGEF como intermediario financiero.
 
-**Impacto.** Retener y liberar dinero de terceros convierte a la plataforma en intermediario financiero, una actividad que en Costa Rica exige inscripción ante la SUGEF. Además, sin un rol de usuario consumidor, la plataforma no tenía quién contratara.
+**Resolución.** La custodia pasó a ONVO Pay, inscrita ante la SUGEF, con cobros por hitos; ArtísTica no guarda saldos. Se agregó el rol Público, que contrata.
 
-**Resolución.** La custodia pasó a ONVO Pay, que está inscrita ante la SUGEF para administrar recursos de terceros. La protección del pago se construye con cobros por hitos: anticipo, saldo autorizado y saldo capturado. ArtísTica no guarda ningún saldo propio: solo registra y concilia lo que ocurre en la pasarela. Volvió el rol Público, que contrata y compra.
+#### Tienda o comisiones abiertas
 
-#### Marketplace de productos frente a comisiones abiertas
+**Situación.** Se evaluó vender obras como una tienda, con existencias y envíos.
 
-**Situación.** Se evaluó vender obras como en una tienda, con existencias y envíos.
+**Impacto.** Requería dos motores de pago, competía con Facebook Marketplace y exigía ≈ 540 pedidos al mes para sostenerse.
 
-**Impacto.** Exigía dos motores de pago, competía con Facebook Marketplace e Instagram, y con un ticket promedio bajo hacían falta ≈ 540 pedidos al mes para sostener el negocio.
+**Resolución.** Se adoptaron las comisiones abiertas con un solo motor de pedidos. La venta directa se cubre con la obra disponible y la meta baja a ≈ 215 pedidos al mes.
 
-**Resolución.** Se eligió el modelo de comisiones abiertas, con un solo motor para tres tipos de pedido. La venta directa se cubre con la "obra disponible" a precio fijo. Con un ticket mayor, alcanzan ≈ 215 pedidos al mes.
+#### Reglas de dinero incompletas
 
-#### La palabra "comisión" tenía dos significados
+**Situación.** Faltaban el anticipo, el plazo de disputa y la cancelación de eventos, y algunos vencimientos dejaban el pedido sin salida.
 
-**Situación.** "Comisión" se usaba tanto para el trabajo a pedido como para el porcentaje que cobra la plataforma.
+**Impacto.** No era posible programar los estados del pedido.
 
-**Impacto.** Generaba ambigüedad en los documentos, en la interfaz y en el código.
-
-**Resolución.** Se definió un glosario obligatorio: **encargo** para el trabajo a pedido y **tarifa de servicio** para el porcentaje. El glosario completo está en el anexo.
-
-#### La consulta: ¿estado del pedido o entidad propia?
-
-**Situación.** El diseño trataba la consulta a la vez como el primer estado de un pedido y como un registro aparte.
-
-**Impacto.** Sin resolverlo no se podía construir la base de datos.
-
-**Resolución.** La consulta es una entidad propia, por tres razones. La obra disponible se compra sin negociación, así que no tiene consulta previa. La métrica de conversión de consulta a pedido exige contar las consultas que nunca se convirtieron. Y la conversación debe existir aunque nunca haya cotización.
-
-#### Reglas de dinero sin definir y contradicciones entre ellas
-
-**Situación.** El porcentaje del anticipo, la ventana de disputa y la política de cancelación de eventos estaban pendientes. Además, un punto decía que el anticipo nunca se devuelve, y otro que una disputa puede terminar en reembolso.
-
-**Impacto.** Sin estas reglas no se podía programar la máquina de estados de los pedidos.
-
-**Resolución.** Se definieron valores por defecto, configurables sin tocar el código (sección 3.5). La contradicción se resolvió así: el anticipo no se devuelve cuando el cliente cancela por su cuenta, pero sí cuando el artista incumple, y la disputa es justamente el mecanismo para establecer ese incumplimiento.
-
-#### Pedidos que se quedaban trabados por el paso del tiempo
-
-**Situación.** Al programar la máquina de estados se detectaron casos sin salida: un evento cuya fecha llega con el saldo sin pagar, y una autorización de pago que vence antes de que el cliente apruebe la entrega.
-
-**Impacto.** El pedido quedaba detenido para siempre, sin poder completarse ni cancelarse.
-
-**Resolución.** El saldo impago al llegar el evento cuenta como cancelación tardía del cliente. Una autorización vencida se puede renovar durante siete días y, si no se renueva, el artista puede abrir una disputa.
+**Resolución.** Se fijaron valores configurables (sección 3.5). Una autorización vencida puede renovarse durante siete días; si no se renueva, el artista puede abrir una disputa.
 
 #### Cambio de plan con pedidos abiertos
 
-**Situación.** Al revisar la pasarela se encontró que ONVO tiene una sola tarifa por cuenta, mientras que ArtísTica fija la tarifa en cada pedido.
+**Situación.** ONVO aplica una sola tarifa por cuenta, y ArtísTica la fija por pedido.
 
-**Impacto.** Si un artista sube de plan con pedidos abiertos, la pasarela podría cobrar todos sus pedidos con la tarifa nueva.
+**Impacto.** Al cambiar de plan, los pedidos abiertos podrían cobrarse con la tarifa nueva.
 
-**Resolución.** El plan cambia de inmediato y cada pedido conserva la tarifa con la que se creó. Mientras un artista tenga pedidos abiertos con tarifas distintas, el sistema ajusta la tarifa de su cuenta justo antes de cada cobro. Se consultó a ONVO si existe una tarifa por cobro, que haría innecesario el ajuste.
+**Resolución.** Cada pedido conserva su tarifa y el sistema ajusta la de la cuenta justo antes de cada cobro. Se consultó a ONVO si admite una tarifa por cobro.
 
-### 4.2 Técnicas
+### 4.2 Técnicas y de equipo
 
-#### El backend inicial no se podía ejecutar
+#### Backend inicial no ejecutable
 
-**Situación.** La primera versión del backend se construyó con el modelo anterior y nunca se había ejecutado. Al auditarla se encontraron 14 defectos: una dependencia faltante, un parámetro de otro controlador de base de datos, una configuración de migraciones que no cargaba, un chequeo de salud que apuntaba a una ruta inexistente, y una integración continua que nunca se disparaba en la rama de trabajo.
+**Situación.** La primera versión del backend nunca se había ejecutado; una auditoría encontró 14 defectos.
 
-**Impacto.** Ninguna prueba podía correr, así que ningún avance se podía verificar.
+**Impacto.** Ninguna prueba corría y ningún avance se podía verificar.
 
-**Resolución.** Se dedicó una etapa completa a sanear el proyecto antes de escribir funcionalidad. Desde entonces la integración continua corre en cada cambio, y pasa en verde.
+**Resolución.** Se dedicó una etapa a sanearlo y desde entonces la integración continua valida cada cambio.
 
 #### Seguridad de la base de datos
 
-**Situación.** El I Avance proponía manejar toda la autorización en la API, sin seguridad a nivel de filas en la base de datos.
+**Situación.** El I Avance no usaba seguridad a nivel de filas en la base de datos.
 
-**Impacto.** La aplicación móvil incluye una clave pública de Supabase. Sin seguridad a nivel de filas, cualquiera que extraiga esa clave del instalador podría leer y escribir la base de datos directamente.
+**Impacto.** Con la clave pública que viaja dentro de la aplicación, cualquiera podría leer o escribir la base de datos.
 
-**Resolución.** La seguridad a nivel de filas está activa en todas las tablas y sin ninguna política que dé acceso. La aplicación nunca lee tablas directamente: todo pasa por la API, que entra con una credencial de servidor y decide qué puede hacer cada usuario.
+**Resolución.** La seguridad a nivel de filas está activa en todas las tablas y la aplicación solo se comunica con la API.
 
-#### Huecos en el esquema de la base de datos
+#### Huecos en el esquema de datos
 
-**Situación.** Después de construir el esquema se detectaron relaciones que faltaban: no había dónde guardar la vista previa ni el archivo final de un encargo, ni el motivo y la resolución de una disputa, y nada impedía vender dos veces la misma obra.
+**Situación.** Faltaban tablas para entregables y disputas, y nada impedía vender dos veces una obra.
 
-**Impacto.** Varias etapas posteriores no se habrían podido construir.
+**Impacto.** Varias etapas posteriores no se podían construir.
 
-**Resolución.** Como la base todavía no tenía datos en ningún ambiente, se corrigió reescribiendo la migración inicial en lugar de acumular parches. Se agregaron las tablas de entregables y disputas, el estado "vendida" de una obra, y un índice único que impide a nivel de base de datos dos ventas vivas de la misma obra.
+**Resolución.** Como aún no había datos, se reescribió la migración inicial con esas tablas y un índice único contra ventas duplicadas.
 
-#### Incertidumbre sobre la pasarela de pagos
+#### Incertidumbre sobre la pasarela
 
-**Situación.** Seis aspectos de ONVO Pay que condicionan el diseño no estaban documentados: cuánto dura una autorización, si SINPE Móvil funciona en modo marketplace, si la tarifa puede fijarse por cobro, entre otros.
+**Situación.** ONVO no documenta cuánto dura una autorización ni si admite SINPE Móvil en modo marketplace, y sus avisos de pago no van firmados.
 
-**Impacto.** Construir directamente contra ONVO habría atado el diseño a supuestos que podían resultar falsos.
+**Impacto.** Diseñar directamente sobre ONVO ataba el sistema a supuestos, y un aviso alterado podía mover dinero.
 
-**Resolución.** La pasarela quedó detrás de un contrato abstracto con dos implementaciones: una pasarela simulada completa, que se usa en las pruebas y en la demostración, y el adaptador de ONVO. Cada incógnita es una capacidad declarada del adaptador. Cambiar de pasarela cuesta un adaptador, no rediseñar el sistema. Las preguntas se formalizaron en un documento de consultas para ONVO.
+**Resolución.** La pasarela quedó detrás de un contrato con una implementación simulada y otra de ONVO, y ningún aviso mueve dinero sin consultar antes el cobro.
 
-#### Hallazgos en la documentación de ONVO
+#### Cambios cruzados en el repositorio
 
-**Situación.** Al revisar la documentación oficial de ONVO se encontró que los avisos automáticos de pago (webhooks) no firman su contenido, que no hay un mecanismo de idempotencia, y que no se informa la vigencia de una autorización.
+**Situación.** Al inicio los cambios iban directo a la rama de integración, y uno quedó en la rama equivocada.
 
-**Impacto.** Sin medidas, un aviso alterado podría mover dinero, y reintentar una operación después de una falla de red podría cobrar dos veces.
+**Impacto.** Riesgo de sobrescribir el trabajo del otro integrante.
 
-**Resolución.** Tres reglas. Nunca se mueve dinero solo por un aviso: antes se consulta el cobro a la pasarela. Una operación de cobro o reembolso que falla por tiempo de espera no se reintenta automáticamente. Y se supone una vigencia conservadora de cinco días para las autorizaciones, configurable.
-
-#### Cambios en las herramientas de desarrollo
-
-**Situación.** Una versión nueva de la herramienta de análisis de código activó reglas que la configuración no declaraba, y modificó archivos que no debían cambiar. Además, el controlador asíncrono de PostgreSQL no funciona con el ciclo de eventos por defecto de Windows.
-
-**Impacto.** Las verificaciones daban resultados distintos según la versión instalada, y las migraciones no corrían en las computadoras del equipo.
-
-**Resolución.** La política de análisis de código quedó declarada de forma explícita y con la versión fijada. Las migraciones y las pruebas seleccionan el ciclo de eventos compatible cuando corren en Windows.
-
-### 4.3 Proceso y trabajo en equipo
-
-#### Dos personas trabajando sobre un mismo repositorio
-
-**Situación.** Al principio los cambios se hacían directo sobre la rama de integración, y en una ocasión un cambio quedó en la rama equivocada sin que se notara.
-
-**Impacto.** Riesgo de pisar el trabajo del otro y de perder cambios.
-
-**Resolución.** Se adoptó un flujo formal: territorios separados por módulo, una rama por unidad de trabajo, pull requests con una plantilla común que exige evidencia de verificación, e integración continua en cada pull request. Antes de subir un cambio se verifica el nombre de la rama.
-
-#### Integración entre la aplicación y la API
-
-**Situación.** La aplicación móvil y el backend avanzaron en paralelo: la aplicación tiene sus pantallas con datos de ejemplo, y el backend tiene el dominio de pedidos y pagos probado, pero todavía sin endpoints de negocio.
-
-**Impacto.** La integración es el principal riesgo para la entrega final. Además, ONVO exige que la tarjeta se registre desde la aplicación con una clave pública, lo que agrega trabajo en el módulo móvil.
-
-**Resolución.** Los endpoints se construyen en las próximas etapas, en el orden que necesita la aplicación: identidad, obras, feed, consultas y pedidos. La forma de registrar la tarjeta se coordina entre los dos módulos. Que la tarjeta nunca pase por la API es, además, lo correcto en seguridad.
+**Resolución.** Cada integrante tiene un módulo propio y todo cambio entra por pull request con evidencia de verificación.
 
 ---
 
@@ -461,71 +317,52 @@ Cada situación se presenta con su impacto y con la forma en que se resolvió.
 
 | Componente | Estado |
 |---|---|
-| Aplicación móvil: pantallas y diseño | Avanzado. Pantallas principales implementadas con datos de ejemplo |
-| Aplicación móvil: inicio de sesión | Cliente de Supabase configurado |
-| Backend: base ejecutable, integración continua y despliegue | Completo |
+| Aplicación: pantallas y diseño | Avanzado, con datos de ejemplo |
+| Backend: base ejecutable e integración continua | Completo |
 | Backend: esquema de base de datos | Completo para el MVP |
 | Backend: reglas de pedidos y cobros | Completo y probado |
 | Backend: capa de pagos | Completa, con pasarela simulada y adaptador de ONVO |
-| Backend: endpoints de negocio | Pendiente. Hoy la API responde solo el chequeo de salud |
-| Integración entre aplicación y API | Pendiente |
+| Backend: identidad, roles y planes | En desarrollo |
+| Endpoints de negocio e integración con la aplicación | Pendiente |
 
 ### 5.2 Backend
 
-El backend avanza por etapas con alcance cerrado. Cada una se verifica con pruebas automatizadas antes de integrarse.
-
-| Etapa | Entregó |
+| Etapa | Resultado |
 |---|---|
-| Saneamiento | Proyecto instalable y migrable, con análisis de código y pruebas en verde, y la integración continua activa en la rama de trabajo |
-| Esquema de dominio | 21 tablas y 14 tipos enumerados: perfiles, seguimientos, obras, servicios, publicaciones, comentarios, reacciones, archivos, consultas, mensajes, pedidos, cobros, entregables, disputas, reseñas, conciliación de pagos, avisos de la pasarela, métricas, reportes, acciones de moderación y trabajos en segundo plano. Seguridad a nivel de filas activa en todas |
-| Máquina de estados | Todas las transiciones de pedidos y cobros, validadas por tipo de pedido. Cálculo exacto de anticipo y saldo, plan de cancelación, disputas y vencimientos. Cada cambio de un pedido y su cobro ocurre en una sola transacción |
-| Capa de pagos | Contrato de pasarela, pasarela simulada completa para pruebas y demostración, y adaptador de ONVO basado en su documentación oficial |
+| Saneamiento | Proyecto instalable y migrable, con pruebas e integración continua en verde |
+| Esquema de datos | 21 tablas con seguridad a nivel de filas: perfiles, obras, publicaciones, consultas, pedidos, cobros, disputas, métricas y moderación, entre otras |
+| Reglas de pedidos | Todas las transiciones de pedidos y cobros, cálculo de anticipo y saldo, cancelaciones, disputas y vencimientos |
+| Capa de pagos | Contrato de pasarela, pasarela simulada completa y adaptador de ONVO |
 
-**Indicadores al cierre de este avance:**
+Indicadores al cierre del avance:
 
-- 207 pruebas automatizadas, todas en verde.
-- Integración continua en verde en cada pull request y en cada integración a la rama principal de trabajo.
-- Ninguna columna de saldo en la base de datos: ArtísTica no custodia dinero.
-- Todos los montos se manejan con aritmética decimal exacta, nunca con punto flotante.
+- 207 pruebas automatizadas.
+- Ningún saldo almacenado en la base de datos: ArtísTica no custodia dinero.
+- Montos calculados con aritmética decimal exacta.
 
 ### 5.3 Aplicación móvil
 
-Pantallas implementadas, con el rediseño visual de estilo Liquid Glass:
+Pantallas implementadas con el rediseño visual Liquid Glass: Inicio (feed con estética de tablero de corcho y selector entre Seguidos y Para ti), Explorar, Mensajes, Perfil, Crear, Comentarios, Compartir e Inicio de sesión. La navegación es flotante y el fondo es personalizable. Las pantallas usan datos de ejemplo hasta conectarse con la API.
 
-- **Inicio:** feed con estética de tablero de corcho, con publicaciones como notas, y selector entre Seguidos y Para ti.
-- **Explorar, Mensajes y Perfil.**
-- **Crear,** con acceso desde la barra de navegación flotante.
-- **Comentarios y Compartir,** como hojas deslizables.
-- **Inicio de sesión** con galería de obras.
-- **Navegación flotante** que se oculta al desplazarse, y **fondo personalizable** por el usuario.
-
-Las pantallas usan datos de ejemplo hasta que la API exponga sus endpoints.
-
-### 5.4 Lo que falta para la entrega final
+### 5.4 Pendiente para la entrega final
 
 | Etapa | Contenido |
 |---|---|
-| Identidad y planes | Perfiles, roles, cambio de plan y registro del artista ante la pasarela |
-| Obras, servicios y archivos | Galería, servicios con precio y carga de imágenes directa al almacenamiento |
-| Feed | Seguidos cronológico y Explorar por categorías |
-| Consultas y chat | Conversaciones atadas a consultas, con el aviso de datos de contacto |
-| Pedidos | Endpoints que conectan la máquina de estados con la pasarela |
-| Avisos de pago | Recepción idempotente de avisos de la pasarela y vigilancia de autorizaciones por vencer |
-| Métricas | Vistas por usuario y por día, y el panel del artista |
-| Moderación | Reportes y clasificación de estilo para revisión humana |
-| Integración | Conexión de las pantallas de la aplicación con la API |
+| Identidad y planes | Perfiles, roles, cambio de plan y registro del artista en la pasarela |
+| Contenido | Obras, servicios, carga de imágenes y feed |
+| Contratación | Consultas, chat, pedidos y recepción de avisos de pago |
+| Métricas y moderación | Panel del artista, reportes y clasificación para revisión humana |
+| Integración | Conexión de la aplicación con la API |
 
-La demostración de noviembre usa la pasarela simulada, que se comporta como una real: autorizaciones que vencen, rechazos y avisos firmados.
+La demostración de noviembre usa la pasarela simulada, que reproduce autorizaciones que vencen, rechazos y avisos de pago.
 
-### 5.5 Riesgos para la entrega final
+### 5.5 Riesgos
 
 | Riesgo | Mitigación |
 |---|---|
-| Plazo: quedan ocho etapas de backend y la integración | Las promociones ya se recortaron del MVP. Si hace falta recortar más, Explorar queda solo por categorías |
-| ONVO no responde las consultas a tiempo | La demostración no depende de ONVO: usa la pasarela simulada |
-| La integración entre aplicación y API llega tarde | Los endpoints se construyen en el orden en que la aplicación los necesita |
-
----
+| Plazo: quedan ocho etapas de backend y la integración | Las promociones ya salieron del MVP; si hace falta, Explorar queda solo por categorías |
+| ONVO no responde a tiempo | La demostración no depende de ONVO |
+| La integración llega tarde | Los endpoints se construyen en el orden en que la aplicación los necesita |
 
 ## 6. Anexo: glosario
 
@@ -533,14 +370,10 @@ La demostración de noviembre usa la pasarela simulada, que se comporta como una
 |---|---|
 | **Encargo** | Trabajo hecho a pedido para un cliente |
 | **Evento** | Contratación con fecha y lugar: música, baile o presentaciones |
-| **Obra** | Pieza de la galería de un artista. Puede ser solo de exhibición o estar disponible para la venta |
 | **Obra disponible** | Obra terminada que el artista ofrece a precio fijo |
-| **Publicación** | Lo que aparece en el feed |
-| **Servicio** | Paquete con precio que ofrece el artista, por ejemplo "Serenata de 30 minutos" |
-| **Consulta** | Conversación que abre un cliente sobre un servicio o una obra. Puede convertirse en pedido |
-| **Pedido** | Toda transacción. Tiene un tipo (encargo, evento u obra disponible) y uno o más cobros |
+| **Consulta** | Conversación que abre un cliente sobre un servicio o una obra; puede convertirse en pedido |
+| **Pedido** | Toda transacción. Tiene un tipo y uno o más cobros |
 | **Cobro** | Cada pago parcial de un pedido: anticipo, saldo o total |
 | **Tarifa de servicio** | Porcentaje que cobra ArtísTica sobre cada pedido |
 | **Taller y Estudio** | Planes del artista: el gratuito y el de suscripción |
 | **Pasarela** | Entidad que procesa los pagos y custodia el dinero |
-| **Cuenta conectada** | Cuenta de un artista dentro de la pasarela, a la que se liquida su dinero |
