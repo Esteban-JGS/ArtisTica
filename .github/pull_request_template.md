@@ -40,6 +40,7 @@ Alcances: backend, mobile, orquestacion, agentes, ci
 - [ ] No toca el territorio de otra persona (`backend/` y `mobile/` no se cruzan).
 - [ ] No sube secretos ni un `.env` real.
 - [ ] El CI pasa.
+- [ ] **Documentación oficial** (`docs/ArtisTica_Documentacion_Oficial.md`): actualizada en las secciones <!-- cuales -->, o no aplica porque <!-- razon en una linea -->.
 
 **Si toca `backend/`:**
 

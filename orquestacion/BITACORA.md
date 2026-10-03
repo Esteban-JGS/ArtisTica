@@ -53,6 +53,13 @@ Las decisiones se numeran D y las deudas técnicas DT.
 | 10 | Métricas: post_views y panel | Pendiente | | |
 | 11 | Moderación, reportes y jobs de clasificación | Pendiente | | |
 
+## Entregas del curso
+
+| Avance | Fecha | Contenido | Archivo |
+|---|---|---|---|
+| I Avance | Septiembre 2026 | Propuesta técnica y de diseño: stack y pantallas | `mobile/docs/Artistica_Propuesta.docx` |
+| II Avance | 9 de octubre de 2026 | Propuesta, distribución, generación de dinero, situaciones presentadas y avance de desarrollo | `docs/entregas/ArtisTica_II_Avance.docx`, generado desde `docs/ArtisTica_Documentacion_Oficial.md` |
+
 ## Deuda acumulada
 
 | # | Origen | Deuda | Cuándo se paga |

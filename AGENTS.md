@@ -10,7 +10,7 @@ La fuente de verdad del producto es `docs/ArtisTica_Documento_Maestro.md`. Las d
 monorepo/
 ├── mobile/        React Native + Expo. Territorio de Brian
 ├── backend/       FastAPI y worker en Python 3.12. Territorio de Esteban
-├── docs/          Documento Maestro y Business Model Canvas
+├── docs/          Documentacion oficial del curso, Documento Maestro y Canvas
 └── orquestacion/  Plan de lotes, bitacora y prompts de ejecucion
 ```
 
@@ -64,6 +64,10 @@ Flujo de un lote del backend:
 4. El orquestador valida contra `develop` y emite veredicto. Si rechaza, el correctivo va en la misma rama.
 5. Con veredicto aprobado, el orquestador commitea el prompt y la bitacora en la misma rama, la sube y abre el PR.
 6. Esteban revisa y hace el merge. El merge es siempre humano.
+
+## Documentacion oficial
+
+`docs/ArtisTica_Documentacion_Oficial.md` es un entregable del curso EIF409 y se actualiza en cada avance. **Antes de abrir cualquier pull request**, aplicar la skill `documentacion-proyecto` (o la regla `.agents/rules/documentacion.md`): actualizar las secciones que el cambio afecta, o dejar escrito en el PR por que no aplica. La plantilla de PR tiene una casilla obligatoria para eso.
 
 ## Estilo
 
