@@ -7,7 +7,7 @@ from datetime import UTC, datetime, timedelta
 from sqlalchemy import select
 
 from src.core.database import AsyncSessionLocal
-from src.models.operation import Job
+from src.models import Job
 from src.workers.dispatcher import dispatch_job
 
 logging.basicConfig(
