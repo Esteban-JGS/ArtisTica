@@ -54,7 +54,30 @@ Almacenamiento de medios, todas opcionales:
 | `MEDIO_TAMANO_MAXIMO_BYTES` | `5242880` | Tamano maximo de una imagen (5 MB) |
 | `MEDIOS_PENDIENTES_MAXIMOS` | `20` | Subidas sin confirmar por artista |
 
+Arranque y planes, opcionales:
+
+| Variable | Defecto | Para que |
+|---|---|---|
+| `WORKERS` | `1` | Procesos de uvicorn. Mayor que 1 solo sin adaptadores falsos |
+| `ESTUDIO_AUTOSERVICIO` | `true` | Permite pasarse a Estudio sin cobro. Apagado en produccion |
+| `DB_PUERTO_LOCAL` | `5432` | Solo compose: puerto del host donde se publica la base |
+
 Ver `backend/.env.example`. La `SUPABASE_SERVICE_KEY` jamas llega al cliente movil.
+
+## Reglas de produccion
+
+La configuracion no carga si encuentra alguna de estas combinaciones.
+Produccion es `ENVIRONMENT` igual a `production` o `prod`, sin distinguir mayusculas.
+
+| Condicion | Deuda |
+|---|---|
+| Produccion y `PASARELA=falsa` | DT14 |
+| Produccion y `ALMACENAMIENTO=falso` | La regla de la fabrica de almacenamiento, al cargar |
+| Produccion y `ESTUDIO_AUTOSERVICIO` verdadero | DT16 |
+| `WORKERS` mayor que 1 con `PASARELA=falsa` o `ALMACENAMIENTO=falso` | DT15 |
+
+La demo corre con `ENVIRONMENT=demo`, nunca con `production`. Bajar de Estudio a
+Taller se permite siempre.
 
 ## Reglas
 
