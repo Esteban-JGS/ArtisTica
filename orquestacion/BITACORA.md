@@ -19,6 +19,9 @@ Las decisiones se numeran D y las deudas técnicas DT.
 | D9 | Vigencia supuesta de una autorización: 5 días, configurable. Resuelve la pregunta 12 y la mitad de DT12 | 2026-10-02 |
 | D10 | El onboarding de la pasarela se exige solo al primer cobro: sin cuenta conectada, el artista exhibe, recibe consultas y cotiza. `is_verified` es verdadero si y solo si el onboarding está completado. Mitiga la pregunta 8 sin cerrarla | 2026-10-02 |
 | D11 | En el MVP, Estudio es una bandera sin cobro real y el artista cambia de plan solo. Bajar a Taller con más servicios u obras que el límite no oculta ni borra nada: solo impide crear nuevos hasta quedar por debajo. El bloqueo por artista de D8 es la fila de `profiles` con `SELECT ... FOR UPDATE` | 2026-10-02 |
+| D12 | Medios del MVP: solo imágenes JPEG, PNG y WebP de hasta 5 MB; el video queda fuera. El bucket `medios` es público para lectura y solo se escribe con una URL firmada que emite la API, con una ruta que arma el servidor. Un medio existe recién cuando la API confirma la subida. Los entregables de pedidos irán a un bucket privado | 2026-10-04 |
+| D13 | Desde el lote 5 las migraciones se encadenan. La migración inicial ya está aplicada en bases de prueba y no se reescribe más | 2026-10-04 |
+| D14 | El lote 5 se divide: el 5 hace la capa de almacenamiento y los medios, y el 5b las obras y los servicios con los límites del plan Taller. La creación de publicaciones pasa al lote 6 y el handler de miniaturas al lote 11, junto con los demás trabajos del worker | 2026-10-04 |
 
 ## Políticas de pedido vigentes (D5)
 
@@ -47,13 +50,14 @@ Las decisiones se numeran D y las deudas técnicas DT.
 | 2 | Máquina de estados de pedidos y cobros | Cerrado | Aprobado con deuda | DT9, DT10 |
 | 3 | Capa de pasarela: contrato, adaptador real y adaptador falso | Cerrado | Aprobado con deuda | DT11 a DT15 |
 | 4 | Identidad, roles, planes y onboarding | Cerrado | Aprobado con deuda | DT16 a DT18 |
-| 5 | Obras, servicios y medios con Storage firmado | Pendiente | | |
-| 6 | Feed Seguidos y Explorar por cursor | Pendiente | | |
+| 5 | Almacenamiento y medios con subida firmada | Cerrado | Aprobado con deuda | DT19, DT20 |
+| 5b | Obras y servicios con límites de plan | Pendiente | | |
+| 6 | Publicaciones, feed Seguidos y Explorar por cursor | Pendiente | | |
 | 7 | Consultas y chat | Pendiente | | |
 | 8 | Endpoints de pedidos y cobros | Pendiente | | |
 | 9 | Webhooks idempotentes y vigilancia de autorizaciones | Pendiente | | |
 | 10 | Métricas: post_views y panel | Pendiente | | |
-| 11 | Moderación, reportes y jobs de clasificación | Pendiente | | |
+| 11 | Moderación, reportes y jobs del worker (miniaturas y clasificación) | Pendiente | | |
 
 ## Entregas del curso
 
@@ -84,6 +88,8 @@ Las decisiones se numeran D y las deudas técnicas DT.
 | DT16 | Lote 4 | Por D11, cualquier artista pasa a Estudio sin pagar y su tarifa baja de 8% a 5%. Sirve para la demo; en producción vacía la tarifa | Antes de producción: el cambio a Estudio queda atado al cobro real o a una asignación de admin |
 | DT17 | Lote 4 | Si la pasarela crea la cuenta conectada y después falla el commit, la cuenta queda huérfana y el siguiente intento crea otra. `crear_cuenta_conectada` no recibe clave de idempotencia ni metadatos | Lote 8, que vuelve a tocar el contrato de pagos |
 | DT18 | Lote 4 | Las llamadas a la pasarela se hacen con el `FOR UPDATE` del perfil tomado (D8). Con Supavisor en modo transacción, una pasarela lenta retiene una conexión del pool hasta el timeout de 15 s | Revisar con carga antes de producción |
+| DT19 | Lote 5 | Los medios que nunca se confirman, o cuya confirmación se rechazó, quedan como filas pendientes y cuentan para el límite de 20. Nada los limpia. Además el límite se cuenta sin bloqueo, así que dos solicitudes simultáneas pueden pasarlo por una | Lote 11: job que borra pendientes viejos, fila y objeto |
+| DT20 | Lote 5 | El adaptador de Supabase Storage solo se probó con transporte simulado. Falta correrlo contra el proyecto real: `python -m src.storage.supabase` para crear el bucket, una subida firmada de punta a punta, y confirmar que la firma dura 2 horas y que las claves nuevas de Supabase (`sb_secret_...`) funcionan en `apikey` y `Authorization` | Antes de la demo, con el proyecto de Supabase de desarrollo |
 
 ## Errores del orquestador
 

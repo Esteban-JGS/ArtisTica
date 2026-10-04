@@ -11,6 +11,7 @@ from src.core.security import verify_token
 from src.models.users import Profile, RolPerfil
 from src.payments.contrato import PasarelaDePagos
 from src.payments.fabrica import obtener_pasarela
+from src.storage import Almacenamiento, obtener_almacenamiento
 
 security = HTTPBearer()
 
@@ -85,3 +86,8 @@ async def get_current_admin(
 def get_pasarela() -> PasarelaDePagos:
     """La pasarela del proceso. Las pruebas la sobrescriben con una falsa."""
     return obtener_pasarela()
+
+
+def get_almacenamiento() -> Almacenamiento:
+    """El almacenamiento del proceso. Las pruebas lo sobrescriben con uno falso."""
+    return obtener_almacenamiento()
