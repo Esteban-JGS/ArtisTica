@@ -90,7 +90,12 @@ async def cambiar_plan(
     pasarela: PasarelaDePagos = Depends(get_pasarela),
 ) -> ResultadoPlan:
     resultado = await servicio.cambiar_plan(
-        session, pasarela, artista.id, datos.plan, _politicas()
+        session,
+        pasarela,
+        artista.id,
+        datos.plan,
+        _politicas(),
+        settings.ESTUDIO_AUTOSERVICIO,
     )
     await session.commit()
     return ResultadoPlan(

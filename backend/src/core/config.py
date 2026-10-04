@@ -1,7 +1,10 @@
 from decimal import Decimal
 
-from pydantic import AnyHttpUrl, PostgresDsn
+from pydantic import AnyHttpUrl, Field, PostgresDsn, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# Valores de ENVIRONMENT que activan las reglas de produccion
+ENTORNOS_PRODUCCION = frozenset({"production", "prod"})
 
 
 class Settings(BaseSettings):
@@ -21,6 +24,10 @@ class Settings(BaseSettings):
     # Environment
     ENVIRONMENT: str = "dev"
     SENTRY_DSN: str | None = None
+    # Procesos de uvicorn. Los adaptadores falsos guardan estado por proceso.
+    WORKERS: int = Field(default=1, ge=1)
+    # Pasarse a Estudio sin cobro. Solo para la demo: apagado en produccion.
+    ESTUDIO_AUTOSERVICIO: bool = True
 
     # Pasarela de pagos. Texto libre: la valida src.payments.fabrica
     PASARELA: str = "falsa"
@@ -47,6 +54,31 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env", env_file_encoding="utf-8", case_sensitive=True, extra="ignore"
     )
+
+    @model_validator(mode="after")
+    def _rechazar_combinaciones_inseguras(self) -> "Settings":
+        # Se normaliza igual que en las fabricas de pasarela y almacenamiento
+        pasarela_falsa = self.PASARELA.strip().lower() == "falsa"
+        almacenamiento_falso = self.ALMACENAMIENTO.strip().lower() == "falso"
+        errores: list[str] = []
+        if self.ENVIRONMENT.strip().lower() in ENTORNOS_PRODUCCION:
+            if pasarela_falsa:
+                errores.append("PASARELA=falsa no se permite en produccion")
+            if almacenamiento_falso:
+                errores.append("ALMACENAMIENTO=falso no se permite en produccion")
+            if self.ESTUDIO_AUTOSERVICIO:
+                errores.append(
+                    "ESTUDIO_AUTOSERVICIO tiene que estar apagado en produccion"
+                )
+        if self.WORKERS > 1 and (pasarela_falsa or almacenamiento_falso):
+            # Cada proceso tendria su propio estado en memoria
+            errores.append(
+                "WORKERS mayor que 1 no se permite con PASARELA=falsa "
+                "o ALMACENAMIENTO=falso"
+            )
+        if errores:
+            raise ValueError("; ".join(errores))
+        return self
 
 
 settings = Settings()

@@ -231,6 +231,32 @@ async def test_18_falla_de_pasarela_conserva_el_plan(
     assert pasarela_falsa.tarifa_de(cuenta) == Decimal("8")
 
 
+async def test_07_sin_autoservicio_estudio_da_403(
+    cliente, autenticar_como, sesion_api, pasarela_falsa, monkeypatch
+):
+    monkeypatch.setattr(settings, "ESTUDIO_AUTOSERVICIO", False)
+    artista_id, cuenta = await _con_cuenta(cliente, autenticar_como, sesion_api)
+
+    r = await _plan(cliente, "estudio")
+    assert r.status_code == 403
+    assert (await _perfil(sesion_api, artista_id)).plan == "taller"
+    assert pasarela_falsa.tarifa_de(cuenta) == Decimal("8")
+
+
+async def test_08_sin_autoservicio_se_baja_a_taller(
+    cliente, autenticar_como, sesion_api, monkeypatch
+):
+    artista_id = await _artista(cliente, autenticar_como)
+    r = await _plan(cliente, "estudio")
+    assert r.status_code == 200, r.text
+
+    monkeypatch.setattr(settings, "ESTUDIO_AUTOSERVICIO", False)
+    r = await _plan(cliente, "taller")
+    assert r.status_code == 200, r.text
+    assert r.json()["plan"] == "taller"
+    assert (await _perfil(sesion_api, artista_id)).plan == "taller"
+
+
 # Onboarding
 
 

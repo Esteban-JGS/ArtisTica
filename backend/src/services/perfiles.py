@@ -156,7 +156,11 @@ async def cambiar_plan(
     perfil_id: uuid.UUID,
     plan: PlanArtista,
     politicas: PoliticasPedido,
+    estudio_autoservicio: bool,
 ) -> ResultadoCambioPlan:
+    # Sin autoservicio, Estudio llega por la suscripcion. Bajar a Taller siempre.
+    if plan == PlanArtista.ESTUDIO and not estudio_autoservicio:
+        raise ActorNoAutorizado("El plan Estudio se activa con la suscripcion")
     perfil = await bloquear_perfil(session, perfil_id)
     if perfil.rol != RolPerfil.ARTISTA:
         raise ActorNoAutorizado("Solo un artista tiene plan")

@@ -179,7 +179,11 @@ El backend son 1271 líneas en 38 archivos, con **un solo commit**. Nunca se eje
 | 3 | Capa de pasarela: contrato, adaptador real y falso | 1, 2 | No | Alto |
 | 4 | Identidad, roles, planes y onboarding | 1, 3 | No | Medio |
 | 5 | Almacenamiento y medios con subida firmada | 1, 4 | No | Medio |
-| 5b | Obras y servicios con límites de plan | 5 | No | Medio |
+| 5c | Deuda: infraestructura y configuración | 5 | No | Bajo |
+| 5d | Deuda: esquema y enums | 5c | No | Alto |
+| 5e | Deuda: contrato de pagos | 5d | No | Alto |
+| 5f | Deuda: política de lint | 5e | No | Bajo |
+| 5b | Obras y servicios con límites de plan | 5f | No | Medio |
 | 6 | Publicaciones, feed Seguidos y Explorar por cursor | 5b | No | Medio |
 | 7 | Consultas y chat | 1, 4 | No | Medio |
 | 8 | Endpoints de pedidos y cobros | 2, 3, 7 | No | Medio alto |
