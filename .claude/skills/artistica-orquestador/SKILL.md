@@ -178,15 +178,16 @@ El backend son 1271 líneas en 38 archivos, con **un solo commit**. Nunca se eje
 | 2 | Máquina de estados de pedidos y cobros | 1 | No | Alto |
 | 3 | Capa de pasarela: contrato, adaptador real y falso | 1, 2 | No | Alto |
 | 4 | Identidad, roles, planes y onboarding | 1, 3 | No | Medio |
-| 5 | Obras, servicios y medios con Storage firmado | 1, 4 | Sí, con 7 | Medio |
-| 6 | Feed Seguidos y Explorar por cursor | 1, 5 | No | Medio |
-| 7 | Consultas y chat | 1, 4 | Sí, con 5 | Medio |
+| 5 | Almacenamiento y medios con subida firmada | 1, 4 | No | Medio |
+| 5b | Obras y servicios con límites de plan | 5 | No | Medio |
+| 6 | Publicaciones, feed Seguidos y Explorar por cursor | 5b | No | Medio |
+| 7 | Consultas y chat | 1, 4 | No | Medio |
 | 8 | Endpoints de pedidos y cobros | 2, 3, 7 | No | Medio alto |
 | 9 | Webhooks idempotentes y vigilancia de autorizaciones | 3, 8 | No | Alto |
 | 10 | Métricas: `post_views` y panel | 1, 6 | Sí, con 11 | Medio |
-| 11 | Moderación, reportes y jobs de clasificación | 1, 5 | Sí, con 10 | Medio |
+| 11 | Moderación, reportes y jobs del worker (miniaturas y clasificación) | 1, 5 | Sí, con 10 | Medio |
 
-Solo dos parejas corren en paralelo: 5 con 7, y 10 con 11.
+Solo una pareja corre en paralelo: 10 con 11. Los lotes con endpoints comparten `router.py`, `deps.py` y `conftest.py`, así que van en serie.
 
 ---
 
