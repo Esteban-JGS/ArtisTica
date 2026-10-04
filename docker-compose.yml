@@ -6,8 +6,9 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=artistica
+    # Puerto del host configurable: el 5432 puede estar ocupado en la maquina
     ports:
-      - "5432:5432"
+      - "${DB_PUERTO_LOCAL:-5432}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -31,6 +32,14 @@ services:
       - ALEMBIC_DATABASE_URL=postgresql+psycopg://postgres:postgres@db:5432/artistica
       - SUPABASE_URL=http://supabase-mock
       - ENVIRONMENT=local
+    # Sana solo cuando /health responde, o sea despues de migrar.
+    # Usa python porque la imagen no garantiza curl.
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
     depends_on:
       db:
         condition: service_healthy
@@ -47,8 +56,11 @@ services:
       - ALEMBIC_DATABASE_URL=postgresql+psycopg://postgres:postgres@db:5432/artistica
       - SUPABASE_URL=http://supabase-mock
       - ENVIRONMENT=local
+    # Espera a la API sana: asi la tabla jobs ya existe en su primera consulta
     depends_on:
       db:
+        condition: service_healthy
+      api:
         condition: service_healthy
 
 volumes:
