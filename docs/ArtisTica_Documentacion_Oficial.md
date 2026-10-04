@@ -100,7 +100,7 @@ La ventaja sostenible es la reputación acumulada: un artista con decenas de tra
 
 | Etapa | Alcance |
 |---|---|
-| **MVP, noviembre de 2026** | Público y Artista, galería, feed, Explorar, los tres tipos de pedido con anticipo y saldo sobre el entorno de pruebas de la pasarela, métricas y moderación básica |
+| **MVP, noviembre de 2026** | Público y Artista, galería de imágenes (el video queda para después), feed, Explorar, los tres tipos de pedido con anticipo y saldo sobre el entorno de pruebas de la pasarela, métricas y moderación básica |
 | **Etapa 2** | Cobro real de Estudio, promociones, reseñas, agrupaciones, disputas completas y artistas fundadores |
 | **Etapa 3** | Membresías de fans. Venta de obra a mayor escala solo si los datos lo justifican |
 | **Etapa 4** | Expansión regional |
@@ -339,7 +339,8 @@ Con un pedido promedio de US$150, una tarifa promedio de 7% y 300 suscriptores d
 | Backend: reglas de pedidos y cobros | Completo y probado |
 | Backend: capa de pagos | Completa, con pasarela simulada y adaptador de ONVO |
 | Backend: identidad, roles y planes | Completo y probado |
-| Endpoints de negocio e integración con la aplicación | En desarrollo: perfiles y planes disponibles |
+| Backend: almacenamiento de imágenes | Completo, con almacenamiento simulado y adaptador de Supabase |
+| Endpoints de negocio e integración con la aplicación | En desarrollo: perfiles, planes e imágenes disponibles |
 
 ### 5.2 Backend
 
@@ -350,10 +351,11 @@ Con un pedido promedio de US$150, una tarifa promedio de 7% y 300 suscriptores d
 | Reglas de pedidos | Todas las transiciones de pedidos y cobros, cálculo de anticipo y saldo, cancelaciones, disputas y vencimientos |
 | Capa de pagos | Contrato de pasarela, pasarela simulada completa y adaptador de ONVO |
 | Identidad y planes | Registro y edición de perfiles, roles, cambio de plan que respeta la tarifa de cada pedido y registro del artista en la pasarela |
+| Almacenamiento e imágenes | Subida directa desde el teléfono con un permiso firmado, verificación de tamaño y tipo antes de aceptar la imagen, y borrado |
 
 Indicadores al cierre del avance:
 
-- 237 pruebas automatizadas.
+- 255 pruebas automatizadas.
 - Ningún saldo almacenado en la base de datos: ArtísTica no custodia dinero.
 - Montos calculados con aritmética decimal exacta.
 
@@ -365,7 +367,7 @@ Pantallas implementadas con el rediseño visual Liquid Glass: Inicio (feed con e
 
 | Etapa | Contenido |
 |---|---|
-| Contenido | Obras, servicios, carga de imágenes y feed |
+| Contenido | Obras, servicios, miniaturas de imágenes y feed |
 | Contratación | Consultas, chat, pedidos y recepción de avisos de pago |
 | Métricas y moderación | Panel del artista, reportes y clasificación para revisión humana |
 | Integración | Conexión de la aplicación con la API |
