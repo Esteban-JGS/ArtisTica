@@ -22,6 +22,9 @@ Las decisiones se numeran D y las deudas técnicas DT.
 | D12 | Medios del MVP: solo imágenes JPEG, PNG y WebP de hasta 5 MB; el video queda fuera. El bucket `medios` es público para lectura y solo se escribe con una URL firmada que emite la API, con una ruta que arma el servidor. Un medio existe recién cuando la API confirma la subida. Los entregables de pedidos irán a un bucket privado | 2026-10-04 |
 | D13 | Desde el lote 5 las migraciones se encadenan. La migración inicial ya está aplicada en bases de prueba y no se reescribe más | 2026-10-04 |
 | D14 | El lote 5 se divide: el 5 hace la capa de almacenamiento y los medios, y el 5b las obras y los servicios con los límites del plan Taller. La creación de publicaciones pasa al lote 6 y el handler de miniaturas al lote 11, junto con los demás trabajos del worker | 2026-10-04 |
+| D15 | Antes del lote 5b se paga la deuda que no depende de trabajo futuro, en cuatro lotes en serie: 5c infraestructura y configuración, 5d esquema y enums, 5e contrato de pagos y 5f lint. Lo que en realidad era trabajo planificado sale de la tabla de deuda y entra al alcance de su lote | 2026-10-04 |
+| D16 | Se acepta que las llamadas a la pasarela de pagos se hagan con el bloqueo del perfil tomado (D8), aunque retengan una conexión del pool mientras dura la llamada. Es el precio de que una tarifa no se cruce con un cobro, y el volumen del MVP es bajo. Se revisa solo si el pool se satura | 2026-10-04 |
+| D17 | La demo corre con `ENVIRONMENT=demo`, nunca `production`: en producción la configuración rechaza los adaptadores falsos y el cambio a Estudio sin cobro | 2026-10-04 |
 
 ## Políticas de pedido vigentes (D5)
 
@@ -51,6 +54,10 @@ Las decisiones se numeran D y las deudas técnicas DT.
 | 3 | Capa de pasarela: contrato, adaptador real y adaptador falso | Cerrado | Aprobado con deuda | DT11 a DT15 |
 | 4 | Identidad, roles, planes y onboarding | Cerrado | Aprobado con deuda | DT16 a DT18 |
 | 5 | Almacenamiento y medios con subida firmada | Cerrado | Aprobado con deuda | DT19, DT20 |
+| 5c | Deuda: infraestructura y configuración | Cerrado | Aprobado | Ninguna |
+| 5d | Deuda: esquema y enums | Pendiente | | |
+| 5e | Deuda: contrato de pagos | Pendiente | | |
+| 5f | Deuda: política de lint | Pendiente | | |
 | 5b | Obras y servicios con límites de plan | Pendiente | | |
 | 6 | Publicaciones, feed Seguidos y Explorar por cursor | Pendiente | | |
 | 7 | Consultas y chat | Pendiente | | |
@@ -71,25 +78,25 @@ Las decisiones se numeran D y las deudas técnicas DT.
 | # | Origen | Deuda | Cuándo se paga |
 |---|---|---|---|
 | DT1 | Lote 0 | `B904` silenciado con per-file-ignores en `src/api/deps.py` y `src/core/security.py`. Falta el `raise ... from` | Pagada en el lote 4 |
-| DT2 | Lote 0 | El worker solo depende de `db` en compose, así que su primera consulta llega antes de que la API migre y loguea un `relation jobs does not exist`. El loop reintenta, pero ensucia el arranque | Lote 9, que toca el worker |
-| DT3 | Lote 0 | `asyncio.set_event_loop_policy` queda obsoleto en Python 3.14. El reemplazo es `asyncio.run(..., loop_factory=...)` | Cuando se suba de versión de Python |
-| DT4 | Lote 0 | `docker-compose.yml` publica el 5432, que en la máquina de Esteban ya ocupa otro contenedor. Hoy se resuelve con un override local fuera del repositorio | Cuando estorbe |
-| DT5 | Lote 1 | `src/models/operation.py` quedó como reexportación de tres líneas hacia `operacion.py`, porque `workers/main.py` importa `Job` desde ahí | Lote 9, que toca el worker |
-| DT6 | Lote 1 | Los valores por defecto se asignan en Python y no con `server_default`. Un insert por SQL crudo tiene que darlos explícitos | Sin fecha. Bajo impacto mientras todo pase por SQLAlchemy |
-| DT7 | Lote 1 | `reportes` y `moderation_actions` conservan nombres de columna en inglés y sin llave foránea en `reporter_id` y `admin_id` | Lote 11, que toca moderación |
-| DT8 | Lote 0 | La política de lint quedó en un conjunto acotado de reglas. Se revisa cuando haya código de dominio suficiente para juzgarla | Después del lote 8 |
-| DT9 | Lote 2 | El dominio importa los enums desde `src.models`. Pasa el grep de pureza, pero en ejecución carga SQLAlchemy. Hay que mover los enums a un módulo neutro | Lote 8 |
-| DT10 | Lote 2 | Faltan tres salidas por paso del tiempo: evento cuya fecha llega con el saldo impago, que queda trabado en `anticipo_pagado`; encargo cuya autorización del saldo vence en `vista_previa_entregada`, sin forma de reautorizar; y obra disponible cuya autorización vence en `en_proceso`, que está en la tabla pero sin función en el servicio | Lote 9, que vigila vencimientos. Reglas decididas en D7 |
-| DT11 | Lote 3 | ONVO no firma el cuerpo de los webhooks: manda el secreto tal cual en `X-Webhook-Secret`. El secreto prueba el origen, no la integridad. Regla para el lote 9: nunca mover dinero por un webhook solo; antes, consultar la intención a la pasarela. El contrato no tiene todavía una operación de consulta de cobro | Lote 9 |
-| DT12 | Lote 3 | ONVO no informa cuánto dura una autorización, así que `autorizado_hasta` vuelve nulo, pero el servicio del lote 2 exige una fecha. El valor quedó decidido en D9: 5 días | Lote 8 |
-| DT13 | Lote 3 | 3DS no está cubierto: un pago en `requires_action` levanta `OperacionNoSoportada` | Antes de producción |
-| DT14 | Lote 3 | Nada impide usar la pasarela falsa en producción. La fábrica debería negarse cuando `ENVIRONMENT` sea producción | Antes de producción |
-| DT15 | Lote 3 | La pasarela falsa guarda su estado en memoria, una instancia por proceso. La demo tiene que correr con un solo worker de uvicorn | Antes de la demo |
-| DT16 | Lote 4 | Por D11, cualquier artista pasa a Estudio sin pagar y su tarifa baja de 8% a 5%. Sirve para la demo; en producción vacía la tarifa | Antes de producción: el cambio a Estudio queda atado al cobro real o a una asignación de admin |
-| DT17 | Lote 4 | Si la pasarela crea la cuenta conectada y después falla el commit, la cuenta queda huérfana y el siguiente intento crea otra. `crear_cuenta_conectada` no recibe clave de idempotencia ni metadatos | Lote 8, que vuelve a tocar el contrato de pagos |
-| DT18 | Lote 4 | Las llamadas a la pasarela se hacen con el `FOR UPDATE` del perfil tomado (D8). Con Supavisor en modo transacción, una pasarela lenta retiene una conexión del pool hasta el timeout de 15 s | Revisar con carga antes de producción |
-| DT19 | Lote 5 | Los medios que nunca se confirman, o cuya confirmación se rechazó, quedan como filas pendientes y cuentan para el límite de 20. Nada los limpia. Además el límite se cuenta sin bloqueo, así que dos solicitudes simultáneas pueden pasarlo por una | Lote 11: job que borra pendientes viejos, fila y objeto |
-| DT20 | Lote 5 | El adaptador de Supabase Storage solo se probó con transporte simulado. Falta correrlo contra el proyecto real: `python -m src.storage.supabase` para crear el bucket, una subida firmada de punta a punta, y confirmar que la firma dura 2 horas y que las claves nuevas de Supabase (`sb_secret_...`) funcionan en `apikey` y `Authorization` | Antes de la demo, con el proyecto de Supabase de desarrollo |
+| DT2 | Lote 0 | El worker solo depende de `db` en compose, así que su primera consulta llega antes de que la API migre y loguea un `relation jobs does not exist`. El loop reintenta, pero ensucia el arranque | Pagada en el lote 5c |
+| DT3 | Lote 0 | `asyncio.set_event_loop_policy` queda obsoleto en Python 3.14. El reemplazo es `asyncio.run(..., loop_factory=...)` | Pagada: verificado el 2026-10-04 que ya no hay `set_event_loop_policy` en el código; las pruebas usan `pytest_asyncio_loop_factories` |
+| DT4 | Lote 0 | `docker-compose.yml` publica el 5432, que en la máquina de Esteban ya ocupa otro contenedor. Hoy se resuelve con un override local fuera del repositorio | Pagada en el lote 5c |
+| DT5 | Lote 1 | `src/models/operation.py` quedó como reexportación de tres líneas hacia `operacion.py`, porque `workers/main.py` importa `Job` desde ahí | Pagada en el lote 5c |
+| DT6 | Lote 1 | Los valores por defecto se asignan en Python y no con `server_default`. Un insert por SQL crudo tiene que darlos explícitos | Lote 5d |
+| DT7 | Lote 1 | `reportes` y `moderation_actions` conservan nombres de columna en inglés y sin llave foránea en `reporter_id` y `admin_id` | Lote 5d |
+| DT8 | Lote 0 | La política de lint quedó en un conjunto acotado de reglas. Se revisa cuando haya código de dominio suficiente para juzgarla | Lote 5f |
+| DT9 | Lote 2 | El dominio importa los enums desde `src.models`. Pasa el grep de pureza, pero en ejecución carga SQLAlchemy. Hay que mover los enums a un módulo neutro | Lote 5d |
+| DT10 | Lote 2 | Faltan tres salidas por paso del tiempo: evento cuya fecha llega con el saldo impago, que queda trabado en `anticipo_pagado`; encargo cuya autorización del saldo vence en `vista_previa_entregada`, sin forma de reautorizar; y obra disponible cuya autorización vence en `en_proceso`, que está en la tabla pero sin función en el servicio | Sale de la deuda por D15: es alcance del lote 9, con las reglas de D7 |
+| DT11 | Lote 3 | ONVO no firma el cuerpo de los webhooks: manda el secreto tal cual en `X-Webhook-Secret`. El secreto prueba el origen, no la integridad. Regla para el lote 9: nunca mover dinero por un webhook solo; antes, consultar la intención a la pasarela. El contrato no tiene todavía una operación de consulta de cobro | Lote 5e agrega la consulta de cobro al contrato. Usarla al recibir webhooks es alcance del lote 9 |
+| DT12 | Lote 3 | ONVO no informa cuánto dura una autorización, así que `autorizado_hasta` vuelve nulo, pero el servicio del lote 2 exige una fecha. El valor quedó decidido en D9: 5 días | Lote 5e |
+| DT13 | Lote 3 | 3DS no está cubierto: un pago en `requires_action` levanta `OperacionNoSoportada` | Sale de la deuda por D15: es alcance del lote 8, junto con la tokenización en la app (pregunta 13) |
+| DT14 | Lote 3 | Nada impide usar la pasarela falsa en producción. La fábrica debería negarse cuando `ENVIRONMENT` sea producción | Pagada en el lote 5c |
+| DT15 | Lote 3 | La pasarela falsa guarda su estado en memoria, una instancia por proceso. La demo tiene que correr con un solo worker de uvicorn | Pagada en el lote 5c |
+| DT16 | Lote 4 | Por D11, cualquier artista pasa a Estudio sin pagar y su tarifa baja de 8% a 5%. Sirve para la demo; en producción vacía la tarifa | Pagada en el lote 5c |
+| DT17 | Lote 4 | Si la pasarela crea la cuenta conectada y después falla el commit, la cuenta queda huérfana y el siguiente intento crea otra. `crear_cuenta_conectada` no recibe clave de idempotencia ni metadatos | Lote 5e |
+| DT18 | Lote 4 | Las llamadas a la pasarela se hacen con el `FOR UPDATE` del perfil tomado (D8). Con Supavisor en modo transacción, una pasarela lenta retiene una conexión del pool hasta el timeout de 15 s | Aceptada por D16 |
+| DT19 | Lote 5 | Los medios que nunca se confirman, o cuya confirmación se rechazó, quedan como filas pendientes y cuentan para el límite de 20. Nada los limpia. Además el límite se cuenta sin bloqueo, así que dos solicitudes simultáneas pueden pasarlo por una | Sale de la deuda por D15: la limpieza de pendientes es alcance del lote 11. El límite blando queda aceptado |
+| DT20 | Lote 5 | El adaptador de Supabase Storage solo se probó con transporte simulado. Falta correrlo contra el proyecto real: `python -m src.storage.supabase` para crear el bucket, una subida firmada de punta a punta, y confirmar que la firma dura 2 horas y que las claves nuevas de Supabase (`sb_secret_...`) funcionan en `apikey` y `Authorization` | Acción manual de Esteban con el proyecto de Supabase de desarrollo, en cuanto esté disponible |
 
 ## Errores del orquestador
 
