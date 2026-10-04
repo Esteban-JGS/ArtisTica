@@ -355,7 +355,7 @@ Con un pedido promedio de US$150, una tarifa promedio de 7% y 300 suscriptores d
 
 Indicadores al cierre del avance:
 
-- 255 pruebas automatizadas.
+- 263 pruebas automatizadas.
 - Ningún saldo almacenado en la base de datos: ArtísTica no custodia dinero.
 - Montos calculados con aritmética decimal exacta.
 
