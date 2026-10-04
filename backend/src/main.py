@@ -14,6 +14,7 @@ from src.core.exceptions import (
     ResourceNotFound,
 )
 from src.payments.errores import ErrorPasarela, PasarelaNoDisponible
+from src.storage import AlmacenamientoNoDisponible, ErrorAlmacenamiento
 
 logger = logging.getLogger(__name__)
 
@@ -75,12 +76,28 @@ async def _pasarela_rechazo(_: Request, exc: Exception) -> JSONResponse:
     )
 
 
+async def _almacenamiento_no_disponible(_: Request, exc: Exception) -> JSONResponse:
+    logger.warning("Almacenamiento no disponible: %s", type(exc).__name__)
+    return _respuesta(
+        status.HTTP_503_SERVICE_UNAVAILABLE, "El almacenamiento no esta disponible"
+    )
+
+
+async def _almacenamiento_rechazo(_: Request, exc: Exception) -> JSONResponse:
+    logger.warning("El almacenamiento rechazo la operacion: %s", type(exc).__name__)
+    return _respuesta(
+        status.HTTP_502_BAD_GATEWAY, "El almacenamiento rechazo la operacion"
+    )
+
+
 app.add_exception_handler(ResourceNotFound, _no_encontrado)
 app.add_exception_handler(ActorNoAutorizado, _no_autorizado)
 app.add_exception_handler(InvalidStateTransition, _conflicto)
 app.add_exception_handler(ReglaDeNegocioViolada, _conflicto)
 app.add_exception_handler(PasarelaNoDisponible, _pasarela_no_disponible)
 app.add_exception_handler(ErrorPasarela, _pasarela_rechazo)
+app.add_exception_handler(AlmacenamientoNoDisponible, _almacenamiento_no_disponible)
+app.add_exception_handler(ErrorAlmacenamiento, _almacenamiento_rechazo)
 
 
 @app.get("/health", tags=["health"])

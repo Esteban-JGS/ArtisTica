@@ -25,6 +25,13 @@ class Settings(BaseSettings):
     # Pasarela de pagos. Texto libre: la valida src.payments.fabrica
     PASARELA: str = "falsa"
 
+    # Almacenamiento de medios. Texto libre: lo valida src.storage
+    ALMACENAMIENTO: str = "falso"
+    ALMACENAMIENTO_TIMEOUT_SEGUNDOS: int = 15
+    BUCKET_MEDIOS: str = "medios"
+    MEDIO_TAMANO_MAXIMO_BYTES: int = 5 * 1024 * 1024
+    MEDIOS_PENDIENTES_MAXIMOS: int = 20
+
     # Politicas de pedido (D5). Unico lugar donde viven sus valores por defecto.
     ANTICIPO_PORCENTAJE_MINIMO: Decimal = Decimal("30")
     ANTICIPO_PORCENTAJE_MAXIMO: Decimal = Decimal("50")

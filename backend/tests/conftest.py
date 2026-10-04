@@ -7,10 +7,16 @@ import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
-from src.api.deps import get_current_user_payload, get_db, get_pasarela
+from src.api.deps import (
+    get_almacenamiento,
+    get_current_user_payload,
+    get_db,
+    get_pasarela,
+)
 from src.core.config import settings
 from src.main import app
 from src.payments.falsa import PasarelaFalsa
+from src.storage.falso import AlmacenamientoFalso
 
 if sys.platform == "win32":
 
@@ -89,3 +95,12 @@ def autenticar_como():
 
     yield _autenticar
     app.dependency_overrides.pop(get_current_user_payload, None)
+
+
+@pytest.fixture
+def almacenamiento_falso():
+    almacenamiento = AlmacenamientoFalso()
+    app.dependency_overrides[get_almacenamiento] = lambda: almacenamiento
+    yield almacenamiento
+    app.dependency_overrides.pop(get_almacenamiento, None)
+    almacenamiento.limpiar()
