@@ -5,9 +5,9 @@ from collections.abc import Iterable
 from decimal import Decimal
 from typing import Protocol
 
+from src.domain.enums import EstadoOnboarding, PlanArtista, RolPerfil
 from src.domain.pedidos import tarifa_para_plan
 from src.domain.politicas import PoliticasPedido
-from src.models.users import EstadoOnboarding, PlanArtista, RolPerfil
 
 PROVINCIAS = (
     "San José",

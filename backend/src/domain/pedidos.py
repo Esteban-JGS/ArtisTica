@@ -20,11 +20,16 @@ from src.core.exceptions import (
     ObraNoDisponible,
     ReglaDeNegocioViolada,
 )
+from src.domain.enums import (
+    EstadoCobro,
+    EstadoConsulta,
+    EstadoObra,
+    EstadoPedido,
+    PlanArtista,
+    TipoCobro,
+    TipoPedido,
+)
 from src.domain.politicas import CERO, CIEN, PoliticasPedido
-from src.models.catalogo import EstadoObra
-from src.models.consultas import EstadoConsulta
-from src.models.pedidos import EstadoCobro, EstadoPedido, TipoCobro, TipoPedido
-from src.models.users import PlanArtista
 
 E = EstadoPedido
 T = TipoPedido

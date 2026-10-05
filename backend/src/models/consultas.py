@@ -1,17 +1,11 @@
-import enum
 import uuid
 
 from sqlalchemy import CheckConstraint, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column
 
+from src.domain.enums import EstadoConsulta
+
 from .base import Base, IdMixin, TimestampMixin, pg_enum
-
-
-class EstadoConsulta(enum.StrEnum):
-    ABIERTA = "abierta"
-    COTIZADA = "cotizada"
-    CONVERTIDA = "convertida"
-    DESCARTADA = "descartada"
 
 
 class Consulta(Base, IdMixin, TimestampMixin):
@@ -31,7 +25,9 @@ class Consulta(Base, IdMixin, TimestampMixin):
         ForeignKey("obras.id"), nullable=True
     )
     estado: Mapped[EstadoConsulta] = mapped_column(
-        pg_enum(EstadoConsulta, "estado_consulta"), default=EstadoConsulta.ABIERTA
+        pg_enum(EstadoConsulta, "estado_consulta"),
+        default=EstadoConsulta.ABIERTA,
+        server_default=EstadoConsulta.ABIERTA.value,
     )
 
 

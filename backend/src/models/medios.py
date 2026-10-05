@@ -1,17 +1,12 @@
-import enum
 import uuid
 from datetime import datetime
 
 from sqlalchemy import BigInteger, DateTime, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column
 
+from src.domain.enums import EstadoMedia
+
 from .base import Base, IdMixin, SoftDeleteMixin, TimestampMixin, pg_enum
-
-
-class EstadoMedia(enum.StrEnum):
-    PENDIENTE = "pendiente"
-    PROCESADO = "procesado"
-    FALLIDO = "fallido"
 
 
 class MediaAsset(Base, IdMixin, TimestampMixin, SoftDeleteMixin):
@@ -30,7 +25,9 @@ class MediaAsset(Base, IdMixin, TimestampMixin, SoftDeleteMixin):
     storage_path: Mapped[str] = mapped_column(String)
     thumbnail_path: Mapped[str | None] = mapped_column(String, nullable=True)
     estado: Mapped[EstadoMedia] = mapped_column(
-        pg_enum(EstadoMedia, "estado_media"), default=EstadoMedia.PENDIENTE
+        pg_enum(EstadoMedia, "estado_media"),
+        default=EstadoMedia.PENDIENTE,
+        server_default=EstadoMedia.PENDIENTE.value,
     )
     # Los entregables de un pedido van a un bucket privado (lote 8)
     bucket: Mapped[str] = mapped_column(String, server_default="medios")
