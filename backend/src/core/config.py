@@ -50,6 +50,9 @@ class Settings(BaseSettings):
     MONTO_MINIMO_PEDIDO: Decimal = Decimal("2500.00")
     TARIFA_TALLER_PORCENTAJE: Decimal = Decimal("8")
     TARIFA_ESTUDIO_PORCENTAJE: Decimal = Decimal("5")
+    # D9. Cuanto se supone que dura una autorizacion cuando la pasarela no
+    # informa el vencimiento.
+    DIAS_VIGENCIA_AUTORIZACION_SUPUESTA: int = Field(default=5, ge=1)
 
     model_config = SettingsConfigDict(
         env_file=".env", env_file_encoding="utf-8", case_sensitive=True, extra="ignore"

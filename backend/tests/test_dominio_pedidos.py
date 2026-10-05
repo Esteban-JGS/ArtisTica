@@ -42,6 +42,7 @@ POLITICAS = PoliticasPedido(
     monto_minimo_pedido=Decimal("2500.00"),
     tarifa_taller_porcentaje=Decimal("8"),
     tarifa_estudio_porcentaje=Decimal("5"),
+    vigencia_autorizacion_supuesta=timedelta(days=5),
 )
 
 
