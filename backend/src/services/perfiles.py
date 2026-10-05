@@ -221,9 +221,13 @@ async def iniciar_onboarding(
         )
 
     if perfil.pasarela_cuenta_id is None:
+        # La clave es del perfil: si el commit falla, el reintento no crea
+        # una segunda cuenta en la pasarela
         cuenta = await pasarela.crear_cuenta_conectada(
             nombre=perfil.nombre,
             tarifa_porcentaje=tarifa_para_plan(perfil.plan, politicas),
+            clave_idempotencia=f"cuenta-conectada-{perfil.id}",
+            metadatos={"perfil_id": str(perfil.id)},
         )
         perfil.pasarela_cuenta_id = cuenta.id
     else:

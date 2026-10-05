@@ -18,6 +18,7 @@ from typing import Any
 from pydantic import SecretStr
 
 from src.payments.contrato import (
+    SIN_METADATOS,
     Capacidades,
     ConsultaCobro,
     CuentaConectada,
@@ -33,6 +34,7 @@ from src.payments.contrato import (
     TipoEvento,
     buscar_encabezado,
     validar_clave,
+    validar_metadatos,
     validar_monto,
     validar_referencia,
     validar_solicitud,
@@ -89,6 +91,7 @@ class _Cuenta:
     nombre: str
     estado: EstadoCuenta
     tarifa: Decimal
+    metadatos: Mapping[str, str] = field(default_factory=dict)
 
 
 @dataclass
@@ -173,6 +176,9 @@ class PasarelaFalsa:
     def total_cobros(self) -> int:
         return len(self._cobros)
 
+    def total_cuentas(self) -> int:
+        return len(self._cuentas)
+
     def firmar(self, cuerpo: bytes) -> str:
         return hmac.new(
             self._secreto.get_secret_value().encode(), cuerpo, hashlib.sha256
@@ -199,23 +205,43 @@ class PasarelaFalsa:
     # Cuentas conectadas
 
     async def crear_cuenta_conectada(
-        self, *, nombre: str, tarifa_porcentaje: Decimal
+        self,
+        *,
+        nombre: str,
+        tarifa_porcentaje: Decimal,
+        clave_idempotencia: str,
+        metadatos: Mapping[str, str] = SIN_METADATOS,
     ) -> CuentaConectada:
         if not isinstance(nombre, str) or not nombre.strip():
             raise SolicitudInvalida("Falta el nombre de la cuenta")
         validar_tarifa(tarifa_porcentaje)
+        validar_clave(clave_idempotencia)
+        validar_metadatos(metadatos)
         self._fallar_si_programado("crear_cuenta_conectada")
+        nombre = nombre.strip()
+        huella = (
+            "crear_cuenta_conectada",
+            nombre,
+            tarifa_porcentaje,
+            tuple(sorted(metadatos.items())),
+        )
+        # Reintentar despues de un commit fallido no crea una segunda cuenta
+        if (previo := self._repetido(clave_idempotencia, huella)) is not None:
+            return previo
+
         cuenta_id = self._nuevo_id("cuenta")
         self._cuentas[cuenta_id] = _Cuenta(
-            nombre=nombre.strip(),
+            nombre=nombre,
             estado=EstadoCuenta.PENDIENTE,
             tarifa=tarifa_porcentaje,
+            metadatos=dict(metadatos),
         )
-        return CuentaConectada(
+        cuenta = CuentaConectada(
             id=cuenta_id,
             estado=EstadoCuenta.PENDIENTE,
             url_onboarding=f"https://pasarela-falsa.invalid/onboarding/{cuenta_id}",
         )
+        return self._recordar(clave_idempotencia, huella, cuenta)
 
     async def consultar_cuenta(self, cuenta_id: str) -> CuentaConectada:
         self._fallar_si_programado("consultar_cuenta")

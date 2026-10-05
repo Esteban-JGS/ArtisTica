@@ -19,6 +19,7 @@ from pydantic import SecretStr
 
 from src.payments.config import ConfigOnvo
 from src.payments.contrato import (
+    SIN_METADATOS,
     Capacidades,
     ConsultaCobro,
     CuentaConectada,
@@ -34,6 +35,7 @@ from src.payments.contrato import (
     TipoEvento,
     buscar_encabezado,
     validar_clave,
+    validar_metadatos,
     validar_monto,
     validar_referencia,
     validar_solicitud,
@@ -95,6 +97,11 @@ CAMPO_NOMBRE_NEGOCIO = "businessName"
 LARGO_MAXIMO_NOMBRE_NEGOCIO = 50
 CAMPO_TARIFA_MARKETPLACE = "marketplaceAppFee"
 CAMPO_URL_ONBOARDING = "onboardingUrl"
+# https://docs.onvopay.com/openapi.yaml (requestBodies.CreateConnectedAccount):
+# declara additionalProperties: false y solo businessName y marketplaceAppFee.
+# POR_CONFIRMAR: la cuenta conectada no admite metadatos, asi que no se
+# envian y la clave de idempotencia no llega a ONVO por ninguna via.
+CUENTA_CONECTADA_ADMITE_METADATOS = False
 
 # Campos de intencion de pago
 # https://docs.onvopay.com/openapi.yaml (schemas.PaymentIntent)
@@ -333,7 +340,12 @@ class PasarelaOnvo:
     # Cuentas conectadas
 
     async def crear_cuenta_conectada(
-        self, *, nombre: str, tarifa_porcentaje: Decimal
+        self,
+        *,
+        nombre: str,
+        tarifa_porcentaje: Decimal,
+        clave_idempotencia: str,
+        metadatos: Mapping[str, str] = SIN_METADATOS,
     ) -> CuentaConectada:
         nombre = nombre.strip() if isinstance(nombre, str) else ""
         if not 1 <= len(nombre) <= LARGO_MAXIMO_NOMBRE_NEGOCIO:
@@ -342,15 +354,22 @@ class PasarelaOnvo:
                 f"{LARGO_MAXIMO_NOMBRE_NEGOCIO} caracteres"
             )
         validar_tarifa(tarifa_porcentaje)
-        # Crear dos veces duplica la cuenta: un resultado incierto no se repite
+        validar_clave(clave_idempotencia)
+        validar_metadatos(metadatos)
+        cuerpo: dict[str, Any] = {
+            CAMPO_NOMBRE_NEGOCIO: nombre,
+            CAMPO_TARIFA_MARKETPLACE: tarifa_porcentaje,
+        }
+        if metadatos and CUENTA_CONECTADA_ADMITE_METADATOS:
+            cuerpo[CAMPO_METADATOS] = dict(metadatos)
+        # Crear dos veces duplica la cuenta: un resultado incierto no se repite.
+        # Sin idempotencia en ONVO la clave solo sirve del lado de quien llama.
         datos = await self._solicitar(
             "POST",
             RUTA_CREAR_CUENTA,
-            {
-                CAMPO_NOMBRE_NEGOCIO: nombre,
-                CAMPO_TARIFA_MARKETPLACE: tarifa_porcentaje,
-            },
+            cuerpo,
             repetible=False,
+            clave_idempotencia=clave_idempotencia,
         )
         url = datos.get(CAMPO_URL_ONBOARDING)
         return CuentaConectada(

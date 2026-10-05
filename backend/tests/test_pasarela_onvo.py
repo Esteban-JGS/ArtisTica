@@ -128,7 +128,9 @@ async def caso_crear_cuenta() -> None:
         }
     )
     cuenta = await simulador.pasarela().crear_cuenta_conectada(
-        nombre=" Taller de Ana ", tarifa_porcentaje=Decimal("6.25")
+        nombre=" Taller de Ana ",
+        tarifa_porcentaje=Decimal("6.25"),
+        clave_idempotencia="cuenta-1",
     )
     assert cuenta.estado is EstadoCuenta.PENDIENTE
     assert cuenta.url_onboarding == "https://onvopay.com/setup/x"

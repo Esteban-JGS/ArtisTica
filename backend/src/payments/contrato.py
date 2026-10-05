@@ -13,12 +13,15 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import datetime
 from decimal import Decimal
+from types import MappingProxyType
 from typing import Any, Protocol, runtime_checkable
 
 from src.payments.errores import OperacionNoSoportada, SolicitudInvalida
 
 CENTIMO = Decimal("0.01")
 CIEN = Decimal("100")
+# Default inmutable para los metadatos opcionales
+SIN_METADATOS: Mapping[str, str] = MappingProxyType({})
 
 
 class MetodoPago(enum.StrEnum):
@@ -166,7 +169,12 @@ class PasarelaDePagos(Protocol):
     def capacidades(self) -> Capacidades: ...
 
     async def crear_cuenta_conectada(
-        self, *, nombre: str, tarifa_porcentaje: Decimal
+        self,
+        *,
+        nombre: str,
+        tarifa_porcentaje: Decimal,
+        clave_idempotencia: str,
+        metadatos: Mapping[str, str] = SIN_METADATOS,
     ) -> CuentaConectada: ...
 
     async def consultar_cuenta(self, cuenta_id: str) -> CuentaConectada: ...
@@ -232,6 +240,14 @@ def validar_clave(clave: object) -> str:
     return clave
 
 
+def validar_metadatos(metadatos: Mapping[str, str]) -> Mapping[str, str]:
+    if any(
+        not isinstance(k, str) or not isinstance(v, str) for k, v in metadatos.items()
+    ):
+        raise SolicitudInvalida("Los metadatos son texto a texto")
+    return metadatos
+
+
 def validar_referencia(referencia: object) -> str:
     if not isinstance(referencia, str) or not referencia.strip():
         raise SolicitudInvalida("Falta la referencia del cobro")
@@ -246,11 +262,7 @@ def validar_solicitud(
     validar_clave(solicitud.clave_idempotencia)
     if not solicitud.cuenta_conectada_id or not solicitud.moneda:
         raise SolicitudInvalida("Faltan la cuenta conectada o la moneda")
-    if any(
-        not isinstance(k, str) or not isinstance(v, str)
-        for k, v in solicitud.metadatos.items()
-    ):
-        raise SolicitudInvalida("Los metadatos son texto a texto")
+    validar_metadatos(solicitud.metadatos)
     if solicitud.metodo not in capacidades.metodos:
         raise OperacionNoSoportada(f"Metodo no soportado: {solicitud.metodo}")
     if diferida and solicitud.metodo not in capacidades.autorizacion_diferida:
