@@ -4,7 +4,7 @@ from .consultas import Consulta, EstadoConsulta, Mensaje
 from .finanzas import EventoPasarela, LedgerEntry
 from .medios import EstadoMedia, MediaAsset
 from .metricas import PostView
-from .operacion import EstadoReporte, Job, ModerationAction, Reporte
+from .operacion import AccionModeracion, EstadoReporte, Job, Reporte
 from .pedidos import (
     Cobro,
     Disputa,
@@ -22,6 +22,7 @@ from .social import Comentario, Publicacion, Reaccion
 from .users import EstadoOnboarding, Follow, PlanArtista, Profile, RolPerfil
 
 __all__ = [
+    "AccionModeracion",
     "Base",
     "Cobro",
     "Comentario",
@@ -43,7 +44,6 @@ __all__ = [
     "LedgerEntry",
     "MediaAsset",
     "Mensaje",
-    "ModerationAction",
     "Obra",
     "Pedido",
     "PlanArtista",

@@ -1,6 +1,13 @@
 import uuid
 
-from sqlalchemy import Boolean, CheckConstraint, ForeignKey, String, UniqueConstraint
+from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
+    ForeignKey,
+    String,
+    UniqueConstraint,
+    text,
+)
 from sqlalchemy.dialects.postgresql import ARRAY, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -17,19 +24,28 @@ class Profile(Base, TimestampMixin):
     handle: Mapped[str] = mapped_column(String, unique=True, index=True)
     nombre: Mapped[str] = mapped_column(String)
     bio: Mapped[str | None] = mapped_column(String, nullable=True)
-    categorias: Mapped[list[str]] = mapped_column(ARRAY(String), default=list)
+    categorias: Mapped[list[str]] = mapped_column(
+        ARRAY(String), default=list, server_default=text("'{}'")
+    )
     provincia: Mapped[str | None] = mapped_column(String, nullable=True)
     rol: Mapped[RolPerfil] = mapped_column(
-        pg_enum(RolPerfil, "rol_perfil"), default=RolPerfil.PUBLICO
+        pg_enum(RolPerfil, "rol_perfil"),
+        default=RolPerfil.PUBLICO,
+        server_default=RolPerfil.PUBLICO.value,
     )
     plan: Mapped[PlanArtista] = mapped_column(
-        pg_enum(PlanArtista, "plan_artista"), default=PlanArtista.TALLER
+        pg_enum(PlanArtista, "plan_artista"),
+        default=PlanArtista.TALLER,
+        server_default=PlanArtista.TALLER.value,
     )
-    is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
+    is_verified: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default=text("false")
+    )
     pasarela_cuenta_id: Mapped[str | None] = mapped_column(String, nullable=True)
     pasarela_onboarding: Mapped[EstadoOnboarding] = mapped_column(
         pg_enum(EstadoOnboarding, "estado_onboarding"),
         default=EstadoOnboarding.NO_INICIADO,
+        server_default=EstadoOnboarding.NO_INICIADO.value,
     )
 
 

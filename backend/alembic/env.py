@@ -39,7 +39,12 @@ def run_migrations_offline() -> None:
 
 
 def do_run_migrations(connection: Connection) -> None:
-    context.configure(connection=connection, target_metadata=target_metadata)
+    # compare_server_default: alembic check detecta un default que diverge
+    context.configure(
+        connection=connection,
+        target_metadata=target_metadata,
+        compare_server_default=True,
+    )
     with context.begin_transaction():
         context.run_migrations()
 

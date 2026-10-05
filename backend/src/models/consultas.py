@@ -25,7 +25,9 @@ class Consulta(Base, IdMixin, TimestampMixin):
         ForeignKey("obras.id"), nullable=True
     )
     estado: Mapped[EstadoConsulta] = mapped_column(
-        pg_enum(EstadoConsulta, "estado_consulta"), default=EstadoConsulta.ABIERTA
+        pg_enum(EstadoConsulta, "estado_consulta"),
+        default=EstadoConsulta.ABIERTA,
+        server_default=EstadoConsulta.ABIERTA.value,
     )
 
 

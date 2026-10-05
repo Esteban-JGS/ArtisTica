@@ -2,7 +2,15 @@ import uuid
 from decimal import Decimal
 
 from pgvector.sqlalchemy import Vector
-from sqlalchemy import Boolean, CheckConstraint, ForeignKey, Index, Numeric, String
+from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
+    ForeignKey,
+    Index,
+    Numeric,
+    String,
+    text,
+)
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -33,10 +41,14 @@ class Obra(Base, IdMixin, TimestampMixin, SoftDeleteMixin):
     titulo: Mapped[str] = mapped_column(String)
     descripcion: Mapped[str | None] = mapped_column(String, nullable=True)
     estado: Mapped[EstadoObra] = mapped_column(
-        pg_enum(EstadoObra, "estado_obra"), default=EstadoObra.EXHIBICION
+        pg_enum(EstadoObra, "estado_obra"),
+        default=EstadoObra.EXHIBICION,
+        server_default=EstadoObra.EXHIBICION.value,
     )
     precio: Mapped[Decimal | None] = mapped_column(Numeric(12, 2), nullable=True)
-    categorias: Mapped[list[str]] = mapped_column(ARRAY(String), default=list)
+    categorias: Mapped[list[str]] = mapped_column(
+        ARRAY(String), default=list, server_default=text("'{}'")
+    )
     style_embedding = mapped_column(Vector(1536), nullable=True)
     # Detecta la misma obra subida por cuentas distintas
     hash_imagen: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
@@ -52,4 +64,6 @@ class Servicio(Base, IdMixin, TimestampMixin, SoftDeleteMixin):
     descripcion: Mapped[str | None] = mapped_column(String, nullable=True)
     precio_base: Mapped[Decimal] = mapped_column(Numeric(12, 2))
     tipo: Mapped[TipoServicio] = mapped_column(pg_enum(TipoServicio, "tipo_servicio"))
-    activo: Mapped[bool] = mapped_column(Boolean, default=True)
+    activo: Mapped[bool] = mapped_column(
+        Boolean, default=True, server_default=text("true")
+    )

@@ -59,11 +59,13 @@ class Pedido(Base, IdMixin, TimestampMixin):
     artista_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("profiles.id"))
     tipo: Mapped[TipoPedido] = mapped_column(pg_enum(TipoPedido, "tipo_pedido"))
     estado: Mapped[EstadoPedido] = mapped_column(
-        pg_enum(EstadoPedido, "estado_pedido"), default=EstadoPedido.COTIZADO
+        pg_enum(EstadoPedido, "estado_pedido"),
+        default=EstadoPedido.COTIZADO,
+        server_default=EstadoPedido.COTIZADO.value,
     )
     descripcion: Mapped[str] = mapped_column(String)
     monto_total: Mapped[Decimal] = mapped_column(Numeric(12, 2))
-    moneda: Mapped[str] = mapped_column(String(3), default="CRC")
+    moneda: Mapped[str] = mapped_column(String(3), default="CRC", server_default="CRC")
     # Tarifa vigente al crear el pedido. No cambia si el artista cambia de plan.
     tarifa_porcentaje: Mapped[Decimal] = mapped_column(Numeric(5, 2))
     # Nulo solo en obra disponible, que se cobra en un solo hito
@@ -102,12 +104,14 @@ class Cobro(Base, IdMixin, TimestampMixin):
     pedido_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("pedidos.id"), index=True)
     tipo: Mapped[TipoCobro] = mapped_column(pg_enum(TipoCobro, "tipo_cobro"))
     estado: Mapped[EstadoCobro] = mapped_column(
-        pg_enum(EstadoCobro, "estado_cobro"), default=EstadoCobro.PENDIENTE
+        pg_enum(EstadoCobro, "estado_cobro"),
+        default=EstadoCobro.PENDIENTE,
+        server_default=EstadoCobro.PENDIENTE.value,
     )
     monto: Mapped[Decimal] = mapped_column(Numeric(12, 2))
     # Hecho del cobro, no un saldo. Menor que monto en un reembolso parcial.
     monto_reembolsado: Mapped[Decimal] = mapped_column(
-        Numeric(12, 2), default=Decimal("0")
+        Numeric(12, 2), default=Decimal("0"), server_default="0"
     )
     pasarela: Mapped[str] = mapped_column(String)
     referencia_pasarela: Mapped[str | None] = mapped_column(
@@ -159,7 +163,9 @@ class Disputa(Base, IdMixin, TimestampMixin):
     abierta_por_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("profiles.id"))
     motivo: Mapped[str] = mapped_column(String)
     estado: Mapped[EstadoDisputa] = mapped_column(
-        pg_enum(EstadoDisputa, "estado_disputa"), default=EstadoDisputa.ABIERTA
+        pg_enum(EstadoDisputa, "estado_disputa"),
+        default=EstadoDisputa.ABIERTA,
+        server_default=EstadoDisputa.ABIERTA.value,
     )
     resolucion: Mapped[str | None] = mapped_column(String, nullable=True)
     resuelta_por_id: Mapped[uuid.UUID | None] = mapped_column(
