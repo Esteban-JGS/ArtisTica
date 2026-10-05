@@ -1,4 +1,3 @@
-import enum
 import uuid
 from decimal import Decimal
 
@@ -7,18 +6,9 @@ from sqlalchemy import Boolean, CheckConstraint, ForeignKey, Index, Numeric, Str
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import Mapped, mapped_column
 
+from src.domain.enums import EstadoObra, TipoServicio
+
 from .base import Base, IdMixin, SoftDeleteMixin, TimestampMixin, pg_enum
-
-
-class EstadoObra(enum.StrEnum):
-    EXHIBICION = "exhibicion"
-    DISPONIBLE = "disponible"
-    VENDIDA = "vendida"
-
-
-class TipoServicio(enum.StrEnum):
-    ENCARGO = "encargo"
-    EVENTO = "evento"
 
 
 class Obra(Base, IdMixin, TimestampMixin, SoftDeleteMixin):

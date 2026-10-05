@@ -1,4 +1,3 @@
-import enum
 import uuid
 from datetime import datetime
 
@@ -6,13 +5,9 @@ from sqlalchemy import DateTime, Integer, String
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
+from src.domain.enums import EstadoReporte
+
 from .base import Base, IdMixin, TimestampMixin, pg_enum
-
-
-class EstadoReporte(enum.StrEnum):
-    PENDIENTE = "pendiente"
-    REVISADO = "revisado"
-    DESCARTADO = "descartado"
 
 
 class Job(Base, IdMixin, TimestampMixin):

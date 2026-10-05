@@ -1,4 +1,3 @@
-import enum
 import uuid
 from datetime import datetime
 from decimal import Decimal
@@ -16,52 +15,16 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
+from src.domain.enums import (
+    EstadoCobro,
+    EstadoDisputa,
+    EstadoPedido,
+    TipoCobro,
+    TipoEntregable,
+    TipoPedido,
+)
+
 from .base import Base, IdMixin, TimestampMixin, pg_enum
-
-
-class TipoPedido(enum.StrEnum):
-    ENCARGO = "encargo"
-    EVENTO = "evento"
-    OBRA_DISPONIBLE = "obra_disponible"
-
-
-class EstadoPedido(enum.StrEnum):
-    COTIZADO = "cotizado"
-    ANTICIPO_PAGADO = "anticipo_pagado"
-    EN_PROCESO = "en_proceso"
-    VISTA_PREVIA_ENTREGADA = "vista_previa_entregada"
-    SALDO_PAGADO = "saldo_pagado"
-    COMPLETADO = "completado"
-    RECHAZADO = "rechazado"
-    CANCELADO = "cancelado"
-    EN_DISPUTA = "en_disputa"
-
-
-class TipoEntregable(enum.StrEnum):
-    VISTA_PREVIA = "vista_previa"
-    FINAL = "final"
-
-
-class EstadoDisputa(enum.StrEnum):
-    ABIERTA = "abierta"
-    EN_REVISION = "en_revision"
-    RESUELTA = "resuelta"
-
-
-class TipoCobro(enum.StrEnum):
-    ANTICIPO = "anticipo"
-    SALDO = "saldo"
-    TOTAL = "total"
-
-
-class EstadoCobro(enum.StrEnum):
-    PENDIENTE = "pendiente"
-    AUTORIZADO = "autorizado"
-    CAPTURADO = "capturado"
-    CANCELADO = "cancelado"
-    REEMBOLSADO = "reembolsado"
-    VENCIDO = "vencido"
-
 
 OBRA_ACTIVA = "tipo = 'obra_disponible' AND estado NOT IN ('rechazado', 'cancelado')"
 

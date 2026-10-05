@@ -1,17 +1,12 @@
-import enum
 import uuid
 from datetime import datetime
 
 from sqlalchemy import BigInteger, DateTime, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column
 
+from src.domain.enums import EstadoMedia
+
 from .base import Base, IdMixin, SoftDeleteMixin, TimestampMixin, pg_enum
-
-
-class EstadoMedia(enum.StrEnum):
-    PENDIENTE = "pendiente"
-    PROCESADO = "procesado"
-    FALLIDO = "fallido"
 
 
 class MediaAsset(Base, IdMixin, TimestampMixin, SoftDeleteMixin):

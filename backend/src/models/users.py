@@ -1,29 +1,12 @@
-import enum
 import uuid
 
 from sqlalchemy import Boolean, CheckConstraint, ForeignKey, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import ARRAY, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
+from src.domain.enums import EstadoOnboarding, PlanArtista, RolPerfil
+
 from .base import Base, IdMixin, TimestampMixin, pg_enum
-
-
-class RolPerfil(enum.StrEnum):
-    PUBLICO = "publico"
-    ARTISTA = "artista"
-    ADMIN = "admin"
-
-
-class PlanArtista(enum.StrEnum):
-    TALLER = "taller"
-    ESTUDIO = "estudio"
-
-
-class EstadoOnboarding(enum.StrEnum):
-    NO_INICIADO = "no_iniciado"
-    PENDIENTE = "pendiente"
-    COMPLETADO = "completado"
-    RECHAZADO = "rechazado"
 
 
 class Profile(Base, TimestampMixin):
