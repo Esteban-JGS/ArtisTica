@@ -303,7 +303,7 @@ Con un pedido promedio de US$150, una tarifa promedio de 7% y 300 suscriptores d
 
 #### Incertidumbre sobre la pasarela
 
-**Situación.** ONVO no documenta cuánto dura una autorización ni si admite SINPE Móvil en modo marketplace, y sus avisos de pago no van firmados.
+**Situación.** ONVO solo documenta un máximo de 30 días para una autorización, sin un mínimo garantizado, no aclara si admite SINPE Móvil en modo marketplace, y sus avisos de pago no van firmados.
 
 **Impacto.** Diseñar directamente sobre ONVO ataba el sistema a supuestos, y un aviso alterado podía mover dinero.
 
@@ -355,7 +355,7 @@ Con un pedido promedio de US$150, una tarifa promedio de 7% y 300 suscriptores d
 
 Indicadores al cierre del avance:
 
-- 270 pruebas automatizadas.
+- 292 pruebas automatizadas.
 - Ningún saldo almacenado en la base de datos: ArtísTica no custodia dinero.
 - Montos calculados con aritmética decimal exacta.
 
