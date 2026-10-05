@@ -10,7 +10,7 @@ import hmac
 import json
 from collections import defaultdict, deque
 from collections.abc import Callable, Hashable, Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from typing import Any
@@ -19,7 +19,9 @@ from pydantic import SecretStr
 
 from src.payments.contrato import (
     Capacidades,
+    ConsultaCobro,
     CuentaConectada,
+    EstadoCobroPasarela,
     EstadoCuenta,
     EstadoOperacion,
     EventoRecibido,
@@ -60,6 +62,7 @@ OPERACIONES = frozenset(
         "capturar",
         "liberar_autorizacion",
         "reembolsar",
+        "consultar_cobro",
         "parsear_webhook",
     }
 )
@@ -97,6 +100,7 @@ class _Cobro:
     capturado: Decimal = Decimal("0")
     reembolsado: Decimal = Decimal("0")
     capturado_en: datetime | None = None
+    metadatos: Mapping[str, str] = field(default_factory=dict)
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -314,6 +318,20 @@ class PasarelaFalsa:
         )
         return self._recordar(clave_idempotencia, huella, resultado)
 
+    async def consultar_cobro(self, referencia: str) -> ConsultaCobro:
+        validar_referencia(referencia)
+        self._fallar_si_programado("consultar_cobro")
+        cobro = self._cobro(referencia)
+        return ConsultaCobro(
+            referencia=referencia,
+            estado=self._foto_de(cobro),
+            monto=cobro.autorizado,
+            monto_capturado=cobro.capturado,
+            monto_reembolsado=cobro.reembolsado,
+            autorizado_hasta=cobro.autorizado_hasta,
+            metadatos=dict(cobro.metadatos),
+        )
+
     # Webhooks
 
     async def parsear_webhook(
@@ -368,6 +386,7 @@ class PasarelaFalsa:
                 autorizado=solicitud.monto,
                 estado=EstadoOperacion.AUTORIZADO,
                 autorizado_hasta=hasta,
+                metadatos=dict(solicitud.metadatos),
             )
             resultado = ResultadoCobro(
                 referencia=referencia,
@@ -383,6 +402,7 @@ class PasarelaFalsa:
                 autorizado_hasta=None,
                 capturado=solicitud.monto,
                 capturado_en=ahora,
+                metadatos=dict(solicitud.metadatos),
             )
             resultado = ResultadoCobro(
                 referencia=referencia,
@@ -391,6 +411,18 @@ class PasarelaFalsa:
                 capturado_en=ahora,
             )
         return self._recordar(solicitud.clave_idempotencia, huella, resultado)
+
+    def _foto_de(self, cobro: _Cobro) -> EstadoCobroPasarela:
+        if cobro.estado is EstadoOperacion.CAPTURADO:
+            return EstadoCobroPasarela.CAPTURADO
+        if cobro.estado is EstadoOperacion.LIBERADO:
+            return EstadoCobroPasarela.LIBERADO
+        # Una autorizacion vencida deja de ser capturable: la pasarela la libera
+        if cobro.autorizado_hasta is not None and cobro.autorizado_hasta <= (
+            self._ahora()
+        ):
+            return EstadoCobroPasarela.LIBERADO
+        return EstadoCobroPasarela.AUTORIZADO
 
     def _exigir_autorizado(self, cobro: _Cobro, ahora: datetime) -> None:
         if cobro.estado is not EstadoOperacion.AUTORIZADO:

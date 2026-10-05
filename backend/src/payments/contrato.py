@@ -33,9 +33,22 @@ class EstadoCuenta(enum.StrEnum):
 
 
 class EstadoOperacion(enum.StrEnum):
+    """Resultado de una operacion, no la foto de un cobro."""
+
     AUTORIZADO = "autorizado"
     CAPTURADO = "capturado"
     LIBERADO = "liberado"
+
+
+class EstadoCobroPasarela(enum.StrEnum):
+    """Foto de un cobro segun la pasarela. La da `consultar_cobro`."""
+
+    PENDIENTE = "pendiente"  # creado o en proceso, sin resultado
+    REQUIERE_ACCION = "requiere_accion"  # 3DS u otra accion del cliente
+    AUTORIZADO = "autorizado"  # capturable
+    CAPTURADO = "capturado"
+    LIBERADO = "liberado"  # cancelado, o autorizacion vencida
+    FALLIDO = "fallido"
 
 
 class ResponsableContracargos(enum.StrEnum):
@@ -106,6 +119,20 @@ class ResultadoCobro:
 
 
 @dataclass(frozen=True, kw_only=True)
+class ConsultaCobro:
+    """Lo que la pasarela dice hoy del cobro. Nunca se mueve dinero por un
+    webhook solo: antes se consulta el cobro y se cree esta foto."""
+
+    referencia: str
+    estado: EstadoCobroPasarela
+    monto: Decimal
+    monto_capturado: Decimal | None  # None si el proveedor no lo informa
+    monto_reembolsado: Decimal | None  # None si el proveedor no lo informa
+    autorizado_hasta: datetime | None
+    metadatos: Mapping[str, str]
+
+
+@dataclass(frozen=True, kw_only=True)
 class ResultadoReembolso:
     referencia_cobro: str
     referencia_reembolso: str
@@ -167,6 +194,9 @@ class PasarelaDePagos(Protocol):
     async def reembolsar(
         self, referencia: str, *, monto: Decimal, clave_idempotencia: str
     ) -> ResultadoReembolso: ...
+
+    # Solo lectura, asi que siempre es repetible
+    async def consultar_cobro(self, referencia: str) -> ConsultaCobro: ...
 
     async def parsear_webhook(
         self, cuerpo: bytes, encabezados: Mapping[str, str]
