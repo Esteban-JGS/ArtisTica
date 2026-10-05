@@ -55,7 +55,7 @@ Las decisiones se numeran D y las deudas técnicas DT.
 | 4 | Identidad, roles, planes y onboarding | Cerrado | Aprobado con deuda | DT16 a DT18 |
 | 5 | Almacenamiento y medios con subida firmada | Cerrado | Aprobado con deuda | DT19, DT20 |
 | 5c | Deuda: infraestructura y configuración | Cerrado | Aprobado | Ninguna |
-| 5d | Deuda: esquema y enums | Pendiente | | |
+| 5d | Deuda: esquema y enums | Cerrado | Aprobado | Ninguna |
 | 5e | Deuda: contrato de pagos | Pendiente | | |
 | 5f | Deuda: política de lint | Pendiente | | |
 | 5b | Obras y servicios con límites de plan | Pendiente | | |
@@ -82,10 +82,10 @@ Las decisiones se numeran D y las deudas técnicas DT.
 | DT3 | Lote 0 | `asyncio.set_event_loop_policy` queda obsoleto en Python 3.14. El reemplazo es `asyncio.run(..., loop_factory=...)` | Pagada: verificado el 2026-10-04 que ya no hay `set_event_loop_policy` en el código; las pruebas usan `pytest_asyncio_loop_factories` |
 | DT4 | Lote 0 | `docker-compose.yml` publica el 5432, que en la máquina de Esteban ya ocupa otro contenedor. Hoy se resuelve con un override local fuera del repositorio | Pagada en el lote 5c |
 | DT5 | Lote 1 | `src/models/operation.py` quedó como reexportación de tres líneas hacia `operacion.py`, porque `workers/main.py` importa `Job` desde ahí | Pagada en el lote 5c |
-| DT6 | Lote 1 | Los valores por defecto se asignan en Python y no con `server_default`. Un insert por SQL crudo tiene que darlos explícitos | Lote 5d |
-| DT7 | Lote 1 | `reportes` y `moderation_actions` conservan nombres de columna en inglés y sin llave foránea en `reporter_id` y `admin_id` | Lote 5d |
+| DT6 | Lote 1 | Los valores por defecto se asignan en Python y no con `server_default`. Un insert por SQL crudo tiene que darlos explícitos | Pagada en el lote 5d |
+| DT7 | Lote 1 | `reportes` y `moderation_actions` conservan nombres de columna en inglés y sin llave foránea en `reporter_id` y `admin_id` | Pagada en el lote 5d |
 | DT8 | Lote 0 | La política de lint quedó en un conjunto acotado de reglas. Se revisa cuando haya código de dominio suficiente para juzgarla | Lote 5f |
-| DT9 | Lote 2 | El dominio importa los enums desde `src.models`. Pasa el grep de pureza, pero en ejecución carga SQLAlchemy. Hay que mover los enums a un módulo neutro | Lote 5d |
+| DT9 | Lote 2 | El dominio importa los enums desde `src.models`. Pasa el grep de pureza, pero en ejecución carga SQLAlchemy. Hay que mover los enums a un módulo neutro | Pagada en el lote 5d |
 | DT10 | Lote 2 | Faltan tres salidas por paso del tiempo: evento cuya fecha llega con el saldo impago, que queda trabado en `anticipo_pagado`; encargo cuya autorización del saldo vence en `vista_previa_entregada`, sin forma de reautorizar; y obra disponible cuya autorización vence en `en_proceso`, que está en la tabla pero sin función en el servicio | Sale de la deuda por D15: es alcance del lote 9, con las reglas de D7 |
 | DT11 | Lote 3 | ONVO no firma el cuerpo de los webhooks: manda el secreto tal cual en `X-Webhook-Secret`. El secreto prueba el origen, no la integridad. Regla para el lote 9: nunca mover dinero por un webhook solo; antes, consultar la intención a la pasarela. El contrato no tiene todavía una operación de consulta de cobro | Lote 5e agrega la consulta de cobro al contrato. Usarla al recibir webhooks es alcance del lote 9 |
 | DT12 | Lote 3 | ONVO no informa cuánto dura una autorización, así que `autorizado_hasta` vuelve nulo, pero el servicio del lote 2 exige una fecha. El valor quedó decidido en D9: 5 días | Lote 5e |
@@ -110,6 +110,7 @@ Las decisiones se numeran D y las deudas técnicas DT.
 | 3 | La tabla de errores marcaba `PasarelaNoDisponible` siempre como reintentable. Con una pasarela sin idempotencia, reintentar una confirmación o un reembolso tras un timeout cobraría o devolvería dos veces | El ejecutor lo marcó reintentable solo cuando la operación se puede repetir sin efecto doble |
 | 0 | La auditoría dio `src/core/security.py` por bueno para rescatar tal cual. Tenía la URL del JWKS equivocada (`/auth/v1/jwks` en vez de `/auth/v1/.well-known/jwks.json`) y solo aceptaba `RS256`, cuando Supabase firma con `ES256` o `RS256`: la autenticación nunca habría funcionado contra un proyecto real | Lote 4 corrige los dos defectos y lo prueba con tokens firmados en la prueba |
 | 4 | El criterio que listaba rutas con `app.routes` falla en FastAPI 0.141, donde `include_router` deja un `_IncludedRouter` sin `path` | Se verifica con `app.openapi()["paths"]`, que no depende de la estructura interna |
+| 5d | El criterio que buscaba nombres viejos de moderación con `grep` sobre `src` y `tests` contradecía la prueba 6 del mismo prompt, que necesita escribir esos nombres para verificar que ya no existen, y prometía mostrar la migración inicial sin buscar en `alembic` | Se acepta la salida del ejecutor. Un criterio de `grep` que busca algo ausente excluye los archivos de prueba que lo verifican |
 
 ## Preguntas abiertas que bloquean diseño
 
