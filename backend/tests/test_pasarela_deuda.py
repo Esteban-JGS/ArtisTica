@@ -215,16 +215,25 @@ ESTADOS_ESPERADOS = [
     (onvo.INTENCION_REQUIERE_CAPTURA, {}, EstadoCobroPasarela.AUTORIZADO),
     (onvo.INTENCION_EXITOSA, {}, EstadoCobroPasarela.CAPTURADO),
     (onvo.INTENCION_CANCELADA, {}, EstadoCobroPasarela.LIBERADO),
+    (onvo.INTENCION_REEMBOLSADA, {}, EstadoCobroPasarela.CAPTURADO),
+    (onvo.INTENCION_REEMBOLSADA_PARCIAL, {}, EstadoCobroPasarela.CAPTURADO),
 ]
 
 
 @pytest.mark.parametrize("estado,extra,esperado", ESTADOS_ESPERADOS)
 async def test_05_estados_de_onvo_segun_el_mapeo(estado, extra, esperado):
-    simulador = simulador_consulta(200, intencion(estado, **extra))
+    simulador = simulador_consulta(
+        200, intencion(estado, receivedAmount=CENTIMOS, **extra)
+    )
 
     consulta = await simulador.pasarela().consultar_cobro("pi_1")
 
     assert consulta.estado is esperado
+    # Con un reembolso de por medio receivedAmount es el neto, no lo capturado
+    if estado in onvo.INTENCIONES_CON_REEMBOLSO:
+        assert consulta.monto_capturado is None
+    else:
+        assert consulta.monto_capturado == MONTO
 
 
 async def test_05b_un_estado_fuera_del_mapeo_no_se_adivina():
@@ -273,7 +282,7 @@ async def test_07_la_falsa_no_duplica_la_cuenta_con_la_misma_clave(pasarela):
     )
 
     assert repetida == primera
-    assert pasarela.total_cuentas() == 1
+    assert pasarela.total_cuentas == 1
 
     with pytest.raises(SolicitudInvalida):
         await pasarela.crear_cuenta_conectada(
@@ -282,7 +291,7 @@ async def test_07_la_falsa_no_duplica_la_cuenta_con_la_misma_clave(pasarela):
             clave_idempotencia="cuenta-1",
             metadatos={"perfil_id": "p-1"},
         )
-    assert pasarela.total_cuentas() == 1
+    assert pasarela.total_cuentas == 1
 
     nueva = await pasarela.crear_cuenta_conectada(
         nombre="Ana",
@@ -290,7 +299,7 @@ async def test_07_la_falsa_no_duplica_la_cuenta_con_la_misma_clave(pasarela):
         clave_idempotencia="cuenta-2",
     )
     assert nueva.id != primera.id
-    assert pasarela.total_cuentas() == 2
+    assert pasarela.total_cuentas == 2
 
 
 async def test_08_onvo_valida_la_clave_y_no_manda_encabezado():
@@ -385,7 +394,7 @@ async def test_10_un_commit_fallido_no_deja_dos_cuentas(sesion_api, pasarela_fal
         sesion_api, pasarela_falsa, perfil_id, politicas
     )
 
-    assert pasarela_falsa.total_cuentas() == 1
+    assert pasarela_falsa.total_cuentas == 1
     assert segunda.id == primera.id
     guardado = await sesion_api.get(Profile, perfil_id, populate_existing=True)
     assert guardado.pasarela_cuenta_id == primera.id

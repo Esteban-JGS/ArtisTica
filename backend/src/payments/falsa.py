@@ -176,6 +176,7 @@ class PasarelaFalsa:
     def total_cobros(self) -> int:
         return len(self._cobros)
 
+    @property
     def total_cuentas(self) -> int:
         return len(self._cuentas)
 

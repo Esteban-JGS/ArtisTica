@@ -151,6 +151,8 @@ INTENCION_CANCELADA = "canceled"
 INTENCION_REQUIERE_ACCION = "requires_action"
 INTENCION_SIN_MEDIO_PAGO = "requires_payment_method"
 INTENCION_FALLIDA = "failed"
+INTENCION_REEMBOLSADA = "refunded"
+INTENCION_REEMBOLSADA_PARCIAL = "partially_refunded"
 # Una confirmacion declinada vuelve a requires_payment_method
 INTENCIONES_RECHAZADAS = frozenset({INTENCION_SIN_MEDIO_PAGO, INTENCION_FALLIDA})
 
@@ -160,8 +162,9 @@ INTENCIONES_RECHAZADAS = frozenset({INTENCION_SIN_MEDIO_PAGO, INTENCION_FALLIDA}
 # `_estado_cobro` segun lastPaymentError.
 # POR_CONFIRMAR: requires_confirmation y deferred no aparecen en el enum
 # documentado; deferred solo existe como evento payment-intent.deferred.
-# POR_CONFIRMAR: refunded y partially_refunded si estan en el enum
-# documentado y no en esta tabla, asi que hoy levantan ErrorPasarela.
+# refunded y partially_refunded: el dinero se capturo y despues se
+# reembolso desde el dashboard de ONVO. El reembolso es otro dato, no
+# un estado distinto del cobro.
 ESTADOS_COBRO: Mapping[str, EstadoCobroPasarela] = {
     "requires_confirmation": EstadoCobroPasarela.PENDIENTE,
     "processing": EstadoCobroPasarela.PENDIENTE,
@@ -171,7 +174,14 @@ ESTADOS_COBRO: Mapping[str, EstadoCobroPasarela] = {
     INTENCION_EXITOSA: EstadoCobroPasarela.CAPTURADO,
     INTENCION_CANCELADA: EstadoCobroPasarela.LIBERADO,
     INTENCION_FALLIDA: EstadoCobroPasarela.FALLIDO,
+    INTENCION_REEMBOLSADA: EstadoCobroPasarela.CAPTURADO,
+    INTENCION_REEMBOLSADA_PARCIAL: EstadoCobroPasarela.CAPTURADO,
 }
+# En estos dos receivedAmount ya bajo por el reembolso: informa el neto
+# recibido y no lo capturado, asi que monto_capturado queda en None.
+INTENCIONES_CON_REEMBOLSO = frozenset(
+    {INTENCION_REEMBOLSADA, INTENCION_REEMBOLSADA_PARCIAL}
+)
 
 # Estados de cuenta conectada
 # https://docs.onvopay.com/en/payments/marketplaces (Account statuses)
@@ -236,7 +246,12 @@ CAMPOS_DETALLE_ERROR = ("code", "message", "error")
 AUTORIZACION_DIFERIDA = frozenset({MetodoPago.TARJETA})
 # POR_CONFIRMAR incognita 3: SINPE Movil en modo marketplace
 METODOS = frozenset({MetodoPago.TARJETA})
-# POR_CONFIRMAR incognita 1: manual-capture dice que vence, no cuando
+# Incognita 1. https://docs.onvopay.com/openapi.yaml (descripcion de
+# requestBodies.CreatePaymentIntent.captureMethod): si no se captura en
+# "un maximo de 30 dias", los fondos vuelven al cliente. Es un maximo, no
+# un minimo garantizado: el emisor de la tarjeta puede vencer la
+# autorizacion antes. POR_CONFIRMAR cuanto dura de verdad, asi que queda
+# en None y rige el plazo propio de 5 dias (D9).
 DIAS_VIGENCIA_AUTORIZACION: int | None = None
 # https://docs.onvopay.com/en/payments/marketplaces: marketplaceAppFee es por
 # cuenta. POR_CONFIRMAR incognita 4: si existe tambien por cobro.
@@ -501,8 +516,7 @@ class PasarelaOnvo:
             referencia=_texto(intencion, CAMPO_ID),
             estado=_estado_cobro(intencion),
             monto=_monto(intencion, CAMPO_MONTO),
-            # receivedAmount baja con un reembolso: es lo recibido, no lo capturado
-            monto_capturado=_monto_opcional(intencion, CAMPO_MONTO_RECIBIDO),
+            monto_capturado=_monto_capturado(intencion),
             # POR_CONFIRMAR: ONVO no expone el acumulado reembolsado
             monto_reembolsado=None,
             # POR_CONFIRMAR: ONVO no informa cuando vence la autorizacion. Quien
@@ -755,6 +769,14 @@ def _metadatos_recibidos(datos: Mapping[str, Any]) -> dict[str, str]:
     return {
         k: v for k, v in crudos.items() if isinstance(k, str) and isinstance(v, str)
     }
+
+
+def _monto_capturado(intencion: Mapping[str, Any]) -> Decimal | None:
+    # Con un reembolso de por medio receivedAmount es el neto recibido y no lo
+    # capturado: antes que informar un monto equivocado, no se informa ninguno
+    if intencion.get(CAMPO_ESTADO) in INTENCIONES_CON_REEMBOLSO:
+        return None
+    return _monto_opcional(intencion, CAMPO_MONTO_RECIBIDO)
 
 
 def _estado_cobro(intencion: Mapping[str, Any]) -> EstadoCobroPasarela:
