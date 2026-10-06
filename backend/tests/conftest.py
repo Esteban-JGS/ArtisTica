@@ -19,8 +19,8 @@ from src.payments.falsa import PasarelaFalsa
 from src.storage.falso import AlmacenamientoFalso
 
 if sys.platform == "win32":
-
-    def pytest_asyncio_loop_factories(config, item):
+    # pluggy casa los argumentos del hook por nombre: no se pueden renombrar
+    def pytest_asyncio_loop_factories(config, item):  # noqa: ARG001
         # psycopg async no funciona con el loop Proactor, que es el de Windows
         return {"selector": asyncio.SelectorEventLoop}
 

@@ -362,7 +362,8 @@ async def test_10_disputa_solo_dentro_de_la_ventana(async_session):
         ahora=limite,
     )
     fila = await s.scalar(select(Disputa).where(Disputa.pedido_id == pedido.id))
-    assert fila is not None and fila.id == disputa.id
+    assert fila is not None
+    assert fila.id == disputa.id
     assert fila.estado is EstadoDisputa.ABIERTA
     assert (await _recargar(s, Pedido, pedido.id)).estado is EstadoPedido.EN_DISPUTA
 
@@ -478,7 +479,8 @@ async def test_cliente_cancela_encargo_y_conserva_el_anticipo(async_session):
         ahora=T0,
         politicas=POLITICAS,
     )
-    assert plan.reembolsos == {} and plan.liberaciones == set()
+    assert plan.reembolsos == {}
+    assert plan.liberaciones == set()
 
     with pytest.raises(HechosInconsistentes):
         await servicio.cancelar_pedido(

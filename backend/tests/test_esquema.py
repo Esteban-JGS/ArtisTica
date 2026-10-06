@@ -48,6 +48,7 @@ def test_01_dominio_no_carga_sqlalchemy():
         env=os.environ.copy(),
         capture_output=True,
         text=True,
+        check=False,  # el returncode se revisa en el assert de abajo
     )
     assert resultado.returncode == 0, resultado.stderr
 

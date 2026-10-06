@@ -382,11 +382,14 @@ async def test_13_mapeo_de_errores(caso):
     operacion, rutas, error, reintentable = CASOS_13[caso]
     pasarela = Simulador(rutas).pasarela()
 
-    with pytest.raises(error) as capturado:
+    async def ejecutar():
         if operacion == "cobrar":
             await pasarela.cobrar(cobro())
         else:
             await pasarela.capturar("pi_1", clave_idempotencia="c-1")
+
+    with pytest.raises(error) as capturado:
+        await ejecutar()
 
     assert capturado.value.reintentable is reintentable
 
