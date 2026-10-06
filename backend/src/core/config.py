@@ -48,6 +48,14 @@ class Settings(BaseSettings):
     CANCELACION_EVENTO_DIAS_PARCIAL: int = 7
     CANCELACION_EVENTO_PORCENTAJE_PARCIAL: Decimal = Decimal("50")
     MONTO_MINIMO_PEDIDO: Decimal = Decimal("2500.00")
+    # Limites del plan Taller (D11). Estudio no tiene limite.
+    LIMITE_SERVICIOS_TALLER: int = Field(default=2, ge=1)
+    LIMITE_OBRAS_DISPONIBLES_TALLER: int = Field(default=5, ge=1)
+    # Imagenes por obra, para cualquier plan
+    MEDIOS_POR_OBRA_MAXIMO: int = Field(default=10, ge=1)
+    # Paginacion por cursor de los listados
+    PAGINA_TAMANO_DEFECTO: int = Field(default=20, ge=1)
+    PAGINA_TAMANO_MAXIMO: int = Field(default=50, ge=1)
     TARIFA_TALLER_PORCENTAJE: Decimal = Decimal("8")
     TARIFA_ESTUDIO_PORCENTAJE: Decimal = Decimal("5")
     # D9. Cuanto se supone que dura una autorizacion cuando la pasarela no
