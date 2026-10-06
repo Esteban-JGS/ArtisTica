@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import BigInteger, DateTime, ForeignKey, String
+from sqlalchemy import BigInteger, DateTime, ForeignKey, SmallInteger, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.domain.enums import EstadoMedia
@@ -21,6 +21,8 @@ class MediaAsset(Base, IdMixin, TimestampMixin, SoftDeleteMixin):
     publicacion_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("publicaciones.id", ondelete="CASCADE"), nullable=True
     )
+    # Posicion dentro de la obra. La de orden 0 es la portada; nulo si esta suelto.
+    orden: Mapped[int | None] = mapped_column(SmallInteger, nullable=True)
     tipo: Mapped[str] = mapped_column(String)
     storage_path: Mapped[str] = mapped_column(String)
     thumbnail_path: Mapped[str | None] = mapped_column(String, nullable=True)

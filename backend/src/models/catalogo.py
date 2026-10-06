@@ -9,6 +9,7 @@ from sqlalchemy import (
     Index,
     Numeric,
     String,
+    desc,
     text,
 )
 from sqlalchemy.dialects.postgresql import ARRAY
@@ -27,6 +28,8 @@ class Obra(Base, IdMixin, TimestampMixin, SoftDeleteMixin):
             "estado = 'exhibicion' OR (precio IS NOT NULL AND precio > 0)",
             name="precio_fuera_de_exhibicion",
         ),
+        # El listado de la galeria del artista, en orden descendente
+        Index("ix_obras_artista_id_created_at", "artista_id", desc("created_at")),
         Index(
             "ix_obras_style_embedding",
             "style_embedding",
