@@ -19,7 +19,7 @@ POLITICAS = PoliticasPedido.desde_config(settings)
 def test_05_normalizar_handle():
     assert normalizar_handle("  Ana_Pinta ") == "ana_pinta"
     for invalido in ("ab", "a" * 31, "ana-pinta", "ana pinta", "yo"):
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="El handle lleva de 3 a 30 caracteres"):
             normalizar_handle(invalido)
 
 

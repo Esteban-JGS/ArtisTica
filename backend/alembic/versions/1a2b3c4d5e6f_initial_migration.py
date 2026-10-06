@@ -85,15 +85,15 @@ def _enum(name: str) -> postgresql.ENUM:
     return postgresql.ENUM(*ENUMS[name], name=name, create_type=False)
 
 
-def _uuid(name: str, nullable: bool = False) -> sa.Column:
+def _uuid(name: str, *, nullable: bool = False) -> sa.Column:
     return sa.Column(name, postgresql.UUID(as_uuid=True), nullable=nullable)
 
 
-def _money(name: str, nullable: bool = False) -> sa.Column:
+def _money(name: str, *, nullable: bool = False) -> sa.Column:
     return sa.Column(name, sa.Numeric(precision=12, scale=2), nullable=nullable)
 
 
-def _tz(name: str, nullable: bool = True) -> sa.Column:
+def _tz(name: str, *, nullable: bool = True) -> sa.Column:
     return sa.Column(name, sa.DateTime(timezone=True), nullable=nullable)
 
 

@@ -31,8 +31,8 @@ def construir_almacenamiento(nombre: str) -> Almacenamiento:
             )
         return AlmacenamientoFalso()
     if normalizado == "supabase":
-        # Import diferido: `python -m src.storage.supabase` no lo carga dos veces
-        from src.storage.supabase import desde_config
+        # `python -m src.storage.supabase` no lo carga dos veces
+        from src.storage.supabase import desde_config  # noqa: PLC0415  diferido
 
         return desde_config(settings)
     raise ValueError(

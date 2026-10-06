@@ -16,7 +16,7 @@ WEBP = "image/webp"
 
 
 @pytest.fixture
-def cliente(async_client, sesion_api, almacenamiento_falso):
+def cliente(async_client, sesion_api, almacenamiento_falso):  # noqa: ARG001  por su efecto
     """Cliente HTTP con la base y el almacenamiento de prueba ya puestos."""
     return async_client
 
@@ -75,7 +75,7 @@ def _confirmar(cliente, medio_id):
 def test_08_ruta_para():
     propietario, medio = uuid.uuid4(), uuid.uuid4()
     assert dominio.ruta_para(propietario, medio, WEBP) == f"{propietario}/{medio}.webp"
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Tipo de archivo no permitido"):
         dominio.ruta_para(propietario, medio, "image/gif")
 
 
@@ -121,7 +121,8 @@ async def test_11_solicitud_valida(cliente, sesion_api, autenticar_como):
     assert datos["ruta"].startswith(f"{artista.id}/")
     assert datos["ruta"].endswith(".webp")
     assert datos["bucket"] == settings.BUCKET_MEDIOS
-    assert datos["token"] and datos["url_subida"]
+    assert datos["token"]
+    assert datos["url_subida"]
     medio = await _medio(sesion_api, datos["medio_id"])
     assert medio.propietario_id == artista.id
     assert medio.storage_path == datos["ruta"]

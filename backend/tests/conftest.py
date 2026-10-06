@@ -20,7 +20,7 @@ from src.storage.falso import AlmacenamientoFalso
 
 if sys.platform == "win32":
 
-    def pytest_asyncio_loop_factories(config, item):
+    def pytest_asyncio_loop_factories(config, item):  # noqa: ARG001  nombres del hookspec
         # psycopg async no funciona con el loop Proactor, que es el de Windows
         return {"selector": asyncio.SelectorEventLoop}
 

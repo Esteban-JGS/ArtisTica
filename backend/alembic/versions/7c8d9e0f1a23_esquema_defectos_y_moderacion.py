@@ -71,7 +71,7 @@ DEFECTOS: list[tuple[str, str, str]] = [
     ("reportes", "estado", "'pendiente'"),
 ]
 
-# (tabla, antes, despues)
+# Cada entrada es la tabla, el nombre anterior y el nuevo
 COLUMNAS_RENOMBRADAS = [
     ("reportes", "reporter_id", "reportante_id"),
     ("reportes", "target_type", "objetivo_tipo"),

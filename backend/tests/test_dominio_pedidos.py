@@ -86,7 +86,7 @@ PERMITIDAS = sorted(
 
 
 def test_01_tabla_de_transiciones_es_exactamente_la_del_negocio():
-    assert d.TRANSICIONES_PEDIDO == set(PERMITIDAS)
+    assert set(PERMITIDAS) == d.TRANSICIONES_PEDIDO
 
 
 @pytest.mark.parametrize(("tipo", "desde", "hacia"), PERMITIDAS)
@@ -119,7 +119,7 @@ def test_01_transiciones_prohibidas_levantan_error(tipo, desde, hacia):
 def test_01_estados_terminales_no_tienen_salida():
     salidas = {desde for _, desde, _ in d.TRANSICIONES_PEDIDO}
     assert salidas.isdisjoint(d.ESTADOS_TERMINALES)
-    assert d.ESTADOS_TERMINALES == {E.COMPLETADO, E.RECHAZADO, E.CANCELADO}
+    assert {E.COMPLETADO, E.RECHAZADO, E.CANCELADO} == d.ESTADOS_TERMINALES
 
 
 # 2. Dinero
@@ -140,7 +140,8 @@ def test_02_anticipo_mas_saldo_da_el_total_exacto(total, porcentaje, anticipo):
     a, s = d.dividir_monto(total, porcentaje)
     assert a == Decimal(anticipo)
     assert a + s == total
-    assert a.as_tuple().exponent == -2 and s.as_tuple().exponent == -2
+    assert a.as_tuple().exponent == -2
+    assert s.as_tuple().exponent == -2
 
 
 def test_02_cotizacion_reparte_en_dos_cobros_que_suman_el_total():
@@ -343,9 +344,9 @@ def test_06_desde_config_toma_los_valores_de_la_configuracion():
 
 
 def test_06_politicas_incoherentes_se_rechazan():
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="El anticipo debe cumplir"):
         replace(POLITICAS, anticipo_porcentaje_defecto=Decimal("60"))
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="El plazo parcial no puede superar al total"):
         replace(POLITICAS, cancelacion_evento_parcial=timedelta(days=40))
 
 

@@ -84,3 +84,4 @@ Taller se permite siempre.
 1. El codigo vive en `backend/src`. Se importa como `src.<modulo>`.
 2. `mobile/` no se toca por ningun motivo. Es de otra persona.
 3. No se usan guiones largos ni guiones medios en comentarios ni documentacion.
+4. Un `noqa` siempre lleva el codigo de la regla y el motivo en la misma linea. No se agregan `ignore` ni `per-file-ignores` globales sin pasar por el orquestador.

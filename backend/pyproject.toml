@@ -42,7 +42,28 @@ line-length = 88
 target-version = "py312"
 
 [tool.ruff.lint]
-select = ["E4", "E7", "E9", "F", "I", "UP", "B", "ASYNC"]
+select = [
+    "E4", "E7", "E9", "F", "I", "UP", "B", "ASYNC",
+    "DTZ", "RUF", "C4", "PIE", "PERF", "PTH", "LOG", "G",
+    "SIM", "RET", "T20", "S", "BLE", "PT", "ERA", "N",
+    "ARG", "FBT", "PL", "TRY", "FAST",
+]
+ignore = [
+    "N818",     # Las excepciones del dominio se nombran en espanol, sin sufijo Error
+    "PLR2004",  # Los literales de las reglas y de las pruebas se leen mejor en su lugar
+    "PLR0913",  # Los servicios reciben sesion, pasarela, ids y politicas explicitos
+    "PLR0917",  # Idem, en posicion
+    "TRY003",   # Los mensajes en espanol de las excepciones son parte del dominio
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = [
+    "S101",  # assert es la forma de las pruebas
+    "S105",  # secretos falsos de prueba
+    "S106",  # idem, pasados como argumento
+    "S603",  # subprocess con comandos fijos del repositorio
+    "S607",  # idem, resueltos por PATH del entorno virtual
+]
 
 [tool.ruff.lint.flake8-bugbear]
 extend-immutable-calls = [

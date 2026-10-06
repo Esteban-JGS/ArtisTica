@@ -57,7 +57,7 @@ Las decisiones se numeran D y las deudas técnicas DT.
 | 5c | Deuda: infraestructura y configuración | Cerrado | Aprobado | Ninguna |
 | 5d | Deuda: esquema y enums | Cerrado | Aprobado | Ninguna |
 | 5e | Deuda: contrato de pagos | Cerrado | Aprobado tras correctivo | Ninguna |
-| 5f | Deuda: política de lint | Pendiente | | |
+| 5f | Deuda: política de lint | Cerrado | Aprobado | Ninguna |
 | 5b | Obras y servicios con límites de plan | Pendiente | | |
 | 6 | Publicaciones, feed Seguidos y Explorar por cursor | Pendiente | | |
 | 7 | Consultas y chat | Pendiente | | |
@@ -84,7 +84,7 @@ Las decisiones se numeran D y las deudas técnicas DT.
 | DT5 | Lote 1 | `src/models/operation.py` quedó como reexportación de tres líneas hacia `operacion.py`, porque `workers/main.py` importa `Job` desde ahí | Pagada en el lote 5c |
 | DT6 | Lote 1 | Los valores por defecto se asignan en Python y no con `server_default`. Un insert por SQL crudo tiene que darlos explícitos | Pagada en el lote 5d |
 | DT7 | Lote 1 | `reportes` y `moderation_actions` conservan nombres de columna en inglés y sin llave foránea en `reporter_id` y `admin_id` | Pagada en el lote 5d |
-| DT8 | Lote 0 | La política de lint quedó en un conjunto acotado de reglas. Se revisa cuando haya código de dominio suficiente para juzgarla | Lote 5f |
+| DT8 | Lote 0 | La política de lint quedó en un conjunto acotado de reglas. Se revisa cuando haya código de dominio suficiente para juzgarla | Pagada en el lote 5f: 29 familias de reglas activas, cinco ignoradas con motivo y diez `noqa` con motivo en la línea |
 | DT9 | Lote 2 | El dominio importa los enums desde `src.models`. Pasa el grep de pureza, pero en ejecución carga SQLAlchemy. Hay que mover los enums a un módulo neutro | Pagada en el lote 5d |
 | DT10 | Lote 2 | Faltan tres salidas por paso del tiempo: evento cuya fecha llega con el saldo impago, que queda trabado en `anticipo_pagado`; encargo cuya autorización del saldo vence en `vista_previa_entregada`, sin forma de reautorizar; y obra disponible cuya autorización vence en `en_proceso`, que está en la tabla pero sin función en el servicio | Sale de la deuda por D15: es alcance del lote 9, con las reglas de D7 |
 | DT11 | Lote 3 | ONVO no firma el cuerpo de los webhooks: manda el secreto tal cual en `X-Webhook-Secret`. El secreto prueba el origen, no la integridad. Regla para el lote 9: nunca mover dinero por un webhook solo; antes, consultar la intención a la pasarela. El contrato no tiene todavía una operación de consulta de cobro | Pagada en el lote 5e: `consultar_cobro` en el contrato y en los dos adaptadores. Usarla al recibir webhooks es alcance del lote 9 |
@@ -112,6 +112,8 @@ Las decisiones se numeran D y las deudas técnicas DT.
 | 4 | El criterio que listaba rutas con `app.routes` falla en FastAPI 0.141, donde `include_router` deja un `_IncludedRouter` sin `path` | Se verifica con `app.openapi()["paths"]`, que no depende de la estructura interna |
 | 5d | El criterio que buscaba nombres viejos de moderación con `grep` sobre `src` y `tests` contradecía la prueba 6 del mismo prompt, que necesita escribir esos nombres para verificar que ya no existen, y prometía mostrar la migración inicial sin buscar en `alembic` | Se acepta la salida del ejecutor. Un criterio de `grep` que busca algo ausente excluye los archivos de prueba que lo verifican |
 | 5e | La tabla de estados de ONVO para la consulta de cobro omitía `refunded` y `partially_refunded`, que están en el enum documentado. Un cobro reembolsado desde el dashboard habría hecho fallar la consulta que el lote 9 usa antes de mover dinero | Correctivo del lote 5e en la misma rama: los dos estados van a `capturado`, con `monto_capturado` nulo porque ONVO informa el neto |
+| 5f | La tabla de `noqa` permitidos se midió con la política vieja, antes de las correcciones que el mismo prompt pedía. Tres de las cinco entradas sobraban y faltaban tres casos legítimos | Se aceptan los diez `noqa` del ejecutor, cada uno con motivo. Las excepciones permitidas se miden después de aplicar las correcciones |
+| 5f | Los seis commits del ejecutor traían la línea `Co-Authored-By`, que `CLAUDE.md` prohíbe. Ningún prompt ni la lista de verificación lo controlaban | El orquestador limpió los mensajes antes del push, con el árbol idéntico. La plantilla de prompt y la lista de verificación del manual ahora lo exigen |
 
 ## Preguntas abiertas que bloquean diseño
 

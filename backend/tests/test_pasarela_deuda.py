@@ -220,7 +220,7 @@ ESTADOS_ESPERADOS = [
 ]
 
 
-@pytest.mark.parametrize("estado,extra,esperado", ESTADOS_ESPERADOS)
+@pytest.mark.parametrize(("estado", "extra", "esperado"), ESTADOS_ESPERADOS)
 async def test_05_estados_de_onvo_segun_el_mapeo(estado, extra, esperado):
     simulador = simulador_consulta(
         200, intencion(estado, receivedAmount=CENTIMOS, **extra)
@@ -352,7 +352,7 @@ def test_09_vencimiento_efectivo_de_la_autorizacion():
         days=5
     )
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="tiene que tener zona horaria"):
         politicas.vencimiento_autorizacion(None, INICIO.replace(tzinfo=None))
 
     with pytest.raises(ValidationError):

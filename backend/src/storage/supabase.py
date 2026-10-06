@@ -54,8 +54,8 @@ RUTA_FIRMAR_SUBIDA = "/object/upload/sign/{bucket}/{ruta}"
 # [js] createSignedUploadUrl toma el token del query de `url`. Se usa el campo
 # `token` si viene y el query si no, para versiones viejas que solo dan `url`.
 CAMPO_URL_FIRMADA = "url"
-CAMPO_TOKEN_FIRMADO = "token"
-PARAMETRO_TOKEN = "token"
+CAMPO_TOKEN_FIRMADO = "token"  # noqa: S105  nombre de campo, no un secreto
+PARAMETRO_TOKEN = "token"  # noqa: S105  nombre de parametro, no un secreto
 # [js] uploadToSignedUrl sube con PUT a `${url}/object/upload/sign/...?token=`.
 # Es lo que hace el cliente movil con `url_subida`; este adaptador no lo usa.
 METODO_SUBIDA_CLIENTE = "PUT"
@@ -383,8 +383,8 @@ def desde_config(config: Any) -> AlmacenamientoSupabase:
 
 
 async def _preparar_bucket_medios() -> None:
-    from src.core.config import settings
-    from src.domain.medios import TIPOS_PERMITIDOS
+    from src.core.config import settings  # noqa: PLC0415  evita el ciclo con config
+    from src.domain.medios import TIPOS_PERMITIDOS  # noqa: PLC0415  idem
 
     almacenamiento = desde_config(settings)
     try:
@@ -395,7 +395,9 @@ async def _preparar_bucket_medios() -> None:
         )
     finally:
         await almacenamiento.cerrar()
-    print(f"Bucket {settings.BUCKET_MEDIOS}: {resultado}")
+    print(  # noqa: T201  es la salida del comando de consola
+        f"Bucket {settings.BUCKET_MEDIOS}: {resultado}"
+    )
 
 
 if __name__ == "__main__":
