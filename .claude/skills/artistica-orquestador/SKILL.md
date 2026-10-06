@@ -247,8 +247,9 @@ Verificá con `git branch --show-current`. Si la rama ya existe, detenete y
 avisá: no la sobrescribas.
 
 Al terminar, commiteá en esa rama **solo los archivos del alcance**, con un
-mensaje convencional (`tipo(backend): descripcion`). No commitees nada de
-`orquestacion/`. No hagas push ni abras PR: eso lo hace el orquestador.
+mensaje convencional (`tipo(backend): descripcion`). Los mensajes no llevan
+lineas `Co-Authored-By` ni mencionan herramientas de asistencia. No commitees
+nada de `orquestacion/`. No hagas push ni abras PR: eso lo hace el orquestador.
 
 ## Cómo entregar
 Salida de `git diff --stat develop...HEAD`, lista de archivos tocados,
@@ -306,6 +307,7 @@ Los cambios del propio orquestador a documentación también van por rama `docs/
 - [ ] No rompió ninguna invariante de la sección 2.
 - [ ] No agregó librerías fuera del stack.
 - [ ] No tocó `mobile/`.
+- [ ] Ningún commit de la rama lleva `Co-Authored-By` ni menciona herramientas de asistencia: `git log develop..HEAD --format=%B | grep -ci "co-authored"` da 0. Si aparece y la rama no se subió, se limpian los mensajes sin tocar el árbol antes del push.
 - [ ] Los criterios de aceptación se cumplen de verdad, **con la salida del comando pegada**. Un criterio marcado sin evidencia no está cumplido.
 - [ ] Si hubo migración: es reversible o está justificado que no lo sea, y no borra datos sin decirlo.
 - [ ] Si tocó pagos: el estado del pedido y el del cobro cambian en la misma transacción.
