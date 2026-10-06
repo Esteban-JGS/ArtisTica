@@ -21,7 +21,7 @@ POLITICAS = PoliticasPedido.desde_config(settings)
 
 
 @pytest.fixture
-def cliente(async_client, sesion_api, pasarela_falsa):  # noqa: ARG001  pedidas por su efecto; usefixtures no aplica a una fixture
+def cliente(async_client, sesion_api, pasarela_falsa):  # noqa: ARG001  por su efecto
     """Cliente HTTP con la base y la pasarela de prueba ya puestas."""
     return async_client
 

@@ -16,7 +16,7 @@ WEBP = "image/webp"
 
 
 @pytest.fixture
-def cliente(async_client, sesion_api, almacenamiento_falso):  # noqa: ARG001  pedidas por su efecto; usefixtures no aplica a una fixture
+def cliente(async_client, sesion_api, almacenamiento_falso):  # noqa: ARG001  por su efecto
     """Cliente HTTP con la base y el almacenamiento de prueba ya puestos."""
     return async_client
 

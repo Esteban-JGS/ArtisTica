@@ -383,9 +383,8 @@ def desde_config(config: Any) -> AlmacenamientoSupabase:
 
 
 async def _preparar_bucket_medios() -> None:
-    # Imports diferidos: importarlos arriba haria circular el modulo de config
-    from src.core.config import settings  # noqa: PLC0415
-    from src.domain.medios import TIPOS_PERMITIDOS  # noqa: PLC0415
+    from src.core.config import settings  # noqa: PLC0415  evita el ciclo con config
+    from src.domain.medios import TIPOS_PERMITIDOS  # noqa: PLC0415  idem
 
     almacenamiento = desde_config(settings)
     try:
