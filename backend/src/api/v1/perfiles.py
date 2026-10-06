@@ -4,25 +4,15 @@ Cada handler cierra la transaccion con commit despues de llamar al servicio.
 Las rutas /perfiles/yo van antes que /perfiles/{handle}.
 """
 
-import uuid
-
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, status
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.api.deps import (
-    get_current_artista,
-    get_current_user,
-    get_current_user_id,
-    get_db,
-    get_pasarela,
-)
+from src.api.deps import Artista, IdUsuario, Pasarela, Sesion, Usuario
 from src.core.config import settings
 from src.core.exceptions import ResourceNotFound
 from src.domain import perfiles as dominio
 from src.domain.politicas import PoliticasPedido
 from src.models import Profile
-from src.payments.contrato import PasarelaDePagos
 from src.schemas.perfiles import (
     ActualizacionPerfil,
     CambioPlan,
@@ -41,29 +31,29 @@ def _politicas() -> PoliticasPedido:
     return PoliticasPedido.desde_config(settings)
 
 
-@router.post("", response_model=PerfilPropio, status_code=status.HTTP_201_CREATED)
+@router.post("", status_code=status.HTTP_201_CREATED)
 async def registrar_perfil(
     datos: RegistroPerfil,
-    user_id: uuid.UUID = Depends(get_current_user_id),
-    session: AsyncSession = Depends(get_db),
+    user_id: IdUsuario,
+    session: Sesion,
 ) -> PerfilPropio:
     perfil = await servicio.registrar(session, user_id, datos.handle, datos.nombre)
     await session.commit()
     return PerfilPropio.desde(perfil, _politicas())
 
 
-@router.get("/yo", response_model=PerfilPropio)
+@router.get("/yo")
 async def obtener_mi_perfil(
-    perfil: Profile = Depends(get_current_user),
+    perfil: Usuario,
 ) -> PerfilPropio:
     return PerfilPropio.desde(perfil, _politicas())
 
 
-@router.patch("/yo", response_model=PerfilPropio)
+@router.patch("/yo")
 async def actualizar_mi_perfil(
     datos: ActualizacionPerfil,
-    perfil: Profile = Depends(get_current_user),
-    session: AsyncSession = Depends(get_db),
+    perfil: Usuario,
+    session: Sesion,
 ) -> PerfilPropio:
     perfil = await servicio.actualizar(
         session, perfil, datos.model_dump(exclude_unset=True)
@@ -72,22 +62,22 @@ async def actualizar_mi_perfil(
     return PerfilPropio.desde(perfil, _politicas())
 
 
-@router.post("/yo/artista", response_model=PerfilPropio)
+@router.post("/yo/artista")
 async def hacerse_artista(
-    perfil: Profile = Depends(get_current_user),
-    session: AsyncSession = Depends(get_db),
+    perfil: Usuario,
+    session: Sesion,
 ) -> PerfilPropio:
     perfil = await servicio.hacerse_artista(session, perfil)
     await session.commit()
     return PerfilPropio.desde(perfil, _politicas())
 
 
-@router.put("/yo/plan", response_model=ResultadoPlan)
+@router.put("/yo/plan")
 async def cambiar_plan(
     datos: CambioPlan,
-    artista: Profile = Depends(get_current_artista),
-    session: AsyncSession = Depends(get_db),
-    pasarela: PasarelaDePagos = Depends(get_pasarela),
+    artista: Artista,
+    session: Sesion,
+    pasarela: Pasarela,
 ) -> ResultadoPlan:
     resultado = await servicio.cambiar_plan(
         session,
@@ -105,11 +95,11 @@ async def cambiar_plan(
     )
 
 
-@router.post("/yo/onboarding", response_model=EstadoOnboardingRespuesta)
+@router.post("/yo/onboarding")
 async def iniciar_onboarding(
-    artista: Profile = Depends(get_current_artista),
-    session: AsyncSession = Depends(get_db),
-    pasarela: PasarelaDePagos = Depends(get_pasarela),
+    artista: Artista,
+    session: Sesion,
+    pasarela: Pasarela,
 ) -> EstadoOnboardingRespuesta:
     cuenta = await servicio.iniciar_onboarding(
         session, pasarela, artista.id, _politicas()
@@ -122,11 +112,11 @@ async def iniciar_onboarding(
     )
 
 
-@router.get("/yo/onboarding", response_model=EstadoOnboardingRespuesta)
+@router.get("/yo/onboarding")
 async def consultar_onboarding(
-    artista: Profile = Depends(get_current_artista),
-    session: AsyncSession = Depends(get_db),
-    pasarela: PasarelaDePagos = Depends(get_pasarela),
+    artista: Artista,
+    session: Sesion,
+    pasarela: Pasarela,
 ) -> EstadoOnboardingRespuesta:
     perfil = await servicio.sincronizar_onboarding(session, pasarela, artista.id)
     await session.commit()
@@ -137,10 +127,10 @@ async def consultar_onboarding(
     )
 
 
-@router.get("/{handle}", response_model=PerfilPublico)
+@router.get("/{handle}")
 async def obtener_perfil_publico(
     handle: str,
-    session: AsyncSession = Depends(get_db),
+    session: Sesion,
 ) -> PerfilPublico:
     stmt = select(Profile).where(Profile.handle == handle.strip().lower())
     perfil = (await session.execute(stmt)).scalar_one_or_none()

@@ -6,30 +6,22 @@ Cada handler cierra la transaccion con commit despues de llamar al servicio.
 
 import uuid
 
-from fastapi import APIRouter, Depends, Response, status
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import APIRouter, Response, status
 
-from src.api.deps import (
-    get_almacenamiento,
-    get_current_artista,
-    get_current_user,
-    get_db,
-)
+from src.api.deps import AlmacenamientoDeMedios, Artista, Sesion, Usuario
 from src.core.config import settings
-from src.models import Profile
 from src.schemas.medios import MedioRespuesta, SolicitudSubida, SubidaRespuesta
 from src.services import medios as servicio
-from src.storage import Almacenamiento
 
 router = APIRouter(prefix="/medios", tags=["medios"])
 
 
-@router.post("", response_model=SubidaRespuesta, status_code=status.HTTP_201_CREATED)
+@router.post("", status_code=status.HTTP_201_CREATED)
 async def solicitar_subida(
     datos: SolicitudSubida,
-    artista: Profile = Depends(get_current_artista),
-    session: AsyncSession = Depends(get_db),
-    almacenamiento: Almacenamiento = Depends(get_almacenamiento),
+    artista: Artista,
+    session: Sesion,
+    almacenamiento: AlmacenamientoDeMedios,
 ) -> SubidaRespuesta:
     medio, subida = await servicio.solicitar_subida(
         session,
@@ -44,12 +36,12 @@ async def solicitar_subida(
     return SubidaRespuesta.desde(medio, subida)
 
 
-@router.post("/{medio_id}/confirmar", response_model=MedioRespuesta)
+@router.post("/{medio_id}/confirmar")
 async def confirmar_subida(
     medio_id: uuid.UUID,
-    usuario: Profile = Depends(get_current_user),
-    session: AsyncSession = Depends(get_db),
-    almacenamiento: Almacenamiento = Depends(get_almacenamiento),
+    usuario: Usuario,
+    session: Sesion,
+    almacenamiento: AlmacenamientoDeMedios,
 ) -> MedioRespuesta:
     medio = await servicio.confirmar_subida(
         session,
@@ -62,12 +54,12 @@ async def confirmar_subida(
     return MedioRespuesta.desde(medio, almacenamiento)
 
 
-@router.get("/{medio_id}", response_model=MedioRespuesta)
+@router.get("/{medio_id}")
 async def obtener_medio(
     medio_id: uuid.UUID,
-    usuario: Profile = Depends(get_current_user),
-    session: AsyncSession = Depends(get_db),
-    almacenamiento: Almacenamiento = Depends(get_almacenamiento),
+    usuario: Usuario,
+    session: Sesion,
+    almacenamiento: AlmacenamientoDeMedios,
 ) -> MedioRespuesta:
     medio = await servicio.obtener(session, usuario.id, medio_id)
     return MedioRespuesta.desde(medio, almacenamiento)
@@ -76,9 +68,9 @@ async def obtener_medio(
 @router.delete("/{medio_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def eliminar_medio(
     medio_id: uuid.UUID,
-    usuario: Profile = Depends(get_current_user),
-    session: AsyncSession = Depends(get_db),
-    almacenamiento: Almacenamiento = Depends(get_almacenamiento),
+    usuario: Usuario,
+    session: Sesion,
+    almacenamiento: AlmacenamientoDeMedios,
 ) -> Response:
     await servicio.eliminar(session, almacenamiento, usuario.id, medio_id)
     await session.commit()
