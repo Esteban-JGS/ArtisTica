@@ -53,7 +53,6 @@ def verify_token(token: str) -> dict:
                 "verify_signature": True,
             },
         )
-        return payload
     except jwt.ExpiredSignatureError as e:
         logger.warning("Token expirado")
         raise _no_autorizado("Token expirado") from e
@@ -61,6 +60,11 @@ def verify_token(token: str) -> dict:
         logger.warning("Token inválido: %s", type(e).__name__)
         raise _no_autorizado("Token inválido") from e
     except Exception as e:
-        # Un JWKS caido no puede devolver 500 con detalles
-        logger.error("Error imprevisto verificando token: %s", type(e).__name__)
+        # Un JWKS caido no puede devolver 500 con detalles. Solo el tipo de
+        # error: la traza llevaria el token crudo en los locales
+        logger.error(  # noqa: TRY400  la traza expondria el token
+            "Error imprevisto verificando token: %s", type(e).__name__
+        )
         raise _no_autorizado("Error validando credenciales") from e
+    else:
+        return payload

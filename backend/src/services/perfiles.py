@@ -156,6 +156,7 @@ async def cambiar_plan(
     perfil_id: uuid.UUID,
     plan: PlanArtista,
     politicas: PoliticasPedido,
+    *,
     estudio_autoservicio: bool,
 ) -> ResultadoCambioPlan:
     # Sin autoservicio, Estudio llega por la suscripcion. Bajar a Taller siempre.

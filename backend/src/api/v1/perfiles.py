@@ -85,7 +85,7 @@ async def cambiar_plan(
         artista.id,
         datos.plan,
         _politicas(),
-        settings.ESTUDIO_AUTOSERVICIO,
+        estudio_autoservicio=settings.ESTUDIO_AUTOSERVICIO,
     )
     await session.commit()
     return ResultadoPlan(

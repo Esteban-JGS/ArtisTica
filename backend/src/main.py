@@ -27,7 +27,7 @@ if settings.SENTRY_DSN:
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(_app: FastAPI):
     # Logica de inicializacion (ej. cargar configuraciones, pre-calentar caches)
     yield
     # Logica de apagado
