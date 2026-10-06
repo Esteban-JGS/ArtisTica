@@ -10,7 +10,7 @@ import hmac
 import json
 from collections import defaultdict, deque
 from collections.abc import Callable, Hashable, Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from typing import Any
@@ -18,8 +18,11 @@ from typing import Any
 from pydantic import SecretStr
 
 from src.payments.contrato import (
+    SIN_METADATOS,
     Capacidades,
+    ConsultaCobro,
     CuentaConectada,
+    EstadoCobroPasarela,
     EstadoCuenta,
     EstadoOperacion,
     EventoRecibido,
@@ -31,6 +34,7 @@ from src.payments.contrato import (
     TipoEvento,
     buscar_encabezado,
     validar_clave,
+    validar_metadatos,
     validar_monto,
     validar_referencia,
     validar_solicitud,
@@ -60,6 +64,7 @@ OPERACIONES = frozenset(
         "capturar",
         "liberar_autorizacion",
         "reembolsar",
+        "consultar_cobro",
         "parsear_webhook",
     }
 )
@@ -86,6 +91,7 @@ class _Cuenta:
     nombre: str
     estado: EstadoCuenta
     tarifa: Decimal
+    metadatos: Mapping[str, str] = field(default_factory=dict)
 
 
 @dataclass
@@ -97,6 +103,7 @@ class _Cobro:
     capturado: Decimal = Decimal("0")
     reembolsado: Decimal = Decimal("0")
     capturado_en: datetime | None = None
+    metadatos: Mapping[str, str] = field(default_factory=dict)
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -169,6 +176,10 @@ class PasarelaFalsa:
     def total_cobros(self) -> int:
         return len(self._cobros)
 
+    @property
+    def total_cuentas(self) -> int:
+        return len(self._cuentas)
+
     def firmar(self, cuerpo: bytes) -> str:
         return hmac.new(
             self._secreto.get_secret_value().encode(), cuerpo, hashlib.sha256
@@ -195,23 +206,43 @@ class PasarelaFalsa:
     # Cuentas conectadas
 
     async def crear_cuenta_conectada(
-        self, *, nombre: str, tarifa_porcentaje: Decimal
+        self,
+        *,
+        nombre: str,
+        tarifa_porcentaje: Decimal,
+        clave_idempotencia: str,
+        metadatos: Mapping[str, str] = SIN_METADATOS,
     ) -> CuentaConectada:
         if not isinstance(nombre, str) or not nombre.strip():
             raise SolicitudInvalida("Falta el nombre de la cuenta")
         validar_tarifa(tarifa_porcentaje)
+        validar_clave(clave_idempotencia)
+        validar_metadatos(metadatos)
         self._fallar_si_programado("crear_cuenta_conectada")
+        nombre = nombre.strip()
+        huella = (
+            "crear_cuenta_conectada",
+            nombre,
+            tarifa_porcentaje,
+            tuple(sorted(metadatos.items())),
+        )
+        # Reintentar despues de un commit fallido no crea una segunda cuenta
+        if (previo := self._repetido(clave_idempotencia, huella)) is not None:
+            return previo
+
         cuenta_id = self._nuevo_id("cuenta")
         self._cuentas[cuenta_id] = _Cuenta(
-            nombre=nombre.strip(),
+            nombre=nombre,
             estado=EstadoCuenta.PENDIENTE,
             tarifa=tarifa_porcentaje,
+            metadatos=dict(metadatos),
         )
-        return CuentaConectada(
+        cuenta = CuentaConectada(
             id=cuenta_id,
             estado=EstadoCuenta.PENDIENTE,
             url_onboarding=f"https://pasarela-falsa.invalid/onboarding/{cuenta_id}",
         )
+        return self._recordar(clave_idempotencia, huella, cuenta)
 
     async def consultar_cuenta(self, cuenta_id: str) -> CuentaConectada:
         self._fallar_si_programado("consultar_cuenta")
@@ -314,6 +345,20 @@ class PasarelaFalsa:
         )
         return self._recordar(clave_idempotencia, huella, resultado)
 
+    async def consultar_cobro(self, referencia: str) -> ConsultaCobro:
+        validar_referencia(referencia)
+        self._fallar_si_programado("consultar_cobro")
+        cobro = self._cobro(referencia)
+        return ConsultaCobro(
+            referencia=referencia,
+            estado=self._foto_de(cobro),
+            monto=cobro.autorizado,
+            monto_capturado=cobro.capturado,
+            monto_reembolsado=cobro.reembolsado,
+            autorizado_hasta=cobro.autorizado_hasta,
+            metadatos=dict(cobro.metadatos),
+        )
+
     # Webhooks
 
     async def parsear_webhook(
@@ -368,6 +413,7 @@ class PasarelaFalsa:
                 autorizado=solicitud.monto,
                 estado=EstadoOperacion.AUTORIZADO,
                 autorizado_hasta=hasta,
+                metadatos=dict(solicitud.metadatos),
             )
             resultado = ResultadoCobro(
                 referencia=referencia,
@@ -383,6 +429,7 @@ class PasarelaFalsa:
                 autorizado_hasta=None,
                 capturado=solicitud.monto,
                 capturado_en=ahora,
+                metadatos=dict(solicitud.metadatos),
             )
             resultado = ResultadoCobro(
                 referencia=referencia,
@@ -391,6 +438,18 @@ class PasarelaFalsa:
                 capturado_en=ahora,
             )
         return self._recordar(solicitud.clave_idempotencia, huella, resultado)
+
+    def _foto_de(self, cobro: _Cobro) -> EstadoCobroPasarela:
+        if cobro.estado is EstadoOperacion.CAPTURADO:
+            return EstadoCobroPasarela.CAPTURADO
+        if cobro.estado is EstadoOperacion.LIBERADO:
+            return EstadoCobroPasarela.LIBERADO
+        # Una autorizacion vencida deja de ser capturable: la pasarela la libera
+        if cobro.autorizado_hasta is not None and cobro.autorizado_hasta <= (
+            self._ahora()
+        ):
+            return EstadoCobroPasarela.LIBERADO
+        return EstadoCobroPasarela.AUTORIZADO
 
     def _exigir_autorizado(self, cobro: _Cobro, ahora: datetime) -> None:
         if cobro.estado is not EstadoOperacion.AUTORIZADO:

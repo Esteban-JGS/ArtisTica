@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import timedelta
+from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
@@ -26,6 +26,7 @@ class PoliticasPedido:
     monto_minimo_pedido: Decimal
     tarifa_taller_porcentaje: Decimal
     tarifa_estudio_porcentaje: Decimal
+    vigencia_autorizacion_supuesta: timedelta
 
     def __post_init__(self) -> None:
         minimo = self.anticipo_porcentaje_minimo
@@ -47,6 +48,20 @@ class PoliticasPedido:
         for tarifa in (self.tarifa_taller_porcentaje, self.tarifa_estudio_porcentaje):
             if not CERO <= tarifa < CIEN:
                 raise ValueError("La tarifa debe estar entre 0 y 100")
+        if self.vigencia_autorizacion_supuesta <= timedelta(0):
+            raise ValueError(
+                "La vigencia supuesta de la autorizacion debe ser positiva"
+            )
+
+    def vencimiento_autorizacion(
+        self, informado: datetime | None, ahora: datetime
+    ) -> datetime:
+        """El que informa la pasarela, o ahora mas la vigencia supuesta (D9)."""
+        if ahora.tzinfo is None:
+            raise ValueError("`ahora` tiene que tener zona horaria")
+        if informado is not None:
+            return informado
+        return ahora + self.vigencia_autorizacion_supuesta
 
     @classmethod
     def desde_config(cls, config: Settings) -> PoliticasPedido:
@@ -67,4 +82,7 @@ class PoliticasPedido:
             monto_minimo_pedido=config.MONTO_MINIMO_PEDIDO,
             tarifa_taller_porcentaje=config.TARIFA_TALLER_PORCENTAJE,
             tarifa_estudio_porcentaje=config.TARIFA_ESTUDIO_PORCENTAJE,
+            vigencia_autorizacion_supuesta=timedelta(
+                days=config.DIAS_VIGENCIA_AUTORIZACION_SUPUESTA
+            ),
         )

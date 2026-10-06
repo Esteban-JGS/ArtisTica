@@ -19,8 +19,11 @@ from pydantic import SecretStr
 
 from src.payments.config import ConfigOnvo
 from src.payments.contrato import (
+    SIN_METADATOS,
     Capacidades,
+    ConsultaCobro,
     CuentaConectada,
+    EstadoCobroPasarela,
     EstadoCuenta,
     EstadoOperacion,
     EventoRecibido,
@@ -32,6 +35,7 @@ from src.payments.contrato import (
     TipoEvento,
     buscar_encabezado,
     validar_clave,
+    validar_metadatos,
     validar_monto,
     validar_referencia,
     validar_solicitud,
@@ -74,6 +78,9 @@ RUTA_CREAR_CUENTA = "/v1/connected-accounts"
 RUTA_CUENTA = "/v1/connected-accounts/{id}"
 # https://docs.onvopay.com/en/api/crear-una-intencion-de-pago
 RUTA_CREAR_INTENCION = "/v1/payment-intents"
+# https://docs.onvopay.com/openapi.yaml (paths./v1/payment-intents/{id}.get)
+# https://docs.onvopay.com/en/api/obtener-una-intencion-de-pago
+RUTA_INTENCION = "/v1/payment-intents/{id}"
 # https://docs.onvopay.com/en/api/confirmar-una-intencion-de-pago
 RUTA_CONFIRMAR = "/v1/payment-intents/{id}/confirm"
 # https://docs.onvopay.com/en/api/capturar-una-intencion-de-pago
@@ -90,6 +97,11 @@ CAMPO_NOMBRE_NEGOCIO = "businessName"
 LARGO_MAXIMO_NOMBRE_NEGOCIO = 50
 CAMPO_TARIFA_MARKETPLACE = "marketplaceAppFee"
 CAMPO_URL_ONBOARDING = "onboardingUrl"
+# https://docs.onvopay.com/openapi.yaml (requestBodies.CreateConnectedAccount):
+# declara additionalProperties: false y solo businessName y marketplaceAppFee.
+# POR_CONFIRMAR: la cuenta conectada no admite metadatos, asi que no se
+# envian y la clave de idempotencia no llega a ONVO por ninguna via.
+CUENTA_CONECTADA_ADMITE_METADATOS = False
 
 # Campos de intencion de pago
 # https://docs.onvopay.com/openapi.yaml (schemas.PaymentIntent)
@@ -137,8 +149,39 @@ INTENCION_EXITOSA = "succeeded"
 INTENCION_REQUIERE_CAPTURA = "requires_capture"
 INTENCION_CANCELADA = "canceled"
 INTENCION_REQUIERE_ACCION = "requires_action"
+INTENCION_SIN_MEDIO_PAGO = "requires_payment_method"
+INTENCION_FALLIDA = "failed"
+INTENCION_REEMBOLSADA = "refunded"
+INTENCION_REEMBOLSADA_PARCIAL = "partially_refunded"
 # Una confirmacion declinada vuelve a requires_payment_method
-INTENCIONES_RECHAZADAS = frozenset({"requires_payment_method", "failed"})
+INTENCIONES_RECHAZADAS = frozenset({INTENCION_SIN_MEDIO_PAGO, INTENCION_FALLIDA})
+
+# Foto del cobro para consultar_cobro (DT11).
+# https://docs.onvopay.com/openapi.yaml (schemas.PaymentIntent.status)
+# requires_payment_method no esta aca: es ambiguo y lo resuelve
+# `_estado_cobro` segun lastPaymentError.
+# POR_CONFIRMAR: requires_confirmation y deferred no aparecen en el enum
+# documentado; deferred solo existe como evento payment-intent.deferred.
+# refunded y partially_refunded: el dinero se capturo y despues se
+# reembolso desde el dashboard de ONVO. El reembolso es otro dato, no
+# un estado distinto del cobro.
+ESTADOS_COBRO: Mapping[str, EstadoCobroPasarela] = {
+    "requires_confirmation": EstadoCobroPasarela.PENDIENTE,
+    "processing": EstadoCobroPasarela.PENDIENTE,
+    "deferred": EstadoCobroPasarela.PENDIENTE,
+    INTENCION_REQUIERE_ACCION: EstadoCobroPasarela.REQUIERE_ACCION,
+    INTENCION_REQUIERE_CAPTURA: EstadoCobroPasarela.AUTORIZADO,
+    INTENCION_EXITOSA: EstadoCobroPasarela.CAPTURADO,
+    INTENCION_CANCELADA: EstadoCobroPasarela.LIBERADO,
+    INTENCION_FALLIDA: EstadoCobroPasarela.FALLIDO,
+    INTENCION_REEMBOLSADA: EstadoCobroPasarela.CAPTURADO,
+    INTENCION_REEMBOLSADA_PARCIAL: EstadoCobroPasarela.CAPTURADO,
+}
+# En estos dos receivedAmount ya bajo por el reembolso: informa el neto
+# recibido y no lo capturado, asi que monto_capturado queda en None.
+INTENCIONES_CON_REEMBOLSO = frozenset(
+    {INTENCION_REEMBOLSADA, INTENCION_REEMBOLSADA_PARCIAL}
+)
 
 # Estados de cuenta conectada
 # https://docs.onvopay.com/en/payments/marketplaces (Account statuses)
@@ -203,7 +246,12 @@ CAMPOS_DETALLE_ERROR = ("code", "message", "error")
 AUTORIZACION_DIFERIDA = frozenset({MetodoPago.TARJETA})
 # POR_CONFIRMAR incognita 3: SINPE Movil en modo marketplace
 METODOS = frozenset({MetodoPago.TARJETA})
-# POR_CONFIRMAR incognita 1: manual-capture dice que vence, no cuando
+# Incognita 1. https://docs.onvopay.com/openapi.yaml (descripcion de
+# requestBodies.CreatePaymentIntent.captureMethod): si no se captura en
+# "un maximo de 30 dias", los fondos vuelven al cliente. Es un maximo, no
+# un minimo garantizado: el emisor de la tarjeta puede vencer la
+# autorizacion antes. POR_CONFIRMAR cuanto dura de verdad, asi que queda
+# en None y rige el plazo propio de 5 dias (D9).
 DIAS_VIGENCIA_AUTORIZACION: int | None = None
 # https://docs.onvopay.com/en/payments/marketplaces: marketplaceAppFee es por
 # cuenta. POR_CONFIRMAR incognita 4: si existe tambien por cobro.
@@ -307,7 +355,12 @@ class PasarelaOnvo:
     # Cuentas conectadas
 
     async def crear_cuenta_conectada(
-        self, *, nombre: str, tarifa_porcentaje: Decimal
+        self,
+        *,
+        nombre: str,
+        tarifa_porcentaje: Decimal,
+        clave_idempotencia: str,
+        metadatos: Mapping[str, str] = SIN_METADATOS,
     ) -> CuentaConectada:
         nombre = nombre.strip() if isinstance(nombre, str) else ""
         if not 1 <= len(nombre) <= LARGO_MAXIMO_NOMBRE_NEGOCIO:
@@ -316,15 +369,22 @@ class PasarelaOnvo:
                 f"{LARGO_MAXIMO_NOMBRE_NEGOCIO} caracteres"
             )
         validar_tarifa(tarifa_porcentaje)
-        # Crear dos veces duplica la cuenta: un resultado incierto no se repite
+        validar_clave(clave_idempotencia)
+        validar_metadatos(metadatos)
+        cuerpo: dict[str, Any] = {
+            CAMPO_NOMBRE_NEGOCIO: nombre,
+            CAMPO_TARIFA_MARKETPLACE: tarifa_porcentaje,
+        }
+        if metadatos and CUENTA_CONECTADA_ADMITE_METADATOS:
+            cuerpo[CAMPO_METADATOS] = dict(metadatos)
+        # Crear dos veces duplica la cuenta: un resultado incierto no se repite.
+        # Sin idempotencia en ONVO la clave solo sirve del lado de quien llama.
         datos = await self._solicitar(
             "POST",
             RUTA_CREAR_CUENTA,
-            {
-                CAMPO_NOMBRE_NEGOCIO: nombre,
-                CAMPO_TARIFA_MARKETPLACE: tarifa_porcentaje,
-            },
+            cuerpo,
             repetible=False,
+            clave_idempotencia=clave_idempotencia,
         )
         url = datos.get(CAMPO_URL_ONBOARDING)
         return CuentaConectada(
@@ -445,6 +505,24 @@ class PasarelaOnvo:
             monto=_monto(reembolso, CAMPO_MONTO),
             # ONVO no informa el acumulado en la respuesta del reembolso
             total_reembolsado=None,
+        )
+
+    async def consultar_cobro(self, referencia: str) -> ConsultaCobro:
+        validar_referencia(referencia)
+        intencion = await self._solicitar(
+            "GET", _ruta(RUTA_INTENCION, referencia), repetible=True
+        )
+        return ConsultaCobro(
+            referencia=_texto(intencion, CAMPO_ID),
+            estado=_estado_cobro(intencion),
+            monto=_monto(intencion, CAMPO_MONTO),
+            monto_capturado=_monto_capturado(intencion),
+            # POR_CONFIRMAR: ONVO no expone el acumulado reembolsado
+            monto_reembolsado=None,
+            # POR_CONFIRMAR: ONVO no informa cuando vence la autorizacion. Quien
+            # llama aplica PoliticasPedido.vencimiento_autorizacion (D9).
+            autorizado_hasta=None,
+            metadatos=_metadatos_recibidos(intencion),
         )
 
     # Webhooks
@@ -676,6 +754,44 @@ def _monto(datos: Mapping[str, Any], *campos: str) -> Decimal:
         if datos.get(campo) is not None:
             return desde_unidad_menor(datos[campo])
     raise _respuesta_inesperada(f"ONVO respondio sin {campos[0]}")
+
+
+def _monto_opcional(datos: Mapping[str, Any], campo: str) -> Decimal | None:
+    valor = datos.get(campo)
+    return None if valor is None else desde_unidad_menor(valor)
+
+
+def _metadatos_recibidos(datos: Mapping[str, Any]) -> dict[str, str]:
+    crudos = datos.get(CAMPO_METADATOS)
+    if not isinstance(crudos, Mapping):
+        return {}
+    # Lo que no sea texto a texto se descarta: el contrato promete texto
+    return {
+        k: v for k, v in crudos.items() if isinstance(k, str) and isinstance(v, str)
+    }
+
+
+def _monto_capturado(intencion: Mapping[str, Any]) -> Decimal | None:
+    # Con un reembolso de por medio receivedAmount es el neto recibido y no lo
+    # capturado: antes que informar un monto equivocado, no se informa ninguno
+    if intencion.get(CAMPO_ESTADO) in INTENCIONES_CON_REEMBOLSO:
+        return None
+    return _monto_opcional(intencion, CAMPO_MONTO_RECIBIDO)
+
+
+def _estado_cobro(intencion: Mapping[str, Any]) -> EstadoCobroPasarela:
+    estado = intencion.get(CAMPO_ESTADO)
+    if estado == INTENCION_SIN_MEDIO_PAGO:
+        # Sin lastPaymentError todavia no hubo intento; con el, fue declinado
+        return (
+            EstadoCobroPasarela.FALLIDO
+            if intencion.get(CAMPO_ULTIMO_ERROR)
+            else EstadoCobroPasarela.PENDIENTE
+        )
+    if isinstance(estado, str) and estado in ESTADOS_COBRO:
+        return ESTADOS_COBRO[estado]
+    # No se adivina: un estado fuera de la tabla no mueve dinero
+    raise _respuesta_inesperada(f"Estado de cobro desconocido: {estado!r}")
 
 
 def _estado_cuenta(datos: Mapping[str, Any]) -> EstadoCuenta:

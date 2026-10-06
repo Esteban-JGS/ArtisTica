@@ -2,7 +2,9 @@
 
 from src.payments.contrato import (
     Capacidades,
+    ConsultaCobro,
     CuentaConectada,
+    EstadoCobroPasarela,
     EstadoCuenta,
     EstadoOperacion,
     EventoRecibido,
@@ -28,9 +30,11 @@ from src.payments.errores import (
 __all__ = [
     "AutorizacionVencida",
     "Capacidades",
+    "ConsultaCobro",
     "CredencialesInvalidas",
     "CuentaConectada",
     "ErrorPasarela",
+    "EstadoCobroPasarela",
     "EstadoCuenta",
     "EstadoOperacion",
     "EventoRecibido",

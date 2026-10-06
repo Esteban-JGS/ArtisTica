@@ -60,7 +60,9 @@ def pasarela(reloj: Reloj) -> PasarelaFalsa:
 @pytest.fixture
 async def cuenta(pasarela: PasarelaFalsa) -> str:
     creada = await pasarela.crear_cuenta_conectada(
-        nombre="Taller de Ana", tarifa_porcentaje=Decimal("8")
+        nombre="Taller de Ana",
+        tarifa_porcentaje=Decimal("8"),
+        clave_idempotencia="cuenta-1",
     )
     pasarela.completar_onboarding(creada.id)
     return creada.id
@@ -99,7 +101,9 @@ async def test_02_autorizar_fija_autorizado_hasta_segun_capacidades(reloj):
             ),
         )
         creada = await pasarela.crear_cuenta_conectada(
-            nombre="Ana", tarifa_porcentaje=Decimal("8")
+            nombre="Ana",
+            tarifa_porcentaje=Decimal("8"),
+            clave_idempotencia=f"cuenta-{dias}",
         )
         pasarela.completar_onboarding(creada.id)
 
