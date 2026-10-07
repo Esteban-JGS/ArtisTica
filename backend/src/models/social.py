@@ -19,6 +19,12 @@ class Publicacion(Base, IdMixin, TimestampMixin, SoftDeleteMixin):
             "artista_id",
             text("created_at DESC"),
         ),
+        # Explorar: todas las publicaciones en el orden de la paginacion
+        Index(
+            "ix_publicaciones_created_at_id",
+            text("created_at DESC"),
+            text("id DESC"),
+        ),
     )
 
     artista_id: Mapped[uuid.UUID] = mapped_column(

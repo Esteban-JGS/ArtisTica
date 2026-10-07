@@ -15,11 +15,12 @@ class MediaAsset(Base, IdMixin, TimestampMixin, SoftDeleteMixin):
     propietario_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("profiles.id", ondelete="CASCADE"), index=True
     )
+    # Indexados: la galeria y el feed traen los medios de una pagina entera
     obra_id: Mapped[uuid.UUID | None] = mapped_column(
-        ForeignKey("obras.id", ondelete="CASCADE"), nullable=True
+        ForeignKey("obras.id", ondelete="CASCADE"), nullable=True, index=True
     )
     publicacion_id: Mapped[uuid.UUID | None] = mapped_column(
-        ForeignKey("publicaciones.id", ondelete="CASCADE"), nullable=True
+        ForeignKey("publicaciones.id", ondelete="CASCADE"), nullable=True, index=True
     )
     # Posicion dentro de la obra. La de orden 0 es la portada; nulo si esta suelto.
     orden: Mapped[int | None] = mapped_column(SmallInteger, nullable=True)
