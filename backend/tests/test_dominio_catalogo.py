@@ -1,16 +1,25 @@
 """Limites de plan, precios y cursor. Logica pura: sin base ni red."""
 
+import os
+import subprocess
+import sys
 import uuid
 from datetime import UTC, datetime, timedelta, timezone
 from decimal import Decimal
+from pathlib import Path
 
 import pytest
 
-from src.api.paginacion import CursorInvalido, codificar_cursor, decodificar_cursor
 from src.core.config import settings
 from src.domain.catalogo import LimitesPlan, cabe_uno_mas, problema_de_precio
 from src.domain.enums import PlanArtista
+from src.services.paginacion import (
+    CursorInvalido,
+    codificar_cursor,
+    decodificar_cursor,
+)
 
+RAIZ_BACKEND = Path(__file__).resolve().parents[1]
 LIMITES = LimitesPlan.desde_config(settings)
 MINIMO = settings.MONTO_MINIMO_PEDIDO
 # Costa Rica, para probar que el cursor no asume UTC
@@ -66,3 +75,22 @@ def test_03_cursor_ida_y_vuelta():
     for malo in ("no-es-base64!!", "YWJj", codificar_cursor(creado_en, id_)[:-4]):
         with pytest.raises(CursorInvalido):
             decodificar_cursor(malo)
+
+
+def test_16_paginacion_sin_fastapi():
+    """La capa de servicios no arrastra FastAPI: lo de HTTP vive en src/api."""
+    codigo = (
+        "import sys\n"
+        "import src.services.paginacion, src.services.catalogo\n"
+        "cargados = [m for m in sys.modules if m.startswith('fastapi')]\n"
+        "assert not cargados, cargados\n"
+    )
+    resultado = subprocess.run(
+        [sys.executable, "-c", codigo],
+        cwd=RAIZ_BACKEND,
+        env=os.environ.copy(),
+        capture_output=True,
+        text=True,
+        check=False,  # el returncode se revisa en el assert de abajo
+    )
+    assert resultado.returncode == 0, resultado.stderr

@@ -6,6 +6,9 @@ modulo no lee `settings`.
 
 D11: bajar de plan no oculta ni borra nada. Con mas de lo permitido solo se
 impide crear o activar otro hasta quedar por debajo del limite.
+
+Orden de los bloqueos en todo el backend: el perfil se bloquea antes que la
+obra, el servicio o el pedido. Al reves dos transacciones se traban.
 """
 
 import logging
@@ -19,7 +22,6 @@ from decimal import Decimal
 from sqlalchemy import Select, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.api.paginacion import ParametrosPagina, traer_pagina
 from src.core.exceptions import ReglaDeNegocioViolada, ResourceNotFound
 from src.domain import catalogo as dominio
 from src.domain.catalogo import LimitesPlan
@@ -33,6 +35,7 @@ from src.models import (
     Profile,
     Servicio,
 )
+from src.services.paginacion import ParametrosPagina, traer_pagina
 from src.services.perfiles import bloquear_perfil
 from src.storage import Almacenamiento, ErrorAlmacenamiento
 
@@ -164,15 +167,14 @@ async def _contar_servicios_activos(
 
 async def _exigir_cupo_de_obra(
     session: AsyncSession,
-    artista_id: uuid.UUID,
-    plan: PlanArtista,
+    perfil: Profile,
     limites: LimitesPlan,
     *,
     excepto: uuid.UUID | None = None,
 ) -> None:
-    """Se llama con el perfil ya bloqueado: el conteo no cambia hasta el commit."""
-    limite = limites.obras_disponibles(plan)
-    actuales = await _contar_obras_disponibles(session, artista_id, excepto=excepto)
+    """El perfil llega bloqueado: el conteo no cambia hasta el commit."""
+    limite = limites.obras_disponibles(perfil.plan)
+    actuales = await _contar_obras_disponibles(session, perfil.id, excepto=excepto)
     if not dominio.cabe_uno_mas(actuales, limite):
         raise ReglaDeNegocioViolada(
             f"Tu plan permite {limite} obras disponibles a la vez. "
@@ -182,14 +184,14 @@ async def _exigir_cupo_de_obra(
 
 async def _exigir_cupo_de_servicio(
     session: AsyncSession,
-    artista_id: uuid.UUID,
-    plan: PlanArtista,
+    perfil: Profile,
     limites: LimitesPlan,
     *,
     excepto: uuid.UUID | None = None,
 ) -> None:
-    limite = limites.servicios_activos(plan)
-    actuales = await _contar_servicios_activos(session, artista_id, excepto=excepto)
+    """El perfil llega bloqueado: el conteo no cambia hasta el commit."""
+    limite = limites.servicios_activos(perfil.plan)
+    actuales = await _contar_servicios_activos(session, perfil.id, excepto=excepto)
     if not dominio.cabe_uno_mas(actuales, limite):
         raise ReglaDeNegocioViolada(
             f"Tu plan permite {limite} servicios activos. "
@@ -326,7 +328,13 @@ async def crear_obra(
 ) -> ObraDetalle:
     estado = datos.get("estado", EstadoObra.EXHIBICION)
     precio = datos.get("precio")
-    # Nada se escribe hasta que todo lo que puede fallar ya paso
+    # El perfil primero, y nada se escribe hasta que todo lo que puede fallar ya paso
+    if estado == EstadoObra.DISPONIBLE:
+        problema = dominio.problema_de_precio(precio, monto_minimo)
+        if problema is not None:
+            raise ReglaDeNegocioViolada(problema)
+        perfil = await bloquear_perfil(session, artista.id)
+        await _exigir_cupo_de_obra(session, perfil, limites)
     elegidos = await _validar_medios(
         session,
         artista.id,
@@ -334,12 +342,6 @@ async def crear_obra(
         obra_id=None,
         maximo=limites.medios_por_obra,
     )
-    if estado == EstadoObra.DISPONIBLE:
-        problema = dominio.problema_de_precio(precio, monto_minimo)
-        if problema is not None:
-            raise ReglaDeNegocioViolada(problema)
-        perfil = await bloquear_perfil(session, artista.id)
-        await _exigir_cupo_de_obra(session, artista.id, perfil.plan, limites)
 
     obra = Obra(
         id=uuid.uuid4(),
@@ -393,21 +395,20 @@ async def _exigir_obra_editable(
 async def _exigir_disponible_posible(
     session: AsyncSession,
     obra: Obra,
-    artista: Profile,
+    perfil: Profile | None,
     precio: Decimal | None,
     *,
     limites: LimitesPlan,
     monto_minimo: Decimal,
 ) -> None:
+    """El precio sirve y queda cupo. `perfil` llega bloqueado cuando los cambios
+    pueden pasar la obra a disponible; si ya lo esta, el cupo no cambia."""
     problema = dominio.problema_de_precio(precio, monto_minimo)
     if problema is not None:
         raise ReglaDeNegocioViolada(problema)
-    if obra.estado == EstadoObra.DISPONIBLE:
+    if perfil is None or obra.estado == EstadoObra.DISPONIBLE:
         return
-    perfil = await bloquear_perfil(session, artista.id)
-    await _exigir_cupo_de_obra(
-        session, artista.id, perfil.plan, limites, excepto=obra.id
-    )
+    await _exigir_cupo_de_obra(session, perfil, limites, excepto=obra.id)
 
 
 async def editar_obra(
@@ -419,6 +420,12 @@ async def editar_obra(
     limites: LimitesPlan,
     monto_minimo: Decimal,
 ) -> ObraDetalle:
+    # El perfil antes que la obra: al reves dos transacciones se traban
+    perfil = (
+        await bloquear_perfil(session, artista.id)
+        if cambios.get("estado") == EstadoObra.DISPONIBLE
+        else None
+    )
     obra = await _bloquear_obra(session, artista.id, obra_id)
     await _exigir_obra_editable(session, obra, cambios)
 
@@ -435,7 +442,7 @@ async def editar_obra(
         )
     if estado == EstadoObra.DISPONIBLE:
         await _exigir_disponible_posible(
-            session, obra, artista, precio, limites=limites, monto_minimo=monto_minimo
+            session, obra, perfil, precio, limites=limites, monto_minimo=monto_minimo
         )
 
     _aplicar(obra, cambios, CAMPOS_DE_OBRA)
@@ -511,7 +518,7 @@ async def crear_servicio(
     activo = datos.get("activo", True)
     if activo:
         perfil = await bloquear_perfil(session, artista.id)
-        await _exigir_cupo_de_servicio(session, artista.id, perfil.plan, limites)
+        await _exigir_cupo_de_servicio(session, perfil, limites)
 
     servicio = Servicio(
         id=uuid.uuid4(),
@@ -554,17 +561,17 @@ async def editar_servicio(
     limites: LimitesPlan,
     monto_minimo: Decimal,
 ) -> ServicioDetalle:
+    # El perfil antes que el servicio. Desactivar nunca necesita su bloqueo
+    perfil = (
+        await bloquear_perfil(session, artista.id) if cambios.get("activo") else None
+    )
     servicio = await _bloquear_servicio(session, artista.id, servicio_id)
     if "precio_base" in cambios:
         problema = dominio.problema_de_precio(cambios["precio_base"], monto_minimo)
         if problema is not None:
             raise ReglaDeNegocioViolada(problema)
-    # Desactivar siempre se puede
-    if cambios.get("activo") and not servicio.activo:
-        perfil = await bloquear_perfil(session, artista.id)
-        await _exigir_cupo_de_servicio(
-            session, artista.id, perfil.plan, limites, excepto=servicio.id
-        )
+    if perfil is not None and not servicio.activo:
+        await _exigir_cupo_de_servicio(session, perfil, limites, excepto=servicio.id)
 
     _aplicar(servicio, cambios, CAMPOS_DE_SERVICIO)
     await session.flush()
