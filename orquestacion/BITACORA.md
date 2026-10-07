@@ -26,6 +26,7 @@ Las decisiones se numeran D y las deudas técnicas DT.
 | D16 | Se acepta que las llamadas a la pasarela de pagos se hagan con el bloqueo del perfil tomado (D8), aunque retengan una conexión del pool mientras dura la llamada. Es el precio de que una tarifa no se cruce con un cobro, y el volumen del MVP es bajo. Se revisa solo si el pool se satura | 2026-10-04 |
 | D17 | La demo corre con `ENVIRONMENT=demo`, nunca `production`: en producción la configuración rechaza los adaptadores falsos y el cambio a Estudio sin cobro | 2026-10-04 |
 | D18 | Orden de los bloqueos en todo el backend: el perfil se bloquea antes que la obra, el servicio o el pedido. Dos transacciones que toman los mismos bloqueos en orden inverso se traban, y el lote 8 bloquea el perfil para fijar la tarifa (D8) antes de tocar el pedido o la obra | 2026-10-06 |
+| D19 | Explorar en el MVP: publicaciones recientes, filtro por categorías del artista o de la obra, y una de cada cinco posiciones para un artista con menos de 50 seguidores (Nuevos talentos), los dos valores configurables. La similitud de estilo entra cuando el worker calcule embeddings (lote 11). Los seguidores se cuentan en la consulta, sin columna. El lote 6 se divide: el 6 hace publicaciones y feed, y el 6b seguir, contadores, comentarios, reacciones y búsqueda, porque la app muestra contadores de seguidores y comentarios con respuestas | 2026-10-07 |
 
 ## Políticas de pedido vigentes (D5)
 
@@ -60,7 +61,8 @@ Las decisiones se numeran D y las deudas técnicas DT.
 | 5e | Deuda: contrato de pagos | Cerrado | Aprobado tras correctivo | Ninguna |
 | 5f | Deuda: política de lint | Cerrado | Aprobado | Ninguna |
 | 5b | Obras y servicios con límites de plan | Cerrado | Aprobado tras correctivo | Ninguna |
-| 6 | Publicaciones, feed Seguidos y Explorar por cursor | Pendiente | | |
+| 6 | Publicaciones, feed Seguidos y Explorar por cursor | Cerrado | Aprobado con deuda | DT21 |
+| 6b | Seguir, contadores, comentarios, reacciones y búsqueda | Pendiente | | |
 | 7 | Consultas y chat | Pendiente | | |
 | 8 | Endpoints de pedidos y cobros | Pendiente | | |
 | 9 | Webhooks idempotentes y vigilancia de autorizaciones | Pendiente | | |
@@ -98,6 +100,7 @@ Las decisiones se numeran D y las deudas técnicas DT.
 | DT18 | Lote 4 | Las llamadas a la pasarela se hacen con el `FOR UPDATE` del perfil tomado (D8). Con Supavisor en modo transacción, una pasarela lenta retiene una conexión del pool hasta el timeout de 15 s | Aceptada por D16 |
 | DT19 | Lote 5 | Los medios que nunca se confirman, o cuya confirmación se rechazó, quedan como filas pendientes y cuentan para el límite de 20. Nada los limpia. Además el límite se cuenta sin bloqueo, así que dos solicitudes simultáneas pueden pasarlo por una | Sale de la deuda por D15: la limpieza de pendientes es alcance del lote 11. El límite blando queda aceptado |
 | DT20 | Lote 5 | El adaptador de Supabase Storage solo se probó con transporte simulado. Falta correrlo contra el proyecto real: `python -m src.storage.supabase` para crear el bucket, una subida firmada de punta a punta, y confirmar que la firma dura 2 horas y que las claves nuevas de Supabase (`sb_secret_...`) funcionan en `apikey` y `Authorization` | Acción manual de Esteban con el proyecto de Supabase de desarrollo, en cuanto esté disponible |
+| DT21 | Lote 6 | Con un `tamano` menor que `EXPLORAR_CADA_N`, la cuota de nuevos talentos de cada página es 0 y esos artistas recién aparecen cuando se agotan los generales. Además, el esquema de imagen de la respuesta se llama `MedioDeObra` y ya lo usan las publicaciones | Lote 6b, que vuelve a tocar el feed: Explorar exige `tamano` de al menos `EXPLORAR_CADA_N` y el esquema pasa a un nombre neutro |
 
 ## Errores del orquestador
 
@@ -116,6 +119,7 @@ Las decisiones se numeran D y las deudas técnicas DT.
 | 5f | La tabla de `noqa` permitidos se midió con la política vieja, antes de las correcciones que el mismo prompt pedía. Tres de las cinco entradas sobraban y faltaban tres casos legítimos | Se aceptan los diez `noqa` del ejecutor, cada uno con motivo. Las excepciones permitidas se miden después de aplicar las correcciones |
 | 5f | Los seis commits del ejecutor traían la línea `Co-Authored-By`, que `CLAUDE.md` prohíbe. Ningún prompt ni la lista de verificación lo controlaban | El orquestador limpió los mensajes antes del push, con el árbol idéntico. La plantilla de prompt y la lista de verificación del manual ahora lo exigen |
 | 5b | El prompt puso la paginación en `src/api/`, aunque el servicio la necesitaba, y no fijó un orden de bloqueos. El servicio quedó dependiendo de la API, y editar una obra bloqueaba la obra antes que el perfil, al revés de lo que hará el lote 8 | Correctivo del lote 5b en la misma rama: la paginación pasa a `src/services/` y el perfil se bloquea siempre antes que la obra, el servicio o el pedido |
+| 6 | El prompt pedía a cada flujo de Explorar solo su cuota más uno, lo que no llena la página cuando un flujo se agota, y la prueba 12 exigía la página llena. También nombraba `MedioRespuesta`, un esquema que se llama `MedioDeObra` | El ejecutor completa con una segunda consulta al otro flujo. El nombre queda en DT21 |
 
 ## Preguntas abiertas que bloquean diseño
 
