@@ -110,6 +110,10 @@ class PublicacionRespuesta(BaseModel):
     created_at: datetime
     # Verdadero o falso en Explorar; nulo en los demas listados
     nuevo_talento: bool | None
+    # Se muestran, no ordenan: ningun feed los mira
+    me_gusta_total: int
+    # Nulo sin token
+    mi_me_gusta: bool | None
 
     @classmethod
     def desde(cls, detalle: PublicacionDetalle, almacenamiento: Almacenamiento) -> Self:
@@ -122,4 +126,6 @@ class PublicacionRespuesta(BaseModel):
             obra=ObraDePublicacion.desde(detalle.obra) if detalle.obra else None,
             created_at=publicacion.created_at,
             nuevo_talento=detalle.nuevo_talento,
+            me_gusta_total=detalle.me_gusta_total,
+            mi_me_gusta=detalle.mi_me_gusta,
         )

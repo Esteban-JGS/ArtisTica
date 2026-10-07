@@ -1,8 +1,10 @@
-"""Endpoints de seguir artistas.
+"""Endpoints de seguir artistas y de me gusta en publicaciones.
 
-Seguir pide token y es idempotente. El resumen del perfil
+Seguir y dar me gusta piden token y son idempotentes. El resumen del perfil
 acepta token opcional; las listas de seguidores son publicas.
 """
+
+import uuid
 
 from fastapi import APIRouter, Response, status
 
@@ -60,3 +62,24 @@ async def siguiendo(
     return Pagina(
         items=[PerfilResumido.desde(p) for p in perfiles], siguiente_cursor=siguiente
     )
+
+
+# Me gusta
+
+
+@router.put("/publicaciones/{publicacion_id}/me-gusta", status_code=SIN_CONTENIDO)
+async def dar_me_gusta(
+    publicacion_id: uuid.UUID, usuario: Usuario, session: Sesion
+) -> Response:
+    await servicio.dar_me_gusta(session, usuario, publicacion_id)
+    await session.commit()
+    return Response(status_code=SIN_CONTENIDO)
+
+
+@router.delete("/publicaciones/{publicacion_id}/me-gusta", status_code=SIN_CONTENIDO)
+async def quitar_me_gusta(
+    publicacion_id: uuid.UUID, usuario: Usuario, session: Sesion
+) -> Response:
+    await servicio.quitar_me_gusta(session, usuario, publicacion_id)
+    await session.commit()
+    return Response(status_code=SIN_CONTENIDO)

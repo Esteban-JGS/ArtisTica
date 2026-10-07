@@ -1,7 +1,7 @@
-"""Seguir artistas.
+"""Seguir artistas y dar me gusta a publicaciones.
 
 No cierra la transaccion: hace flush, y la abre y la cierra quien llama.
-Ninguna operacion bloquea filas: seguir es idempotente con
+Ninguna operacion bloquea filas: seguir y dar me gusta son idempotentes con
 `ON CONFLICT DO NOTHING` sobre el unico, sin leer antes.
 
 Los contadores salen de la consulta, nunca de una columna, y no entran en
@@ -16,8 +16,8 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.exceptions import ReglaDeNegocioViolada, ResourceNotFound
-from src.domain.enums import RolPerfil
-from src.models import Follow, Profile
+from src.domain.enums import RolPerfil, TipoReaccion
+from src.models import Follow, Profile, Publicacion, Reaccion
 from src.services.paginacion import ParametrosPagina, traer_pagina
 
 MOTIVO_SOLO_ARTISTAS = "Solo se sigue a artistas"
@@ -139,3 +139,44 @@ async def seguidos_por(
     perfil_id = await _id_de(session, handle)
     stmt = select(Follow).where(Follow.seguidor_id == perfil_id)
     return await _perfiles_de(session, stmt, parametros, seguidores=False)
+
+
+# Me gusta
+
+
+async def _exigir_publicacion(session: AsyncSession, publicacion_id: uuid.UUID) -> None:
+    stmt = select(Publicacion.id).where(
+        Publicacion.id == publicacion_id, Publicacion.deleted_at.is_(None)
+    )
+    if (await session.execute(stmt)).first() is None:
+        raise ResourceNotFound("Publicacion no encontrada")
+
+
+async def dar_me_gusta(
+    session: AsyncSession, usuario: Profile, publicacion_id: uuid.UUID
+) -> None:
+    """Cualquier usuario puede, tambien el rol Publico y el autor."""
+    await _exigir_publicacion(session, publicacion_id)
+    stmt = (
+        insert(Reaccion)
+        .values(
+            publicacion_id=publicacion_id,
+            profile_id=usuario.id,
+            tipo=TipoReaccion.ME_GUSTA.value,
+        )
+        .on_conflict_do_nothing(index_elements=["publicacion_id", "profile_id", "tipo"])
+    )
+    await session.execute(stmt)
+
+
+async def quitar_me_gusta(
+    session: AsyncSession, usuario: Profile, publicacion_id: uuid.UUID
+) -> None:
+    await _exigir_publicacion(session, publicacion_id)
+    await session.execute(
+        delete(Reaccion).where(
+            Reaccion.publicacion_id == publicacion_id,
+            Reaccion.profile_id == usuario.id,
+            Reaccion.tipo == TipoReaccion.ME_GUSTA.value,
+        )
+    )
