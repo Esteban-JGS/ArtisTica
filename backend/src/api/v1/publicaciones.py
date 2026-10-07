@@ -136,7 +136,17 @@ def parametros_de_explorar(
         int, Query(ge=1, le=settings.PAGINA_TAMANO_MAXIMO)
     ] = settings.PAGINA_TAMANO_DEFECTO,
 ) -> ParametrosExplorar:
-    """Explorar lleva un cursor compuesto: uno mal formado da 422."""
+    """Explorar lleva un cursor compuesto: uno mal formado da 422.
+
+    DT21: una pagina mas chica que `EXPLORAR_CADA_N` dejaria la cuota de nuevos
+    talentos en 0, asi que tambien da 422. Se lee en cada solicitud.
+    """
+    minimo = settings.EXPLORAR_CADA_N
+    if tamano < minimo:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=f"Explorar pide un tamano de al menos {minimo}",
+        )
     try:
         posiciones = feed.leer_cursor_explorar(cursor)
     except CursorInvalido as exc:

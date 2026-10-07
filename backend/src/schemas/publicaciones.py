@@ -21,7 +21,7 @@ from src.core.config import settings
 from src.domain import perfiles as dominio_perfiles
 from src.domain.enums import EstadoObra
 from src.models import Obra, Profile
-from src.schemas.catalogo import MedioDeObra
+from src.schemas.medios import ImagenPublica
 from src.services.publicaciones import PublicacionDetalle
 from src.storage import Almacenamiento
 
@@ -105,7 +105,7 @@ class PublicacionRespuesta(BaseModel):
     id: uuid.UUID
     artista: ArtistaDePublicacion
     texto: str
-    medios: list[MedioDeObra]
+    medios: list[ImagenPublica]
     obra: ObraDePublicacion | None
     created_at: datetime
     # Verdadero o falso en Explorar; nulo en los demas listados
@@ -118,7 +118,7 @@ class PublicacionRespuesta(BaseModel):
             id=publicacion.id,
             artista=ArtistaDePublicacion.desde(detalle.artista),
             texto=publicacion.texto,
-            medios=[MedioDeObra.desde(m, almacenamiento) for m in detalle.medios],
+            medios=[ImagenPublica.desde(m, almacenamiento) for m in detalle.medios],
             obra=ObraDePublicacion.desde(detalle.obra) if detalle.obra else None,
             created_at=publicacion.created_at,
             nuevo_talento=detalle.nuevo_talento,
