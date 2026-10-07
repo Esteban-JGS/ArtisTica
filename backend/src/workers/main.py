@@ -7,7 +7,7 @@ from datetime import UTC, datetime, timedelta
 from sqlalchemy import select
 
 from src.core.database import AsyncSessionLocal
-from src.models.operation import Job
+from src.models import Job
 from src.workers.dispatcher import dispatch_job
 
 logging.basicConfig(
@@ -19,7 +19,7 @@ WORKER_ID = socket.gethostname()
 shutdown_event = asyncio.Event()
 
 
-def handle_sigterm(*args):
+def handle_sigterm(*_args):
     logger.info(
         "SIGTERM recibido. Iniciando apagado limpio del worker. Se terminará el job actual antes de salir."
     )
@@ -31,7 +31,7 @@ signal.signal(signal.SIGINT, handle_sigterm)
 
 
 async def worker_loop():
-    logger.info(f"Worker {WORKER_ID} iniciado. Esperando trabajos en la cola...")
+    logger.info("Worker %s iniciado. Esperando trabajos en la cola...", WORKER_ID)
     while not shutdown_event.is_set():
         try:
             async with AsyncSessionLocal() as session:
@@ -61,20 +61,21 @@ async def worker_loop():
                 # Reflejar el lock en la base para mayor seguridad (aunque FOR UPDATE ya lo protege)
                 await session.flush()
 
-                logger.info(f"Procesando job {job.id} de tipo {job.type}")
+                logger.info("Procesando job %s de tipo %s", job.id, job.type)
                 try:
                     await dispatch_job(job.type, job.payload)
                     job.status = "completed"
-                    logger.info(f"Job {job.id} completado con éxito")
+                    logger.info("Job %s completado con éxito", job.id)
+                # El worker no puede caerse por un job: se registra y se reintenta
                 except Exception as e:
-                    logger.error(f"Error en job {job.id}: {e}")
+                    logger.exception("Error en job %s", job.id)
                     job.attempts += 1
                     job.last_error = str(e)
 
                     if job.attempts >= job.max_attempts:
                         job.status = "dead"
                         logger.warning(
-                            f"Job {job.id} superó intentos y fue marcado como dead."
+                            "Job %s superó intentos y fue marcado como dead.", job.id
                         )
                     else:
                         job.status = "pending"
@@ -85,8 +86,9 @@ async def worker_loop():
                     job.locked_by = None
                     await session.commit()
 
-        except Exception as e:
-            logger.error(f"Error inesperado en loop principal: {e}")
+        # El loop no puede caerse: se registra, se espera y se sigue
+        except Exception:
+            logger.exception("Error inesperado en loop principal")
             await asyncio.sleep(5)
 
     logger.info("Worker detenido limpiamente.")

@@ -20,11 +20,16 @@ from src.core.exceptions import (
     ObraNoDisponible,
     ReglaDeNegocioViolada,
 )
+from src.domain.enums import (
+    EstadoCobro,
+    EstadoConsulta,
+    EstadoObra,
+    EstadoPedido,
+    PlanArtista,
+    TipoCobro,
+    TipoPedido,
+)
 from src.domain.politicas import CERO, CIEN, PoliticasPedido
-from src.models.catalogo import EstadoObra
-from src.models.consultas import EstadoConsulta
-from src.models.pedidos import EstadoCobro, EstadoPedido, TipoCobro, TipoPedido
-from src.models.users import PlanArtista
 
 E = EstadoPedido
 T = TipoPedido
@@ -350,7 +355,10 @@ def reembolsable(cobro: CobroVista) -> Decimal:
 
 
 def _accion_al_cerrar(
-    cobro: CobroVista, porcentaje_reembolso: Decimal, capturar_autorizados: bool
+    cobro: CobroVista,
+    porcentaje_reembolso: Decimal,
+    *,
+    capturar_autorizados: bool,
 ) -> AccionCobro | None:
     if cobro.estado is C.PENDIENTE:
         return AccionCobro(cobro.id, Accion.CANCELAR)
@@ -402,7 +410,9 @@ def planear_cancelacion(
         # Obra disponible antes del despacho: no hay nada capturado
         porcentaje = CIEN
 
-    acciones = (_accion_al_cerrar(c, porcentaje, False) for c in cobros)
+    acciones = (
+        _accion_al_cerrar(c, porcentaje, capturar_autorizados=False) for c in cobros
+    )
     return PlanCobros(tuple(a for a in acciones if a is not None))
 
 
@@ -425,7 +435,9 @@ def planear_resolucion(
     for cobro in cobros:
         monto = reembolsos_ordenados.get(cobro.id)
         if monto is None:
-            accion = _accion_al_cerrar(cobro, CERO, destino is E.COMPLETADO)
+            accion = _accion_al_cerrar(
+                cobro, CERO, capturar_autorizados=destino is E.COMPLETADO
+            )
             if accion is not None:
                 acciones.append(accion)
             continue

@@ -1,4 +1,3 @@
-import enum
 import uuid
 from datetime import datetime
 from decimal import Decimal
@@ -16,52 +15,16 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
+from src.domain.enums import (
+    EstadoCobro,
+    EstadoDisputa,
+    EstadoPedido,
+    TipoCobro,
+    TipoEntregable,
+    TipoPedido,
+)
+
 from .base import Base, IdMixin, TimestampMixin, pg_enum
-
-
-class TipoPedido(enum.StrEnum):
-    ENCARGO = "encargo"
-    EVENTO = "evento"
-    OBRA_DISPONIBLE = "obra_disponible"
-
-
-class EstadoPedido(enum.StrEnum):
-    COTIZADO = "cotizado"
-    ANTICIPO_PAGADO = "anticipo_pagado"
-    EN_PROCESO = "en_proceso"
-    VISTA_PREVIA_ENTREGADA = "vista_previa_entregada"
-    SALDO_PAGADO = "saldo_pagado"
-    COMPLETADO = "completado"
-    RECHAZADO = "rechazado"
-    CANCELADO = "cancelado"
-    EN_DISPUTA = "en_disputa"
-
-
-class TipoEntregable(enum.StrEnum):
-    VISTA_PREVIA = "vista_previa"
-    FINAL = "final"
-
-
-class EstadoDisputa(enum.StrEnum):
-    ABIERTA = "abierta"
-    EN_REVISION = "en_revision"
-    RESUELTA = "resuelta"
-
-
-class TipoCobro(enum.StrEnum):
-    ANTICIPO = "anticipo"
-    SALDO = "saldo"
-    TOTAL = "total"
-
-
-class EstadoCobro(enum.StrEnum):
-    PENDIENTE = "pendiente"
-    AUTORIZADO = "autorizado"
-    CAPTURADO = "capturado"
-    CANCELADO = "cancelado"
-    REEMBOLSADO = "reembolsado"
-    VENCIDO = "vencido"
-
 
 OBRA_ACTIVA = "tipo = 'obra_disponible' AND estado NOT IN ('rechazado', 'cancelado')"
 
@@ -96,11 +59,13 @@ class Pedido(Base, IdMixin, TimestampMixin):
     artista_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("profiles.id"))
     tipo: Mapped[TipoPedido] = mapped_column(pg_enum(TipoPedido, "tipo_pedido"))
     estado: Mapped[EstadoPedido] = mapped_column(
-        pg_enum(EstadoPedido, "estado_pedido"), default=EstadoPedido.COTIZADO
+        pg_enum(EstadoPedido, "estado_pedido"),
+        default=EstadoPedido.COTIZADO,
+        server_default=EstadoPedido.COTIZADO.value,
     )
     descripcion: Mapped[str] = mapped_column(String)
     monto_total: Mapped[Decimal] = mapped_column(Numeric(12, 2))
-    moneda: Mapped[str] = mapped_column(String(3), default="CRC")
+    moneda: Mapped[str] = mapped_column(String(3), default="CRC", server_default="CRC")
     # Tarifa vigente al crear el pedido. No cambia si el artista cambia de plan.
     tarifa_porcentaje: Mapped[Decimal] = mapped_column(Numeric(5, 2))
     # Nulo solo en obra disponible, que se cobra en un solo hito
@@ -139,12 +104,14 @@ class Cobro(Base, IdMixin, TimestampMixin):
     pedido_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("pedidos.id"), index=True)
     tipo: Mapped[TipoCobro] = mapped_column(pg_enum(TipoCobro, "tipo_cobro"))
     estado: Mapped[EstadoCobro] = mapped_column(
-        pg_enum(EstadoCobro, "estado_cobro"), default=EstadoCobro.PENDIENTE
+        pg_enum(EstadoCobro, "estado_cobro"),
+        default=EstadoCobro.PENDIENTE,
+        server_default=EstadoCobro.PENDIENTE.value,
     )
     monto: Mapped[Decimal] = mapped_column(Numeric(12, 2))
     # Hecho del cobro, no un saldo. Menor que monto en un reembolso parcial.
     monto_reembolsado: Mapped[Decimal] = mapped_column(
-        Numeric(12, 2), default=Decimal("0")
+        Numeric(12, 2), default=Decimal("0"), server_default="0"
     )
     pasarela: Mapped[str] = mapped_column(String)
     referencia_pasarela: Mapped[str | None] = mapped_column(
@@ -196,7 +163,9 @@ class Disputa(Base, IdMixin, TimestampMixin):
     abierta_por_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("profiles.id"))
     motivo: Mapped[str] = mapped_column(String)
     estado: Mapped[EstadoDisputa] = mapped_column(
-        pg_enum(EstadoDisputa, "estado_disputa"), default=EstadoDisputa.ABIERTA
+        pg_enum(EstadoDisputa, "estado_disputa"),
+        default=EstadoDisputa.ABIERTA,
+        server_default=EstadoDisputa.ABIERTA.value,
     )
     resolucion: Mapped[str | None] = mapped_column(String, nullable=True)
     resuelta_por_id: Mapped[uuid.UUID | None] = mapped_column(

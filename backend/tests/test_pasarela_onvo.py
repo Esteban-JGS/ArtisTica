@@ -128,7 +128,9 @@ async def caso_crear_cuenta() -> None:
         }
     )
     cuenta = await simulador.pasarela().crear_cuenta_conectada(
-        nombre=" Taller de Ana ", tarifa_porcentaje=Decimal("6.25")
+        nombre=" Taller de Ana ",
+        tarifa_porcentaje=Decimal("6.25"),
+        clave_idempotencia="cuenta-1",
     )
     assert cuenta.estado is EstadoCuenta.PENDIENTE
     assert cuenta.url_onboarding == "https://onvopay.com/setup/x"
@@ -380,11 +382,14 @@ async def test_13_mapeo_de_errores(caso):
     operacion, rutas, error, reintentable = CASOS_13[caso]
     pasarela = Simulador(rutas).pasarela()
 
-    with pytest.raises(error) as capturado:
+    async def ejecutar():
         if operacion == "cobrar":
             await pasarela.cobrar(cobro())
         else:
             await pasarela.capturar("pi_1", clave_idempotencia="c-1")
+
+    with pytest.raises(error) as capturado:
+        await ejecutar()
 
     assert capturado.value.reintentable is reintentable
 

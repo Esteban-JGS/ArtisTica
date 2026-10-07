@@ -1,24 +1,23 @@
-import enum
 import uuid
 from decimal import Decimal
 
 from pgvector.sqlalchemy import Vector
-from sqlalchemy import Boolean, CheckConstraint, ForeignKey, Index, Numeric, String
+from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
+    ForeignKey,
+    Index,
+    Numeric,
+    String,
+    desc,
+    text,
+)
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import Mapped, mapped_column
 
+from src.domain.enums import EstadoObra, TipoServicio
+
 from .base import Base, IdMixin, SoftDeleteMixin, TimestampMixin, pg_enum
-
-
-class EstadoObra(enum.StrEnum):
-    EXHIBICION = "exhibicion"
-    DISPONIBLE = "disponible"
-    VENDIDA = "vendida"
-
-
-class TipoServicio(enum.StrEnum):
-    ENCARGO = "encargo"
-    EVENTO = "evento"
 
 
 class Obra(Base, IdMixin, TimestampMixin, SoftDeleteMixin):
@@ -29,6 +28,8 @@ class Obra(Base, IdMixin, TimestampMixin, SoftDeleteMixin):
             "estado = 'exhibicion' OR (precio IS NOT NULL AND precio > 0)",
             name="precio_fuera_de_exhibicion",
         ),
+        # El listado de la galeria del artista, en orden descendente
+        Index("ix_obras_artista_id_created_at", "artista_id", desc("created_at")),
         Index(
             "ix_obras_style_embedding",
             "style_embedding",
@@ -43,10 +44,14 @@ class Obra(Base, IdMixin, TimestampMixin, SoftDeleteMixin):
     titulo: Mapped[str] = mapped_column(String)
     descripcion: Mapped[str | None] = mapped_column(String, nullable=True)
     estado: Mapped[EstadoObra] = mapped_column(
-        pg_enum(EstadoObra, "estado_obra"), default=EstadoObra.EXHIBICION
+        pg_enum(EstadoObra, "estado_obra"),
+        default=EstadoObra.EXHIBICION,
+        server_default=EstadoObra.EXHIBICION.value,
     )
     precio: Mapped[Decimal | None] = mapped_column(Numeric(12, 2), nullable=True)
-    categorias: Mapped[list[str]] = mapped_column(ARRAY(String), default=list)
+    categorias: Mapped[list[str]] = mapped_column(
+        ARRAY(String), default=list, server_default=text("'{}'")
+    )
     style_embedding = mapped_column(Vector(1536), nullable=True)
     # Detecta la misma obra subida por cuentas distintas
     hash_imagen: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
@@ -62,4 +67,6 @@ class Servicio(Base, IdMixin, TimestampMixin, SoftDeleteMixin):
     descripcion: Mapped[str | None] = mapped_column(String, nullable=True)
     precio_base: Mapped[Decimal] = mapped_column(Numeric(12, 2))
     tipo: Mapped[TipoServicio] = mapped_column(pg_enum(TipoServicio, "tipo_servicio"))
-    activo: Mapped[bool] = mapped_column(Boolean, default=True)
+    activo: Mapped[bool] = mapped_column(
+        Boolean, default=True, server_default=text("true")
+    )

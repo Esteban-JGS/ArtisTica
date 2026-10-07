@@ -81,6 +81,8 @@ El stack no se cambia. Estas reglas son invariantes; ningún prompt puede pedir 
 | Custodia | La pasarela custodia el dinero. ArtísTica **no** administra fondos de terceros. No existe saldo propio, retención propia ni payouts desde fondos nuestros |
 | Ledger | Registro y conciliación de pedidos, cobros y liquidaciones. **Nunca** una columna de saldo mutable |
 | Atomicidad | El estado del pedido y el estado del cobro cambian en la misma transacción de base de datos |
+| Orden de bloqueos | El perfil se bloquea antes que la obra, el servicio o el pedido (D18). Al revés, dos transacciones se traban |
+| Capas | `src/domain/` no importa SQLAlchemy ni FastAPI; `src/services/` no importa `src/api/` |
 | Idempotencia | Todo webhook de pago se procesa una sola vez aunque llegue repetido |
 | Chat | Toda conversación cliente-artista pertenece a una consulta. Entre artistas, mensajes libres. Público con público, no existe |
 | Búsqueda y similitud | pgvector con índice HNSW (recomendación y detección de obra duplicada) y tsvector para texto |
@@ -178,15 +180,21 @@ El backend son 1271 líneas en 38 archivos, con **un solo commit**. Nunca se eje
 | 2 | Máquina de estados de pedidos y cobros | 1 | No | Alto |
 | 3 | Capa de pasarela: contrato, adaptador real y falso | 1, 2 | No | Alto |
 | 4 | Identidad, roles, planes y onboarding | 1, 3 | No | Medio |
-| 5 | Obras, servicios y medios con Storage firmado | 1, 4 | Sí, con 7 | Medio |
-| 6 | Feed Seguidos y Explorar por cursor | 1, 5 | No | Medio |
-| 7 | Consultas y chat | 1, 4 | Sí, con 5 | Medio |
+| 5 | Almacenamiento y medios con subida firmada | 1, 4 | No | Medio |
+| 5c | Deuda: infraestructura y configuración | 5 | No | Bajo |
+| 5d | Deuda: esquema y enums | 5c | No | Alto |
+| 5e | Deuda: contrato de pagos | 5d | No | Alto |
+| 5f | Deuda: política de lint | 5e | No | Bajo |
+| 5b | Obras y servicios con límites de plan | 5f | No | Medio |
+| 6 | Publicaciones, feed Seguidos y Explorar por cursor | 5b | No | Medio |
+| 6b | Seguir, contadores, comentarios, reacciones y búsqueda | 6 | No | Medio |
+| 7 | Consultas y chat | 1, 4 | No | Medio |
 | 8 | Endpoints de pedidos y cobros | 2, 3, 7 | No | Medio alto |
 | 9 | Webhooks idempotentes y vigilancia de autorizaciones | 3, 8 | No | Alto |
 | 10 | Métricas: `post_views` y panel | 1, 6 | Sí, con 11 | Medio |
-| 11 | Moderación, reportes y jobs de clasificación | 1, 5 | Sí, con 10 | Medio |
+| 11 | Moderación, reportes y jobs del worker (miniaturas y clasificación) | 1, 5 | Sí, con 10 | Medio |
 
-Solo dos parejas corren en paralelo: 5 con 7, y 10 con 11.
+Solo una pareja corre en paralelo: 10 con 11. Los lotes con endpoints comparten `router.py`, `deps.py` y `conftest.py`, así que van en serie.
 
 ---
 
@@ -242,8 +250,9 @@ Verificá con `git branch --show-current`. Si la rama ya existe, detenete y
 avisá: no la sobrescribas.
 
 Al terminar, commiteá en esa rama **solo los archivos del alcance**, con un
-mensaje convencional (`tipo(backend): descripcion`). No commitees nada de
-`orquestacion/`. No hagas push ni abras PR: eso lo hace el orquestador.
+mensaje convencional (`tipo(backend): descripcion`). Los mensajes no llevan
+lineas `Co-Authored-By` ni mencionan herramientas de asistencia. No commitees
+nada de `orquestacion/`. No hagas push ni abras PR: eso lo hace el orquestador.
 
 ## Cómo entregar
 Salida de `git diff --stat develop...HEAD`, lista de archivos tocados,
@@ -265,6 +274,7 @@ Explicaciones breves; se prefiere código correcto a párrafos.
 4. Si se rechaza: el prompt de corrección le pide seguir en la misma rama, sin crear otra.
 5. Con veredicto aprobado: commitear en esa rama el prompt y la bitácora, `git push -u origin <rama>` y abrir el PR con `gh pr create --base develop`, llenando la plantilla de `.github/pull_request_template.md`.
 6. El merge lo hace Esteban, con merge commit. Nunca el orquestador. Después del merge, `git pull` en `develop` basta para alinear.
+7. En la rama del lote siguiente, el orquestador borra de `orquestacion/` el prompt del lote ya fusionado, y sus correctivos o addendums. En `orquestacion/` solo queda el prompt del lote en curso. Lo borrado sigue en el historial: `git log --diff-filter=D --oneline -- orquestacion/<archivo>` da el commit del borrado, y `git show <commit>^:orquestacion/<archivo>` lo muestra.
 
 Los cambios del propio orquestador a documentación también van por rama `docs/...` y PR.
 
@@ -300,10 +310,12 @@ Los cambios del propio orquestador a documentación también van por rama `docs/
 - [ ] No rompió ninguna invariante de la sección 2.
 - [ ] No agregó librerías fuera del stack.
 - [ ] No tocó `mobile/`.
+- [ ] Ningún commit de la rama lleva `Co-Authored-By` ni menciona herramientas de asistencia: `git log develop..HEAD --format=%B | grep -ci "co-authored"` da 0. Si aparece y la rama no se subió, se limpian los mensajes sin tocar el árbol antes del push.
 - [ ] Los criterios de aceptación se cumplen de verdad, **con la salida del comando pegada**. Un criterio marcado sin evidencia no está cumplido.
 - [ ] Si hubo migración: es reversible o está justificado que no lo sea, y no borra datos sin decirlo.
 - [ ] Si tocó pagos: el estado del pedido y el del cobro cambian en la misma transacción.
 - [ ] Si tocó modelos: no apareció ninguna columna de saldo mutable.
+- [ ] La documentación oficial está actualizada según la skill `documentacion-proyecto`, o el PR deja escrito por qué no aplica. Si el lote no la actualizó, el orquestador la actualiza en la misma rama antes de abrir el PR.
 
 **No bloqueantes (se anotan como deuda en la bitácora):**
 
