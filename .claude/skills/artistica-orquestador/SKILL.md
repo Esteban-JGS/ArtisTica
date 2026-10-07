@@ -81,6 +81,8 @@ El stack no se cambia. Estas reglas son invariantes; ningún prompt puede pedir 
 | Custodia | La pasarela custodia el dinero. ArtísTica **no** administra fondos de terceros. No existe saldo propio, retención propia ni payouts desde fondos nuestros |
 | Ledger | Registro y conciliación de pedidos, cobros y liquidaciones. **Nunca** una columna de saldo mutable |
 | Atomicidad | El estado del pedido y el estado del cobro cambian en la misma transacción de base de datos |
+| Orden de bloqueos | El perfil se bloquea antes que la obra, el servicio o el pedido (D18). Al revés, dos transacciones se traban |
+| Capas | `src/domain/` no importa SQLAlchemy ni FastAPI; `src/services/` no importa `src/api/` |
 | Idempotencia | Todo webhook de pago se procesa una sola vez aunque llegue repetido |
 | Chat | Toda conversación cliente-artista pertenece a una consulta. Entre artistas, mensajes libres. Público con público, no existe |
 | Búsqueda y similitud | pgvector con índice HNSW (recomendación y detección de obra duplicada) y tsvector para texto |
