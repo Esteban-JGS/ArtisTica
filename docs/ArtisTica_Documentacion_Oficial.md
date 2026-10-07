@@ -340,7 +340,8 @@ Con un pedido promedio de US$150, una tarifa promedio de 7% y 300 suscriptores d
 | Backend: capa de pagos | Completa, con pasarela simulada y adaptador de ONVO |
 | Backend: identidad, roles y planes | Completo y probado |
 | Backend: almacenamiento de imágenes | Completo, con almacenamiento simulado y adaptador de Supabase |
-| Endpoints de negocio e integración con la aplicación | En desarrollo: perfiles, planes e imágenes disponibles |
+| Backend: obras y servicios | Completo, con los límites del plan Taller |
+| Endpoints de negocio e integración con la aplicación | En desarrollo: perfiles, planes, imágenes, obras y servicios disponibles |
 
 ### 5.2 Backend
 
@@ -352,10 +353,11 @@ Con un pedido promedio de US$150, una tarifa promedio de 7% y 300 suscriptores d
 | Capa de pagos | Contrato de pasarela, pasarela simulada completa y adaptador de ONVO |
 | Identidad y planes | Registro y edición de perfiles, roles, cambio de plan que respeta la tarifa de cada pedido y registro del artista en la pasarela |
 | Almacenamiento e imágenes | Subida directa desde el teléfono con un permiso firmado, verificación de tamaño y tipo antes de aceptar la imagen, y borrado |
+| Obras y servicios | Galería del artista con obras en exhibición o disponibles, servicios de encargo y de evento, límites del plan Taller que nunca ocultan contenido al bajar de plan, y catálogo público paginado |
 
 Indicadores al cierre del avance:
 
-- 292 pruebas automatizadas.
+- 308 pruebas automatizadas.
 - Ningún saldo almacenado en la base de datos: ArtísTica no custodia dinero.
 - Montos calculados con aritmética decimal exacta.
 
@@ -367,7 +369,7 @@ Pantallas implementadas con el rediseño visual Liquid Glass: Inicio (feed con e
 
 | Etapa | Contenido |
 |---|---|
-| Contenido | Obras, servicios, miniaturas de imágenes y feed |
+| Contenido | Publicaciones, miniaturas de imágenes y feed |
 | Contratación | Consultas, chat, pedidos y recepción de avisos de pago |
 | Métricas y moderación | Panel del artista, reportes y clasificación para revisión humana |
 | Integración | Conexión de la aplicación con la API |
