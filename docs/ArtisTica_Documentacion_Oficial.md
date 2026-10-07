@@ -136,7 +136,7 @@ Sin artistas no llegan clientes y sin clientes los artistas no se quedan. Por es
 ### 2.3 Oferta y demanda
 
 - **Artistas fundadores.** Los primeros 100 reciben el plan Estudio gratis por seis meses. Se reclutan en persona en escuelas de arte y música, casas de cultura y ferias.
-- **Nuevos talentos.** Explorar reserva una cuota fija para artistas con pocos seguidores, sin necesidad de pagar promociones.
+- **Nuevos talentos.** Explorar reserva una de cada cinco posiciones para artistas con menos de 50 seguidores, sin necesidad de pagar promociones. Los dos valores son configurables.
 - **Clientes.** Se buscan donde ya se contrata arte: organizadores de bodas, salones de eventos, restaurantes y comercios. Se prioriza al cliente empresarial porque repite.
 
 ### 2.4 Contratación dentro de la aplicación
@@ -341,7 +341,8 @@ Con un pedido promedio de US$150, una tarifa promedio de 7% y 300 suscriptores d
 | Backend: identidad, roles y planes | Completo y probado |
 | Backend: almacenamiento de imágenes | Completo, con almacenamiento simulado y adaptador de Supabase |
 | Backend: obras y servicios | Completo, con los límites del plan Taller |
-| Endpoints de negocio e integración con la aplicación | En desarrollo: perfiles, planes, imágenes, obras y servicios disponibles |
+| Backend: publicaciones y feed | Completo: Seguidos cronológico y Explorar con cuota de nuevos talentos |
+| Endpoints de negocio e integración con la aplicación | En desarrollo: perfiles, planes, imágenes, obras, servicios, publicaciones y feed disponibles |
 
 ### 5.2 Backend
 
@@ -354,10 +355,11 @@ Con un pedido promedio de US$150, una tarifa promedio de 7% y 300 suscriptores d
 | Identidad y planes | Registro y edición de perfiles, roles, cambio de plan que respeta la tarifa de cada pedido y registro del artista en la pasarela |
 | Almacenamiento e imágenes | Subida directa desde el teléfono con un permiso firmado, verificación de tamaño y tipo antes de aceptar la imagen, y borrado |
 | Obras y servicios | Galería del artista con obras en exhibición o disponibles, servicios de encargo y de evento, límites del plan Taller que nunca ocultan contenido al bajar de plan, y catálogo público paginado |
+| Publicaciones y feed | Publicaciones con texto, imágenes y una obra opcional, nunca con precio; feed Seguidos en orden cronológico y Explorar filtrado por categorías con cuota de nuevos talentos |
 
 Indicadores al cierre del avance:
 
-- 308 pruebas automatizadas.
+- 320 pruebas automatizadas.
 - Ningún saldo almacenado en la base de datos: ArtísTica no custodia dinero.
 - Montos calculados con aritmética decimal exacta.
 
@@ -369,7 +371,7 @@ Pantallas implementadas con el rediseño visual Liquid Glass: Inicio (feed con e
 
 | Etapa | Contenido |
 |---|---|
-| Contenido | Publicaciones, miniaturas de imágenes y feed |
+| Contenido | Seguidores, comentarios, reacciones, búsqueda y miniaturas de imágenes |
 | Contratación | Consultas, chat, pedidos y recepción de avisos de pago |
 | Métricas y moderación | Panel del artista, reportes y clasificación para revisión humana |
 | Integración | Conexión de la aplicación con la API |
@@ -380,7 +382,7 @@ La demostración de noviembre usa la pasarela simulada, que reproduce autorizaci
 
 | Riesgo | Mitigación |
 |---|---|
-| Plazo: quedan siete etapas de backend y la integración | Las promociones ya salieron del MVP; si hace falta, Explorar queda solo por categorías |
+| Plazo: quedan seis etapas de backend y la integración | Las promociones ya salieron del MVP; si hace falta, Explorar queda solo por categorías |
 | ONVO no responde a tiempo | La demostración no depende de ONVO |
 | La integración llega tarde | Los endpoints se construyen en el orden en que la aplicación los necesita |
 
