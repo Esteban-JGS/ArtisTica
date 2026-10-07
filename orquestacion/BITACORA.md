@@ -25,6 +25,7 @@ Las decisiones se numeran D y las deudas técnicas DT.
 | D15 | Antes del lote 5b se paga la deuda que no depende de trabajo futuro, en cuatro lotes en serie: 5c infraestructura y configuración, 5d esquema y enums, 5e contrato de pagos y 5f lint. Lo que en realidad era trabajo planificado sale de la tabla de deuda y entra al alcance de su lote | 2026-10-04 |
 | D16 | Se acepta que las llamadas a la pasarela de pagos se hagan con el bloqueo del perfil tomado (D8), aunque retengan una conexión del pool mientras dura la llamada. Es el precio de que una tarifa no se cruce con un cobro, y el volumen del MVP es bajo. Se revisa solo si el pool se satura | 2026-10-04 |
 | D17 | La demo corre con `ENVIRONMENT=demo`, nunca `production`: en producción la configuración rechaza los adaptadores falsos y el cambio a Estudio sin cobro | 2026-10-04 |
+| D18 | Orden de los bloqueos en todo el backend: el perfil se bloquea antes que la obra, el servicio o el pedido. Dos transacciones que toman los mismos bloqueos en orden inverso se traban, y el lote 8 bloquea el perfil para fijar la tarifa (D8) antes de tocar el pedido o la obra | 2026-10-06 |
 
 ## Políticas de pedido vigentes (D5)
 
@@ -58,7 +59,7 @@ Las decisiones se numeran D y las deudas técnicas DT.
 | 5d | Deuda: esquema y enums | Cerrado | Aprobado | Ninguna |
 | 5e | Deuda: contrato de pagos | Cerrado | Aprobado tras correctivo | Ninguna |
 | 5f | Deuda: política de lint | Cerrado | Aprobado | Ninguna |
-| 5b | Obras y servicios con límites de plan | Pendiente | | |
+| 5b | Obras y servicios con límites de plan | Cerrado | Aprobado tras correctivo | Ninguna |
 | 6 | Publicaciones, feed Seguidos y Explorar por cursor | Pendiente | | |
 | 7 | Consultas y chat | Pendiente | | |
 | 8 | Endpoints de pedidos y cobros | Pendiente | | |
@@ -114,6 +115,7 @@ Las decisiones se numeran D y las deudas técnicas DT.
 | 5e | La tabla de estados de ONVO para la consulta de cobro omitía `refunded` y `partially_refunded`, que están en el enum documentado. Un cobro reembolsado desde el dashboard habría hecho fallar la consulta que el lote 9 usa antes de mover dinero | Correctivo del lote 5e en la misma rama: los dos estados van a `capturado`, con `monto_capturado` nulo porque ONVO informa el neto |
 | 5f | La tabla de `noqa` permitidos se midió con la política vieja, antes de las correcciones que el mismo prompt pedía. Tres de las cinco entradas sobraban y faltaban tres casos legítimos | Se aceptan los diez `noqa` del ejecutor, cada uno con motivo. Las excepciones permitidas se miden después de aplicar las correcciones |
 | 5f | Los seis commits del ejecutor traían la línea `Co-Authored-By`, que `CLAUDE.md` prohíbe. Ningún prompt ni la lista de verificación lo controlaban | El orquestador limpió los mensajes antes del push, con el árbol idéntico. La plantilla de prompt y la lista de verificación del manual ahora lo exigen |
+| 5b | El prompt puso la paginación en `src/api/`, aunque el servicio la necesitaba, y no fijó un orden de bloqueos. El servicio quedó dependiendo de la API, y editar una obra bloqueaba la obra antes que el perfil, al revés de lo que hará el lote 8 | Correctivo del lote 5b en la misma rama: la paginación pasa a `src/services/` y el perfil se bloquea siempre antes que la obra, el servicio o el pedido |
 
 ## Preguntas abiertas que bloquean diseño
 
