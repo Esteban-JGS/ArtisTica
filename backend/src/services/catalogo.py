@@ -11,9 +11,7 @@ Orden de los bloqueos en todo el backend: el perfil se bloquea antes que la
 obra, el servicio o el pedido. Al reves dos transacciones se traban.
 """
 
-import logging
 import uuid
-from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -35,16 +33,17 @@ from src.models import (
     Profile,
     Servicio,
 )
+from src.services.medios import (
+    Destino,
+    asignar_medios,
+    borrar_objetos_de,
+    medios_de_obras,
+    tomar_medios_sueltos,
+)
 from src.services.paginacion import ParametrosPagina, traer_pagina
 from src.services.perfiles import bloquear_perfil
-from src.storage import Almacenamiento, ErrorAlmacenamiento
+from src.storage import Almacenamiento
 
-logger = logging.getLogger(__name__)
-
-MOTIVO_MEDIO_INVALIDO = (
-    "Algun medio no sirve: tiene que ser tuyo, confirmado, sin borrar y "
-    "sin asociar a otra obra o publicacion"
-)
 MOTIVO_PEDIDO_ACTIVO = "La obra tiene un pedido en curso"
 MOTIVO_VENDIDA = "La obra ya se vendio: solo se puede editar su ficha"
 
@@ -216,105 +215,6 @@ async def _tuvo_pedidos(session: AsyncSession, obra_id: uuid.UUID) -> bool:
     return (await session.execute(stmt)).first() is not None
 
 
-# Medios de una obra
-
-
-async def medios_de(
-    session: AsyncSession, obra_ids: Sequence[uuid.UUID]
-) -> dict[uuid.UUID, list[MediaAsset]]:
-    """Los medios de varias obras en una sola consulta, ya ordenados."""
-    if not obra_ids:
-        return {}
-    stmt = (
-        select(MediaAsset)
-        .where(MediaAsset.obra_id.in_(obra_ids), MediaAsset.deleted_at.is_(None))
-        .order_by(MediaAsset.orden, MediaAsset.id)
-    )
-    por_obra: dict[uuid.UUID, list[MediaAsset]] = defaultdict(list)
-    for medio in (await session.execute(stmt)).scalars():
-        por_obra[medio.obra_id].append(medio)
-    return por_obra
-
-
-async def _validar_medios(
-    session: AsyncSession,
-    artista_id: uuid.UUID,
-    ids: Sequence[uuid.UUID],
-    *,
-    obra_id: uuid.UUID | None,
-    maximo: int,
-) -> list[MediaAsset]:
-    """Los medios en el orden pedido. Si alguno no sirve, falla antes de escribir."""
-    if not ids:
-        raise ReglaDeNegocioViolada("La obra necesita al menos una imagen")
-    if len(ids) > maximo:
-        raise ReglaDeNegocioViolada(f"Una obra admite {maximo} imagenes como maximo")
-    if len(set(ids)) != len(ids):
-        raise ReglaDeNegocioViolada("Hay imagenes repetidas")
-
-    stmt = (
-        select(MediaAsset)
-        .where(MediaAsset.id.in_(ids))
-        .with_for_update()
-        .execution_options(populate_existing=True)
-    )
-    por_id = {m.id: m for m in (await session.execute(stmt)).scalars()}
-    elegidos: list[MediaAsset] = []
-    for medio_id in ids:
-        medio = por_id.get(medio_id)
-        if (
-            medio is None
-            or medio.propietario_id != artista_id
-            or medio.deleted_at is not None
-            or medio.subido_en is None
-            or medio.publicacion_id is not None
-            or (medio.obra_id is not None and medio.obra_id != obra_id)
-        ):
-            raise ReglaDeNegocioViolada(MOTIVO_MEDIO_INVALIDO)
-        elegidos.append(medio)
-    return elegidos
-
-
-async def _reemplazar_medios(
-    session: AsyncSession, obra: Obra, elegidos: list[MediaAsset]
-) -> list[MediaAsset]:
-    """Deja exactamente estos medios en la obra. Los que salen quedan sueltos."""
-    quedan = {m.id for m in elegidos}
-    anteriores = await session.execute(
-        select(MediaAsset)
-        .where(MediaAsset.obra_id == obra.id, MediaAsset.id.not_in(quedan))
-        .execution_options(populate_existing=True)
-    )
-    for medio in anteriores.scalars():
-        medio.obra_id = None
-        medio.orden = None
-    for posicion, medio in enumerate(elegidos):
-        medio.obra_id = obra.id
-        medio.orden = posicion
-    await session.flush()
-    return elegidos
-
-
-async def _borrar_objetos(
-    almacenamiento: Almacenamiento, medios: Sequence[MediaAsset]
-) -> None:
-    """Borra en Storage. Si falla, solo se loguea: queda un objeto huerfano."""
-    por_bucket: dict[str, list[str]] = defaultdict(list)
-    for medio in medios:
-        por_bucket[medio.bucket].append(medio.storage_path)
-        if medio.thumbnail_path:
-            por_bucket[medio.bucket].append(medio.thumbnail_path)
-    for bucket, rutas in por_bucket.items():
-        try:
-            await almacenamiento.borrar(bucket, rutas)
-        except ErrorAlmacenamiento as exc:
-            logger.warning(
-                "No se pudieron borrar los objetos de %s: %s",
-                bucket,
-                type(exc).__name__,
-            )
-
-
 # Obras
 
 
@@ -335,12 +235,13 @@ async def crear_obra(
             raise ReglaDeNegocioViolada(problema)
         perfil = await bloquear_perfil(session, artista.id)
         await _exigir_cupo_de_obra(session, perfil, limites)
-    elegidos = await _validar_medios(
+    elegidos = await tomar_medios_sueltos(
         session,
         artista.id,
         list(datos["medios"]),
-        obra_id=None,
         maximo=limites.medios_por_obra,
+        minimo=1,
+        pertenece_a=None,
     )
 
     obra = Obra(
@@ -354,7 +255,7 @@ async def crear_obra(
     )
     session.add(obra)
     await session.flush()
-    medios = await _reemplazar_medios(session, obra, elegidos)
+    medios = await asignar_medios(session, elegidos, obra_id=obra.id)
     return ObraDetalle(obra=obra, artista_handle=artista.handle, medios=medios)
 
 
@@ -364,7 +265,7 @@ async def obtener_obra(session: AsyncSession, obra_id: uuid.UUID) -> ObraDetalle
     obra = (await session.execute(stmt)).scalar_one_or_none()
     if obra is None:
         raise ResourceNotFound("Obra no encontrada")
-    medios = (await medios_de(session, [obra.id])).get(obra.id, [])
+    medios = (await medios_de_obras(session, [obra.id])).get(obra.id, [])
     return ObraDetalle(
         obra=obra,
         artista_handle=await _handle_de(session, obra.artista_id),
@@ -433,12 +334,13 @@ async def editar_obra(
     precio = cambios.get("precio", obra.precio)
     elegidos = None
     if "medios" in cambios:
-        elegidos = await _validar_medios(
+        elegidos = await tomar_medios_sueltos(
             session,
             artista.id,
             list(cambios["medios"]),
-            obra_id=obra.id,
             maximo=limites.medios_por_obra,
+            minimo=1,
+            pertenece_a=Destino(obra_id=obra.id),
         )
     if estado == EstadoObra.DISPONIBLE:
         await _exigir_disponible_posible(
@@ -449,9 +351,9 @@ async def editar_obra(
     await session.flush()
 
     if elegidos is not None:
-        medios = await _reemplazar_medios(session, obra, elegidos)
+        medios = await asignar_medios(session, elegidos, obra_id=obra.id)
     else:
-        medios = (await medios_de(session, [obra.id])).get(obra.id, [])
+        medios = (await medios_de_obras(session, [obra.id])).get(obra.id, [])
     return ObraDetalle(obra=obra, artista_handle=artista.handle, medios=medios)
 
 
@@ -479,7 +381,7 @@ async def eliminar_obra(
             medio.deleted_at = ahora
     await session.flush()
     if huerfanos:
-        await _borrar_objetos(almacenamiento, huerfanos)
+        await borrar_objetos_de(almacenamiento, huerfanos)
 
 
 async def listar_obras_de(
@@ -491,7 +393,7 @@ async def listar_obras_de(
         Obra.artista_id == artista.id, Obra.deleted_at.is_(None)
     )
     obras, siguiente = await traer_pagina(session, stmt, Obra, parametros)
-    por_obra = await medios_de(session, [o.id for o in obras])
+    por_obra = await medios_de_obras(session, [o.id for o in obras])
     detalles = [
         ObraDetalle(
             obra=obra, artista_handle=artista.handle, medios=por_obra.get(obra.id, [])

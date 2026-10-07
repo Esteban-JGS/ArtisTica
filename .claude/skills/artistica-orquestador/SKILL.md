@@ -187,6 +187,7 @@ El backend son 1271 líneas en 38 archivos, con **un solo commit**. Nunca se eje
 | 5f | Deuda: política de lint | 5e | No | Bajo |
 | 5b | Obras y servicios con límites de plan | 5f | No | Medio |
 | 6 | Publicaciones, feed Seguidos y Explorar por cursor | 5b | No | Medio |
+| 6b | Seguir, contadores, comentarios, reacciones y búsqueda | 6 | No | Medio |
 | 7 | Consultas y chat | 1, 4 | No | Medio |
 | 8 | Endpoints de pedidos y cobros | 2, 3, 7 | No | Medio alto |
 | 9 | Webhooks idempotentes y vigilancia de autorizaciones | 3, 8 | No | Alto |

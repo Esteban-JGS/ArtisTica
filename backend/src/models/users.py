@@ -4,6 +4,7 @@ from sqlalchemy import (
     Boolean,
     CheckConstraint,
     ForeignKey,
+    Index,
     String,
     UniqueConstraint,
     text,
@@ -18,6 +19,10 @@ from .base import Base, IdMixin, TimestampMixin, pg_enum
 
 class Profile(Base, TimestampMixin):
     __tablename__ = "profiles"
+    __table_args__ = (
+        # Filtro por categorias de Explorar, con el operador &&
+        Index("ix_profiles_categorias", "categorias", postgresql_using="gin"),
+    )
 
     # El id viene de auth.users de Supabase
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)

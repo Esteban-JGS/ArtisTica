@@ -53,6 +53,12 @@ class Settings(BaseSettings):
     LIMITE_OBRAS_DISPONIBLES_TALLER: int = Field(default=5, ge=1)
     # Imagenes por obra, para cualquier plan
     MEDIOS_POR_OBRA_MAXIMO: int = Field(default=10, ge=1)
+    # Imagenes por publicacion del feed
+    MEDIOS_POR_PUBLICACION_MAXIMO: int = Field(default=10, ge=1)
+    # Explorar: una de cada N posiciones es de un nuevo talento
+    EXPLORAR_CADA_N: int = Field(default=5, ge=2)
+    # Un artista con menos seguidores que esto es nuevo talento
+    NUEVO_TALENTO_MAX_SEGUIDORES: int = Field(default=50, ge=1)
     # Paginacion por cursor de los listados
     PAGINA_TAMANO_DEFECTO: int = Field(default=20, ge=1)
     PAGINA_TAMANO_MAXIMO: int = Field(default=50, ge=1)
