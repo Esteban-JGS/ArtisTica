@@ -342,7 +342,8 @@ Con un pedido promedio de US$150, una tarifa promedio de 7% y 300 suscriptores d
 | Backend: almacenamiento de imágenes | Completo, con almacenamiento simulado y adaptador de Supabase |
 | Backend: obras y servicios | Completo, con los límites del plan Taller |
 | Backend: publicaciones y feed | Completo: Seguidos cronológico y Explorar con cuota de nuevos talentos |
-| Endpoints de negocio e integración con la aplicación | En desarrollo: perfiles, planes, imágenes, obras, servicios, publicaciones y feed disponibles |
+| Backend: seguidores y me gusta | Completo, con contadores que nunca alteran el orden del feed |
+| Endpoints de negocio e integración con la aplicación | En desarrollo: perfiles, planes, imágenes, obras, servicios, publicaciones, feed, seguidores y me gusta disponibles |
 
 ### 5.2 Backend
 
@@ -356,10 +357,11 @@ Con un pedido promedio de US$150, una tarifa promedio de 7% y 300 suscriptores d
 | Almacenamiento e imágenes | Subida directa desde el teléfono con un permiso firmado, verificación de tamaño y tipo antes de aceptar la imagen, y borrado |
 | Obras y servicios | Galería del artista con obras en exhibición o disponibles, servicios de encargo y de evento, límites del plan Taller que nunca ocultan contenido al bajar de plan, y catálogo público paginado |
 | Publicaciones y feed | Publicaciones con texto, imágenes y una obra opcional, nunca con precio; feed Seguidos en orden cronológico y Explorar filtrado por categorías con cuota de nuevos talentos |
+| Seguidores y me gusta | Seguir artistas, contadores y listas de seguidores, y me gusta en publicaciones. Los contadores se muestran pero no ordenan ningún feed |
 
 Indicadores al cierre del avance:
 
-- 320 pruebas automatizadas.
+- 331 pruebas automatizadas.
 - Ningún saldo almacenado en la base de datos: ArtísTica no custodia dinero.
 - Montos calculados con aritmética decimal exacta.
 
@@ -371,7 +373,7 @@ Pantallas implementadas con el rediseño visual Liquid Glass: Inicio (feed con e
 
 | Etapa | Contenido |
 |---|---|
-| Contenido | Seguidores, comentarios, reacciones, búsqueda y miniaturas de imágenes |
+| Contenido | Comentarios, búsqueda y miniaturas de imágenes |
 | Contratación | Consultas, chat, pedidos y recepción de avisos de pago |
 | Métricas y moderación | Panel del artista, reportes y clasificación para revisión humana |
 | Integración | Conexión de la aplicación con la API |
