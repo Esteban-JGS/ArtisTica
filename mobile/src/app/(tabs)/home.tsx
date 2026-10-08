@@ -119,6 +119,10 @@ function LikeBurst({ trigger }: { trigger: number }) {
 }
 
 function openArtistProfile(post: Post) {
+  if (post.name === CURRENT_AUTHOR.name) {
+    router.navigate('/profile');
+    return;
+  }
   router.push({
     pathname: '/artista/[id]',
     params: { id: post.name, name: post.name, role: post.role, color: post.color },

@@ -2,7 +2,10 @@ import { Image } from 'expo-image';
 import { useWindowDimensions, View } from 'react-native';
 import Animated, { type SharedValue, useAnimatedStyle } from 'react-native-reanimated';
 
-import { backgroundSource, useBackgroundStore } from '@/stores/background-store';
+// Textura CC0 de ambientCG (ambientcg.com/a/Cork001), tenida hacia el
+// color de marca (colors.accent) a partir de su luminancia original.
+// Es local porque tiene que repetirse sin costura.
+const CORK_TEXTURE = require('@/assets/images/texture-cork.avif');
 
 // Alto de cada copia apilada de la textura de corcho. Entre mas grande,
 // mas realista se ve el grano (menos "estampado de papel tapiz").
@@ -13,8 +16,7 @@ function wrap(value: number, max: number) {
   return ((value % max) + max) % max;
 }
 
-// El corcho es la unica textura pensada para repetirse sin costura (ver
-// background-store.ts), asi que es la unica que se anima: apila copias
+// La textura se repite sin costura, asi que se anima: apila copias
 // identicas y las corre con el scroll, envolviendo cada CORK_TILE_HEIGHT
 // px. Como las copias son identicas, el salto del envolvido es invisible
 // y el loop queda infinito. Con scrollY se mueve 1:1 con los posts; sin
@@ -33,7 +35,7 @@ function ScrollingCorkBackground({ scrollY }: { scrollY?: SharedValue<number> })
         {Array.from({ length: tileCount }).map((_, index) => (
           <Image
             key={index}
-            source={backgroundSource('corcho', 0)}
+            source={CORK_TEXTURE}
             style={{ width: '100%', height: CORK_TILE_HEIGHT }}
             contentFit="cover"
           />
@@ -53,30 +55,8 @@ function ScrollingCorkBackground({ scrollY }: { scrollY?: SharedValue<number> })
   );
 }
 
-// Una textura detras del palette sand, haciendo de fondo de mural/taller
-// (se elige en Perfil > Personalizacion). Con tinte suave del tono sand
-// para que las tarjetas flotantes y el texto sigan legibles sin aplanar
-// la textura en un lavado blanco.
+// El tablero de corcho detras del palette sand, con tinte suave del tono
+// sand para que las tarjetas flotantes y el texto sigan legibles.
 export function AppBackground({ scrollY }: { scrollY?: SharedValue<number> }) {
-  const backgroundId = useBackgroundStore((state) => state.backgroundId);
-
-  if (backgroundId === 'corcho') {
-    return <ScrollingCorkBackground scrollY={scrollY} />;
-  }
-
-  return (
-    <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
-      <Image source={backgroundSource(backgroundId, 1200)} style={{ flex: 1 }} contentFit="cover" />
-      <View
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(247,245,241,0.45)',
-        }}
-      />
-    </View>
-  );
+  return <ScrollingCorkBackground scrollY={scrollY} />;
 }

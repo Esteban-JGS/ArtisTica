@@ -6,12 +6,14 @@ import { Image, Pressable, ScrollView, Switch, Text, TextInput, View } from 'rea
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { CURRENT_AUTHOR, usePostsStore } from '@/stores/posts-store';
+import { useProfileStore } from '@/stores/profile-store';
 import { colors } from '@/theme';
 
 const CATEGORIES = ['Dibujantes', 'Músicos', 'Pintores', 'Artesanos', 'Escultores'];
 
 export default function CrearScreen() {
   const addPost = usePostsStore((state) => state.addPost);
+  const profile = useProfileStore((state) => state.profile);
   const [image, setImage] = useState<string | null>(null);
   const [caption, setCaption] = useState('');
   const [category, setCategory] = useState('Dibujantes');
@@ -23,6 +25,8 @@ export default function CrearScreen() {
     if (!canPublish || !image) return;
     addPost({
       ...CURRENT_AUTHOR,
+      role: profile.role,
+      place: profile.place,
       time: 'ahora',
       image,
       caption: caption.trim(),

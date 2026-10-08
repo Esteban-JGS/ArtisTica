@@ -1,11 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Image, Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native';
+import { Alert, Image, Pressable, ScrollView, Share, Text, useWindowDimensions, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppBackground } from '@/components/app-background';
 import { CURRENT_AUTHOR, usePostsStore } from '@/stores/posts-store';
-import { BACKGROUND_OPTIONS, backgroundSource, useBackgroundStore } from '@/stores/background-store';
+import { useProfileStore } from '@/stores/profile-store';
 import { colors, NOTE_SHADOW, roleColors } from '@/theme';
 
 const FEATURED_COUNT = 3;
@@ -54,8 +55,7 @@ function Pin({ color }: { color: string }) {
 
 export default function PerfilScreen() {
   const [tab, setTab] = useState<'portafolio' | 'sobre-mi'>('portafolio');
-  const backgroundId = useBackgroundStore((state) => state.backgroundId);
-  const setBackgroundId = useBackgroundStore((state) => state.setBackgroundId);
+  const profile = useProfileStore((state) => state.profile);
   const allPosts = usePostsStore((state) => state.posts);
   const { width: windowWidth } = useWindowDimensions();
   // aspect-square con ancho en porcentaje no resuelve la altura dentro de
@@ -82,162 +82,164 @@ export default function PerfilScreen() {
       params: { image: item.image, caption: item.caption, authorName: OWN_NAME },
     });
 
+  const shareProfile = () =>
+    Share.share({ message: `Mirá el perfil de ${OWN_NAME} (@${profile.handle}) en Artística` });
+
+  const openAccountMenu = () =>
+    Alert.alert('Tu cuenta', `@${profile.handle}`, [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Cerrar sesión', style: 'destructive', onPress: () => router.replace('/') },
+    ]);
+
   return (
     <View className="flex-1 bg-sand-100">
       <AppBackground />
-      <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerClassName="px-5 pb-8 pt-16">
-        {/* Foto de perfil pineada a la par de tus propias obras, no sola
-            arriba de una caja de stats. */}
-        <View className="flex-row justify-center" style={{ paddingLeft: 36 }}>
-          <View style={[NOTE_SHADOW, { width: 104 }]} className="rounded-xl">
-            <Pin color={OWN_COLOR.fg} />
-            <View
-              className="items-center justify-center overflow-hidden rounded-xl bg-sand-50"
-              style={{ width: 104, height: 120 }}>
+      <SafeAreaView edges={['top']} className="flex-1">
+        <View className="flex-row items-center justify-between px-5 py-3">
+          <Text className="text-base font-semibold text-ink">@{profile.handle}</Text>
+          <Pressable
+            onPress={openAccountMenu}
+            accessibilityRole="button"
+            accessibilityLabel="Ajustes de la cuenta"
+            hitSlop={8}>
+            <Ionicons name="settings-outline" size={22} color={colors.ink.DEFAULT} />
+          </Pressable>
+        </View>
+        <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerClassName="px-5 pb-8">
+          {/* Foto de perfil pineada a la par de tus propias obras, no sola
+              arriba de una caja de stats. */}
+          <View className="flex-row justify-center pt-4" style={{ paddingLeft: 36 }}>
+            <View style={[NOTE_SHADOW, { width: 104 }]} className="rounded-xl">
+              <Pin color={OWN_COLOR.fg} />
               <View
-                className="h-16 w-16 items-center justify-center overflow-hidden rounded-full"
-                style={{ borderWidth: 2, borderColor: OWN_COLOR.base }}>
-                <Image source={{ uri: OWN_AVATAR }} className="h-full w-full" />
+                className="items-center justify-center overflow-hidden rounded-xl bg-sand-50"
+                style={{ width: 104, height: 120 }}>
+                <View
+                  className="h-16 w-16 items-center justify-center overflow-hidden rounded-full"
+                  style={{ borderWidth: 2, borderColor: OWN_COLOR.base }}>
+                  <Image source={{ uri: OWN_AVATAR }} className="h-full w-full" />
+                </View>
               </View>
             </View>
-          </View>
 
-          {featured.map((item, index) => (
-            <Pressable
-              key={item.id}
-              onPress={() => openObra(item)}
-              style={[
-                NOTE_SHADOW,
-                {
-                  width: 92,
-                  height: 92,
-                  marginLeft: -22,
-                  marginTop: index % 2 === 0 ? 16 : 26,
-                  transform: [{ rotate: `${index % 2 === 0 ? -6 : 5}deg` }],
-                  zIndex: FEATURED_COUNT - index,
-                },
-              ]}
-              className="overflow-hidden rounded-xl bg-sand-50">
-              <Image source={{ uri: item.image }} className="h-full w-full" />
-            </Pressable>
-          ))}
-        </View>
-
-        <View className="mt-5 items-center gap-1.5">
-          <View className="flex-row items-center gap-1.5">
-            <Text className="font-serif text-2xl italic text-ink">{OWN_NAME}</Text>
-            <Ionicons name="checkmark-circle" size={16} color={colors.accent.DEFAULT} />
-          </View>
-          <View className="rounded-full px-2 py-0.5" style={{ backgroundColor: OWN_COLOR.bg }}>
-            <Text className="text-xs font-medium" style={{ color: OWN_COLOR.fg }}>
-              Ilustradora digital
-            </Text>
-          </View>
-          <Text className="mt-1 text-center text-sm text-stone-800">
-            Creo mundos suaves para quienes todavía creen en la magia cotidiana.
-          </Text>
-          <Text className="mt-1 text-xs text-stone-700">
-            Responde en 1d · 156 entregadas · 12.4k seguidores
-          </Text>
-        </View>
-
-        <View className="mt-6" style={[NOTE_SHADOW, { alignSelf: 'stretch' }]}>
-          <Pin color={OWN_COLOR.fg} />
-          <View className="gap-3 rounded-xl bg-sand-50 p-4">
-            <View className="flex-row items-center justify-between">
-              <Text className="text-sm font-semibold text-ink">Tu ficha de comisión</Text>
-              <View className="rounded-full px-2.5 py-1" style={{ backgroundColor: 'rgba(63,107,99,0.16)' }}>
-                <Text className="text-[11px] font-semibold uppercase" style={{ color: colors.sage }}>
-                  Abierto
-                </Text>
-              </View>
-            </View>
-            <Text className="text-sm text-stone-800">Desde ₡40k hasta ₡120k, según la pieza.</Text>
-            <Text className="text-xs text-stone-700">Tomando pedidos hasta noviembre.</Text>
-            <Text className="text-xs italic text-stone-600">Así la ven los clientes en tu perfil.</Text>
-          </View>
-        </View>
-
-        <View className="mt-6 gap-3 rounded-2xl bg-sand-50 p-4">
-          <Text className="text-sm font-semibold text-ink">Personalización</Text>
-          <Text className="text-xs text-stone-700">Elegí el fondo de la app</Text>
-          <View className="flex-row gap-3">
-            {BACKGROUND_OPTIONS.map((option) => {
-              const isSelected = option.id === backgroundId;
-              return (
-                <Pressable
-                  key={option.id}
-                  onPress={() => setBackgroundId(option.id)}
-                  className="flex-1 items-center gap-1.5">
-                  <View
-                    className={
-                      isSelected
-                        ? 'h-16 w-full overflow-hidden rounded-xl border-2 border-accent'
-                        : 'h-16 w-full overflow-hidden rounded-xl border border-sand-300'
-                    }>
-                    <Image source={backgroundSource(option.id, 200)} className="h-full w-full" />
-                    {isSelected && (
-                      <View className="absolute inset-0 items-center justify-center bg-ink/20">
-                        <Ionicons name="checkmark-circle" size={20} color={colors.sand[50]} />
-                      </View>
-                    )}
-                  </View>
-                  <Text
-                    className={
-                      isSelected ? 'text-xs font-semibold text-ink' : 'text-xs text-stone-700'
-                    }>
-                    {option.label}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-        </View>
-
-        <View className="mt-6 flex-row gap-6 border-b border-sand-300">
-          <Pressable onPress={() => setTab('portafolio')} className="pb-3">
-            <Text
-              className={
-                tab === 'portafolio'
-                  ? 'border-b-2 border-ink pb-3 text-sm font-semibold text-ink'
-                  : 'text-sm text-stone-700'
-              }>
-              Portafolio
-            </Text>
-          </Pressable>
-          <Pressable onPress={() => setTab('sobre-mi')} className="pb-3">
-            <Text
-              className={
-                tab === 'sobre-mi'
-                  ? 'border-b-2 border-ink pb-3 text-sm font-semibold text-ink'
-                  : 'text-sm text-stone-700'
-              }>
-              Sobre mí
-            </Text>
-          </Pressable>
-        </View>
-
-        {tab === 'portafolio' ? (
-          <View className="flex-row flex-wrap gap-2 py-4">
-            {rest.map((item) => (
-              <Pressable key={item.id} onPress={() => openObra(item)}>
-                <Image
-                  source={{ uri: item.image }}
-                  className="rounded-xl"
-                  style={{ width: gridItemSize, height: gridItemSize }}
-                />
+            {featured.map((item, index) => (
+              <Pressable
+                key={item.id}
+                onPress={() => openObra(item)}
+                style={[
+                  NOTE_SHADOW,
+                  {
+                    width: 92,
+                    height: 92,
+                    marginLeft: -22,
+                    marginTop: index % 2 === 0 ? 16 : 26,
+                    transform: [{ rotate: `${index % 2 === 0 ? -6 : 5}deg` }],
+                    zIndex: FEATURED_COUNT - index,
+                  },
+                ]}
+                className="overflow-hidden rounded-xl bg-sand-50">
+                <Image source={{ uri: item.image }} className="h-full w-full" />
               </Pressable>
             ))}
           </View>
-        ) : (
-          <View className="py-4">
-            <Text className="text-sm text-stone-800">
-              Ilustradora digital especializada en escenas íntimas y paletas suaves. Trabajo por
-              comisión desde 2019.
+
+          <View className="mt-5 items-center gap-1.5">
+            <View className="flex-row items-center gap-1.5">
+              <Text className="font-serif text-2xl italic text-ink">{OWN_NAME}</Text>
+              <Ionicons name="checkmark-circle" size={16} color={colors.accent.DEFAULT} />
+            </View>
+            <View className="rounded-full px-2 py-0.5" style={{ backgroundColor: OWN_COLOR.bg }}>
+              <Text className="text-xs font-medium" style={{ color: OWN_COLOR.fg }}>
+                {profile.role}
+              </Text>
+            </View>
+            {profile.bio !== '' && (
+              <Text className="mt-1 text-center text-sm text-stone-800">{profile.bio}</Text>
+            )}
+            <Text className="mt-1 text-xs text-stone-700">
+              {profile.place} · Responde en 1d · 156 entregadas · 12.4k seguidores
             </Text>
+            <View className="mt-2 flex-row gap-2">
+              <Pressable onPress={() => router.push('/editar-perfil')} className="rounded-full bg-accent px-6 py-2">
+                <Text className="text-sm font-semibold text-sand-50">Editar perfil</Text>
+              </Pressable>
+              <Pressable onPress={shareProfile} className="rounded-full bg-sand-50 px-6 py-2">
+                <Text className="text-sm font-semibold text-ink">Compartir perfil</Text>
+              </Pressable>
+            </View>
           </View>
-        )}
-      </ScrollView>
+
+          <View className="mt-6" style={[NOTE_SHADOW, { alignSelf: 'stretch' }]}>
+            <Pin color={OWN_COLOR.fg} />
+            <View className="gap-3 rounded-xl bg-sand-50 p-4">
+              <View className="flex-row items-center justify-between">
+                <Text className="text-sm font-semibold text-ink">Ficha de comisión</Text>
+                <View
+                  className="rounded-full px-2.5 py-1"
+                  style={{
+                    backgroundColor: profile.commissionsOpen ? 'rgba(63,107,99,0.16)' : 'rgba(139,130,121,0.16)',
+                  }}>
+                  <Text
+                    className="text-[11px] font-semibold uppercase"
+                    style={{ color: profile.commissionsOpen ? colors.sage : colors.stone[900] }}>
+                    {profile.commissionsOpen ? 'Abierto' : 'Cerrado'}
+                  </Text>
+                </View>
+              </View>
+              <Text className="text-sm text-stone-800">
+                Desde ₡{profile.priceLow}k hasta ₡{profile.priceHigh}k, según la pieza.
+              </Text>
+              <Text className="text-xs text-stone-700">
+                {profile.commissionsOpen
+                  ? `Tomando pedidos hasta ${profile.openUntil}.`
+                  : 'Por ahora no estás tomando pedidos nuevos.'}
+              </Text>
+              <Text className="text-xs italic text-stone-600">Así la ven los clientes en tu perfil.</Text>
+            </View>
+          </View>
+
+          <View className="mt-6 flex-row gap-6 border-b border-sand-300">
+            <Pressable onPress={() => setTab('portafolio')} className="pb-3">
+              <Text
+                className={
+                  tab === 'portafolio'
+                    ? 'border-b-2 border-ink pb-3 text-sm font-semibold text-ink'
+                    : 'text-sm text-stone-700'
+                }>
+                Portafolio
+              </Text>
+            </Pressable>
+            <Pressable onPress={() => setTab('sobre-mi')} className="pb-3">
+              <Text
+                className={
+                  tab === 'sobre-mi'
+                    ? 'border-b-2 border-ink pb-3 text-sm font-semibold text-ink'
+                    : 'text-sm text-stone-700'
+                }>
+                Sobre mí
+              </Text>
+            </Pressable>
+          </View>
+
+          {tab === 'portafolio' ? (
+            <View className="flex-row flex-wrap gap-2 py-4">
+              {rest.map((item) => (
+                <Pressable key={item.id} onPress={() => openObra(item)}>
+                  <Image
+                    source={{ uri: item.image }}
+                    className="rounded-xl"
+                    style={{ width: gridItemSize, height: gridItemSize }}
+                  />
+                </Pressable>
+              ))}
+            </View>
+          ) : (
+            <View className="py-4">
+              <Text className="text-sm text-stone-800">{profile.about}</Text>
+            </View>
+          )}
+        </ScrollView>
+      </SafeAreaView>
     </View>
   );
 }
