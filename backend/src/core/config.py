@@ -64,6 +64,9 @@ class Settings(BaseSettings):
     # Paginacion por cursor de los listados
     PAGINA_TAMANO_DEFECTO: int = Field(default=20, ge=1)
     PAGINA_TAMANO_MAXIMO: int = Field(default=50, ge=1)
+    # Consultas: una cuenta con menos de estos dias abre pocas por cada 24 horas
+    DIAS_CUENTA_RECIENTE: int = Field(default=7, ge=1)
+    CONSULTAS_POR_DIA_CUENTA_RECIENTE: int = Field(default=5, ge=1)
     TARIFA_TALLER_PORCENTAJE: Decimal = Decimal("8")
     TARIFA_ESTUDIO_PORCENTAJE: Decimal = Decimal("5")
     # D9. Cuanto se supone que dura una autorizacion cuando la pasarela no

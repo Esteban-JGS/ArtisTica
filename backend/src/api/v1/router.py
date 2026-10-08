@@ -4,6 +4,7 @@ from src.api.v1 import (
     busqueda,
     catalogo,
     comentarios,
+    consultas,
     medios,
     perfiles,
     publicaciones,
@@ -18,3 +19,4 @@ api_router.include_router(publicaciones.router)
 api_router.include_router(social.router)
 api_router.include_router(comentarios.router)
 api_router.include_router(busqueda.router)
+api_router.include_router(consultas.router)

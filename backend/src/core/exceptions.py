@@ -30,6 +30,10 @@ class FueraDePlazo(ReglaDeNegocioViolada):
     pass
 
 
+class LimiteExcedido(ReglaDeNegocioViolada):
+    """Se paso un limite de uso, como las consultas de una cuenta nueva. Da 429."""
+
+
 class HechosInconsistentes(ReglaDeNegocioViolada):
     """Los hechos de la pasarela no coinciden con el plan que exige el dominio."""
 

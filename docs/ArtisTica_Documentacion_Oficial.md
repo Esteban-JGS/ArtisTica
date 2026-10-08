@@ -101,7 +101,7 @@ La ventaja sostenible es la reputación acumulada: un artista con decenas de tra
 | Etapa | Alcance |
 |---|---|
 | **MVP, noviembre de 2026** | Público y Artista, galería de imágenes (el video queda para después), feed, Explorar, los tres tipos de pedido con anticipo y saldo sobre el entorno de pruebas de la pasarela, métricas y moderación básica |
-| **Etapa 2** | Cobro real de Estudio, promociones, reseñas, agrupaciones, disputas completas y artistas fundadores |
+| **Etapa 2** | Cobro real de Estudio, promociones, reseñas, agrupaciones, disputas completas, artistas fundadores, notificaciones push, mensajes libres entre artistas e imágenes en el chat |
 | **Etapa 3** | Membresías de fans. Venta de obra a mayor escala solo si los datos lo justifican |
 | **Etapa 4** | Expansión regional |
 
@@ -325,6 +325,14 @@ Con un pedido promedio de US$150, una tarifa promedio de 7% y 300 suscriptores d
 
 **Resolución.** Cada integrante tiene un módulo propio y todo cambio entra por pull request con evidencia de verificación.
 
+#### Chat sin tiempo real
+
+**Situación.** El documento base dejaba abierta la tecnología del chat. El servicio de tiempo real de Supabase exige reglas de acceso sobre la tabla de mensajes, incompatibles con la decisión de que nadie lea la base de datos fuera de la API.
+
+**Impacto.** Un canal de tiempo real propio sumaba reconexiones, renovación de sesiones y estado compartido entre servidores, más trabajo del que justifica el volumen del MVP.
+
+**Resolución.** La aplicación consulta cada pocos segundos los mensajes nuevos. Cada mensaje se guarda con la conversación bloqueada y una marca de tiempo que nunca retrocede, de modo que ninguno se pierde entre una consulta y la siguiente. Las notificaciones push pasan a la Etapa 2.
+
 ---
 
 ## 5. Avance de desarrollo
@@ -344,7 +352,8 @@ Con un pedido promedio de US$150, una tarifa promedio de 7% y 300 suscriptores d
 | Backend: publicaciones y feed | Completo: Seguidos cronológico y Explorar con cuota de nuevos talentos |
 | Backend: seguidores y me gusta | Completo, con contadores que nunca alteran el orden del feed |
 | Backend: comentarios y búsqueda | Completo: comentarios con un nivel de respuestas y búsqueda de publicaciones y artistas |
-| Endpoints de negocio e integración con la aplicación | En desarrollo: toda la parte social disponible (perfiles, planes, imágenes, obras, servicios, publicaciones, feed, seguidores, me gusta, comentarios y búsqueda). Falta la contratación |
+| Backend: consultas y chat | Completo: bandeja, mensajes no leídos, aviso por datos de contacto y límite para cuentas nuevas |
+| Endpoints de negocio e integración con la aplicación | En desarrollo: toda la parte social disponible (perfiles, planes, imágenes, obras, servicios, publicaciones, feed, seguidores, me gusta, comentarios y búsqueda) y las consultas con su chat. Faltan los pedidos y los cobros |
 
 ### 5.2 Backend
 
@@ -360,10 +369,11 @@ Con un pedido promedio de US$150, una tarifa promedio de 7% y 300 suscriptores d
 | Publicaciones y feed | Publicaciones con texto, imágenes y una obra opcional, nunca con precio; feed Seguidos en orden cronológico y Explorar filtrado por categorías con cuota de nuevos talentos |
 | Seguidores y me gusta | Seguir artistas, contadores y listas de seguidores, y me gusta en publicaciones. Los contadores se muestran pero no ordenan ningún feed |
 | Comentarios y búsqueda | Comentarios con un nivel de respuestas y me gusta, que no admiten teléfonos ni WhatsApp; búsqueda de publicaciones en español y de artistas por nombre, siempre por recencia |
+| Consultas y chat | El cliente abre una consulta sobre un servicio, una obra o en general, y conversa con el artista en ese hilo. Bandeja ordenada por el último mensaje, conteo de no leídos, y un aviso visible para ambas partes cuando un mensaje menciona un teléfono, WhatsApp o SINPE, sin bloquearlo. Una cuenta con menos de 7 días abre como máximo 5 consultas cada 24 horas |
 
 Indicadores al cierre del avance:
 
-- 346 pruebas automatizadas.
+- 366 pruebas automatizadas.
 - Ningún saldo almacenado en la base de datos: ArtísTica no custodia dinero.
 - Montos calculados con aritmética decimal exacta.
 
@@ -376,7 +386,7 @@ Pantallas implementadas con el rediseño visual Liquid Glass: Inicio (feed con e
 | Etapa | Contenido |
 |---|---|
 | Contenido | Miniaturas de imágenes |
-| Contratación | Consultas, chat, pedidos y recepción de avisos de pago |
+| Contratación | Pedidos, cobros y recepción de avisos de pago |
 | Métricas y moderación | Panel del artista, reportes y clasificación para revisión humana |
 | Integración | Conexión de la aplicación con la API |
 
@@ -386,7 +396,7 @@ La demostración de noviembre usa la pasarela simulada, que reproduce autorizaci
 
 | Riesgo | Mitigación |
 |---|---|
-| Plazo: quedan cinco etapas de backend y la integración | Las promociones ya salieron del MVP; si hace falta, Explorar queda solo por categorías |
+| Plazo: quedan cuatro etapas de backend y la integración | Las promociones ya salieron del MVP; si hace falta, Explorar queda solo por categorías |
 | ONVO no responde a tiempo | La demostración no depende de ONVO |
 | La integración llega tarde | Los endpoints se construyen en el orden en que la aplicación los necesita |
 

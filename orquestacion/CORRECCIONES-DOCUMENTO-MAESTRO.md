@@ -95,6 +95,16 @@ Dos filas de la tabla Taller contra Estudio dicen lo mismo en ambas columnas o n
 
 ---
 
+## C7. Sección 6.7 contra 2.6, el aviso por datos de contacto en el chat (no bloqueante)
+
+**Problema.** §2.6 y §7.3 piden detectar teléfonos, "SINPE" y "WhatsApp" en el chat con un aviso suave. §6.7 pone la "detección de datos de contacto en el chat" en la Etapa 2.
+
+**Se resuelve a favor de §2.6 (D21).** Es una expresión regular que ya existe para el perfil, y es una de las medidas principales contra la fuga de §7.3. Entra al MVP en el lote 7.
+
+**Texto de reemplazo en la fila Etapa 2 de §6.7:** quitar "detección de datos de contacto en el chat". Si se quiere conservar algo, "detección de datos de contacto en imágenes del chat".
+
+---
+
 ## Lo que se verificó y está correcto
 
 Para que no se revise dos veces:

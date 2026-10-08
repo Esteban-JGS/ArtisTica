@@ -81,7 +81,7 @@ El stack no se cambia. Estas reglas son invariantes; ningún prompt puede pedir 
 | Custodia | La pasarela custodia el dinero. ArtísTica **no** administra fondos de terceros. No existe saldo propio, retención propia ni payouts desde fondos nuestros |
 | Ledger | Registro y conciliación de pedidos, cobros y liquidaciones. **Nunca** una columna de saldo mutable |
 | Atomicidad | El estado del pedido y el estado del cobro cambian en la misma transacción de base de datos |
-| Orden de bloqueos | El perfil se bloquea antes que la obra, el servicio o el pedido (D18). Al revés, dos transacciones se traban |
+| Orden de bloqueos | El perfil se bloquea antes que la obra, el servicio, la consulta o el pedido, y la consulta antes que el pedido (D18, D21). Al revés, dos transacciones se traban |
 | Capas | `src/domain/` no importa SQLAlchemy ni FastAPI; `src/services/` no importa `src/api/` |
 | Idempotencia | Todo webhook de pago se procesa una sola vez aunque llegue repetido |
 | Chat | Toda conversación cliente-artista pertenece a una consulta. Entre artistas, mensajes libres. Público con público, no existe |
@@ -142,24 +142,24 @@ Consecuencia: las respuestas pendientes de la pasarela cambian configuración o,
 
 ---
 
-## 4. Estado real del repositorio (7 de octubre de 2026)
+## 4. Estado real del repositorio (8 de octubre de 2026)
 
 El detalle vive en `orquestacion/BITACORA.md` (estado de lotes, deuda, pendientes) y en la sección 5 de `docs/ArtisTica_Documentacion_Oficial.md`. Esta es la foto para orientarse.
 
-**Backend:** unos 75 módulos y 9,500 líneas en `backend/src`, 346 pruebas contra un Postgres real, 7 migraciones encadenadas (cabeza `b1c2d3e4f5a6`), lint con 29 familias de reglas de Ruff. El CI corre además `.github/scripts/reglas-del-repositorio.sh` (commits sin coautores ni menciones, archivos sin guiones largos ni medios) y sube y baja la última migración con `alembic check`.
+**Backend:** unos 80 módulos y 10,400 líneas en `backend/src`, 366 pruebas contra un Postgres real, 8 migraciones encadenadas (cabeza `c2d3e4f5a6b7`), lint con 29 familias de reglas de Ruff. El CI corre además `.github/scripts/reglas-del-repositorio.sh` (commits sin coautores ni menciones, archivos sin guiones largos ni medios) y sube y baja la última migración con `alembic check`.
 
 | Capa | Qué hay |
 |---|---|
 | `src/domain/` | Reglas puras: pedidos (máquina de estados y planes de cobro), políticas, perfiles, catálogo, medios, feed, comentarios, enums. No importa SQLAlchemy ni FastAPI |
-| `src/services/` | perfiles, medios, catálogo, publicaciones, feed, social, comentarios, búsqueda, paginación por cursor y **pedidos (sin endpoints todavía)**. Hacen `flush`, nunca `commit` |
+| `src/services/` | perfiles, medios, catálogo, publicaciones, feed, social, comentarios, búsqueda, consultas, paginación por cursor y **pedidos (sin endpoints todavía)**. Hacen `flush`, nunca `commit` |
 | `src/payments/` | Contrato, pasarela falsa completa y adaptador de ONVO probado solo con transporte simulado |
 | `src/storage/` | Contrato, almacenamiento falso y adaptador de Supabase probado solo con transporte simulado |
-| `src/api/v1/` | perfiles, medios, catálogo, publicaciones y feed, social, comentarios, búsqueda |
+| `src/api/v1/` | perfiles, medios, catálogo, publicaciones y feed, social, comentarios, búsqueda, consultas |
 | `src/workers/` | El loop de la cola funciona con reintentos. **Los cuatro handlers son relleno** (miniaturas, embeddings, estilos, moderación) |
 
-**Hecho:** toda la parte social (perfiles, planes, onboarding de la pasarela, imágenes, obras, servicios, publicaciones, Seguidos, Explorar con nuevos talentos, seguidores, me gusta, comentarios y búsqueda) y toda la deuda técnica pagada.
+**Hecho:** toda la parte social (perfiles, planes, onboarding de la pasarela, imágenes, obras, servicios, publicaciones, Seguidos, Explorar con nuevos talentos, seguidores, me gusta, comentarios y búsqueda), las consultas con su chat y toda la deuda técnica pagada.
 
-**Falta:** contratar y cobrar (lotes 7, 8 y 9), métricas (10), moderación y trabajos reales del worker con IA (11). Además, los pendientes P1 a P15 de la bitácora: nada corre todavía contra Supabase ni ONVO reales, no hay backend desplegado y la app usa datos de ejemplo.
+**Falta:** pedidos y cobros (lotes 8 y 9), métricas (10), moderación y trabajos reales del worker con IA (11). Además, los pendientes P1 a P15 de la bitácora: nada corre todavía contra Supabase ni ONVO reales, no hay backend desplegado y la app usa datos de ejemplo.
 
 ---
 
@@ -388,4 +388,4 @@ Además, según el lote:
 1. Cargá este manual y leé completos `orquestacion/BITACORA.md` y `AGENTS.md`.
 2. `git switch develop && git pull --ff-only`, `git status` y `gh pr list`, para saber qué está mergeado y qué no.
 3. El prompt en curso, si hay, es el único `lote-*.md` en `orquestacion/`. Si su PR ya se mergeó, se borra en la rama del lote siguiente (paso 7 del flujo).
-4. Antes del lote 7, decidí con Esteban los pendientes P7 (notificaciones) y P8 (chat por consulta periódica en el MVP), y aplicá P9 (límite diario de consultas nuevas para cuentas recientes) y la regla del Maestro: en el chat, un teléfono o "SINPE" genera un **aviso suave**, no un bloqueo.
+4. El chat y las notificaciones ya están decididos en D21 y D22: consulta periódica desde la app, aviso suave por datos de contacto, límite de consultas para cuentas nuevas y push fuera del MVP.

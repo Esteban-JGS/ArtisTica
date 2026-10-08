@@ -9,6 +9,7 @@ from src.core.config import settings
 from src.core.exceptions import (
     ActorNoAutorizado,
     InvalidStateTransition,
+    LimiteExcedido,
     ReglaDeNegocioViolada,
     ResourceNotFound,
 )
@@ -56,6 +57,10 @@ async def _conflicto(_: Request, exc: Exception) -> JSONResponse:
     return _respuesta(status.HTTP_409_CONFLICT, str(exc))
 
 
+async def _limite_excedido(_: Request, exc: Exception) -> JSONResponse:
+    return _respuesta(status.HTTP_429_TOO_MANY_REQUESTS, str(exc))
+
+
 async def _pasarela_no_disponible(_: Request, exc: Exception) -> JSONResponse:
     # El mensaje del proveedor no se copia: solo se loguea el tipo
     logger.warning("Pasarela no disponible: %s", type(exc).__name__)
@@ -87,6 +92,7 @@ async def _almacenamiento_rechazo(_: Request, exc: Exception) -> JSONResponse:
 
 app.add_exception_handler(ResourceNotFound, _no_encontrado)
 app.add_exception_handler(ActorNoAutorizado, _no_autorizado)
+app.add_exception_handler(LimiteExcedido, _limite_excedido)
 app.add_exception_handler(InvalidStateTransition, _conflicto)
 app.add_exception_handler(ReglaDeNegocioViolada, _conflicto)
 app.add_exception_handler(PasarelaNoDisponible, _pasarela_no_disponible)

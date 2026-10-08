@@ -62,6 +62,13 @@ Arranque y planes, opcionales:
 | `ESTUDIO_AUTOSERVICIO` | `true` | Permite pasarse a Estudio sin cobro. Apagado en produccion |
 | `DB_PUERTO_LOCAL` | `5432` | Solo compose: puerto del host donde se publica la base |
 
+Consultas, opcionales:
+
+| Variable | Defecto | Para que |
+|---|---|---|
+| `DIAS_CUENTA_RECIENTE` | `7` | Una cuenta con menos de estos dias es reciente. Minimo 1 |
+| `CONSULTAS_POR_DIA_CUENTA_RECIENTE` | `5` | Consultas que una cuenta reciente abre cada 24 horas; la siguiente da 429. Minimo 1 |
+
 Ver `backend/.env.example`. La `SUPABASE_SERVICE_KEY` jamas llega al cliente movil.
 
 ## Reglas de produccion
