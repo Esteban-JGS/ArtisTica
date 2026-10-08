@@ -54,8 +54,9 @@ class Comentario(Base, IdMixin, TimestampMixin, SoftDeleteMixin):
         ),
     )
 
+    # Sin indice propio: lo cubre ix_comentarios_publicacion_id_created_at
     publicacion_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("publicaciones.id", ondelete="CASCADE"), index=True
+        ForeignKey("publicaciones.id", ondelete="CASCADE")
     )
     profile_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("profiles.id", ondelete="CASCADE")
