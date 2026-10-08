@@ -63,8 +63,9 @@ Las decisiones se numeran D y las deudas técnicas DT.
 | 5f | Deuda: política de lint | Cerrado | Aprobado | Ninguna |
 | 5b | Obras y servicios con límites de plan | Cerrado | Aprobado tras correctivo | Ninguna |
 | 6 | Publicaciones, feed Seguidos y Explorar por cursor | Cerrado | Aprobado con deuda | DT21 |
+| DT22 | Lote 6c | `ix_comentarios_publicacion_id` sobra, porque lo cubre el índice compuesto `(publicacion_id, created_at)`. Y la búsqueda de artistas pagina por `profiles.created_at`, que no tiene índice | El próximo lote que traiga migración: borrar el índice redundante y crear `profiles (created_at DESC, id DESC)` |
 | 6b | Seguir, contadores y me gusta, con la deuda DT21 | Cerrado | Aprobado | Ninguna |
-| 6c | Comentarios con respuestas, me gusta en comentarios y búsqueda | Pendiente | | |
+| 6c | Comentarios con respuestas, me gusta en comentarios y búsqueda | Cerrado | Aprobado con deuda | DT22 |
 | 7 | Consultas y chat | Pendiente | | |
 | 8 | Endpoints de pedidos y cobros | Pendiente | | |
 | 9 | Webhooks idempotentes y vigilancia de autorizaciones | Pendiente | | |
@@ -123,6 +124,28 @@ Las decisiones se numeran D y las deudas técnicas DT.
 | 5b | El prompt puso la paginación en `src/api/`, aunque el servicio la necesitaba, y no fijó un orden de bloqueos. El servicio quedó dependiendo de la API, y editar una obra bloqueaba la obra antes que el perfil, al revés de lo que hará el lote 8 | Correctivo del lote 5b en la misma rama: la paginación pasa a `src/services/` y el perfil se bloquea siempre antes que la obra, el servicio o el pedido |
 | 6 | El prompt pedía a cada flujo de Explorar solo su cuota más uno, lo que no llena la página cuando un flujo se agota, y la prueba 12 exigía la página llena. También nombraba `MedioRespuesta`, un esquema que se llama `MedioDeObra` | El ejecutor completa con una segunda consulta al otro flujo. El nombre queda en DT21 |
 | 6b | El prompt pedía un `HTTPBearer` propio para el usuario opcional y, a la vez, que las pruebas lo cubrieran sobrescribiendo `get_current_user_payload`: las dos cosas no se pueden cumplir juntas. También pedía nombrar `MedioDeObra` en una prueba y que el `grep` de ese nombre saliera vacío | El ejecutor hizo opcional la dependencia de token y deja que cada consumidor decida: el usuario obligatorio responde el mismo 401 de antes y el opcional queda anónimo. La prueba verifica el esquema por su forma, sin nombrar el viejo |
+
+## Pendientes fuera de los lotes
+
+Cosas que ningún lote cubre y que hay que resolver antes de la integración, la demo o producción. Registradas el 2026-10-07. Se retoman al terminar los lotes que se pueden hacer sin ellas.
+
+| # | Pendiente | Por qué importa | Cuándo | Quién |
+|---|---|---|---|---|
+| P1 | Proyecto de Supabase de desarrollo: crearlo con claves de JWT asimétricas (ES256), migrar contra él, preparar el bucket con `python -m src.storage.supabase` y hacer una subida de punta a punta (DT20) | Todo el backend se probó contra un Postgres local. Nunca corrió contra Supavisor real (puerto 6543, `prepare_threshold=None`), ni contra el JWKS ni el Storage de un proyecto real | Antes de integrar la app | Esteban |
+| P2 | Backend desplegado | No hay ninguna API en línea a la que la app pueda llamar. El despliegue del CI solo corre con push a `main`, y nunca se usó. La demo corre con `ENVIRONMENT=demo` y `WORKERS=1` (D17) | Antes de integrar la app | Esteban |
+| P3 | Integración con la app | La app usa datos de ejemplo. Hay que pasarle a Brian el contrato OpenAPI. `miniatura_url` vuelve nula hasta el lote 11, así que la app tiene que mostrar `url` mientras tanto | Después de P1 y P2 | Brian, con Esteban |
+| P4 | ONVO: enviar `preguntas-onvo.md`, probar el adaptador contra su sandbox y acordar con Brian la tokenización de la tarjeta en la app (pregunta 13) | El adaptador de ONVO solo se probó con respuestas simuladas. Sin respuestas, varias capacidades siguen en su valor más conservador | Antes del lote 8 lo de la tokenización; el sandbox antes de la demo | Esteban y Brian |
+| P5 | Proveedor de IA: qué modelo calcula los embeddings de imagen y dónde corre (API externa o dentro del worker), y qué clasifica estilo, contenido generado por IA y contenido sensible | Hoy no hay IA: los cuatro handlers del worker son relleno con un `TODO`. La similitud de estilo en Explorar y la detección de duplicados dependen de esto | Antes del lote 11 | Esteban |
+| P6 | La detección de teléfonos y WhatsApp es una expresión regular, sin IA | Se esquiva con dígitos en letras, separados uno por uno, con sustituciones como "w4ts4pp" o con el número dentro de una imagen. Es una barrera para el caso común, no una garantía. En el chat el Maestro pide un aviso suave, no un bloqueo (lote 7) | Aceptada para el MVP. Se puede reforzar en el lote 11 con el clasificador | Orquestador |
+| P7 | Notificaciones push | El Maestro las incluye en el stack (Expo Notifications) y ningún lote las contempla. Sin ellas, el artista no se entera de una consulta nueva ni el cliente de una cotización o de un cobro | Decidir si entran al MVP. Si entran, lote nuevo después del 9 | Esteban y Brian |
+| P8 | Chat en tiempo real | El Maestro lo deja pendiente: WebSockets en FastAPI o Supabase Realtime. Realtime exige políticas de RLS en `mensajes`, lo que choca con la regla de RLS sin políticas | Al armar el lote 7. Propuesta para el MVP: consulta periódica desde la app | Orquestador |
+| P9 | Límites de abuso | El Maestro pide un límite diario de consultas nuevas para cuentas recientes (lote 7). Además, la API no tiene ningún límite general de solicitudes | El de consultas en el lote 7; el general antes de producción | Orquestador |
+| P10 | Configuración de Sentry | `traces_sample_rate=1.0`, y Sentry adjunta por defecto las variables locales de cada error, que pueden incluir tokens. Falta fijar `include_local_variables=False`, dejar explícito `send_default_pii=False` (ya viene apagado) y bajar el muestreo | Antes de definir `SENTRY_DSN` en cualquier entorno | Orquestador |
+| P11 | CORS | No hay `CORSMiddleware`. La app nativa no lo necesita, pero Expo web o cualquier panel web sí | Al integrar, si se usa web | Esteban |
+| P12 | Borrar la cuenta y los datos personales | No hay forma de borrar una cuenta. Apple exige poder hacerlo desde la app para publicarla, y la Ley 8968 de protección de datos de Costa Rica da derecho a suprimirlos. Además `profiles.id` no tiene llave foránea a `auth.users`: borrar el usuario en Supabase no borra su perfil | Antes de publicar en las tiendas | Orquestador |
+| P13 | El worker ejecuta cada job dentro de la transacción que bloquea la fila con `FOR UPDATE` | Un job lento, por ejemplo una llamada a un proveedor de IA, retiene una conexión y el bloqueo todo ese tiempo. Además las miniaturas no se generan, así que todo medio queda en estado `pendiente` | Lote 9, que reescribe el worker, y lote 11 para las miniaturas | Orquestador |
+| P14 | Entorno de producción separado y copias de seguridad | El Maestro pide un proyecto de Supabase para desarrollo y otro para producción. No hay ninguno de los dos, ni política de respaldo | Antes de producción | Esteban |
+| P15 | Documentación del III avance | El Word del II avance se generó antes de los lotes 4 a 6c. El Markdown se mantiene al día, pero el Word hay que regenerarlo para cada entrega | Al cerrar el próximo avance | Orquestador |
 
 ## Preguntas abiertas que bloquean diseño
 
