@@ -27,13 +27,23 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    
+      with:
+        # Historial completo: el control de commits recorre base..head del PR
+        fetch-depth: 0
+
+    - name: Reglas del repositorio
+      env:
+        # Vacios fuera de un pull_request: ahi solo se revisan los guiones
+        BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      run: bash .github/scripts/reglas-del-repositorio.sh
+
     - name: Set up Python 3.12
       uses: actions/setup-python@v5
       with:
         python-version: "3.12"
         cache: 'pip'
-        
+
     - name: Install dependencies
       working-directory: ./backend
       run: |
@@ -55,8 +65,12 @@ jobs:
         DATABASE_URL: postgresql+psycopg://postgres:password@localhost:5432/artistica_test
         SUPABASE_URL: https://test.supabase.co
       run: |
-        # Ejecutar migraciones en la base de datos de test temporal
+        # Migraciones en la base temporal: suben, la ultima baja y vuelve a
+        # subir, y los modelos no difieren de la base
         alembic upgrade head
+        alembic downgrade -1
+        alembic upgrade head
+        alembic check
         pytest
 
   deploy:
