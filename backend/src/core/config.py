@@ -24,6 +24,8 @@ class Settings(BaseSettings):
     # Environment
     ENVIRONMENT: str = "dev"
     SENTRY_DSN: str | None = None
+    # Fraccion de trazas que se mandan a Sentry, entre 0 y 1
+    SENTRY_TRACES_SAMPLE_RATE: float = Field(default=0.1, ge=0, le=1)
     # Procesos de uvicorn. Los adaptadores falsos guardan estado por proceso.
     WORKERS: int = Field(default=1, ge=1)
     # Pasarse a Estudio sin cobro. Solo para la demo: apagado en produccion.
