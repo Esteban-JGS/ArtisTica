@@ -30,6 +30,8 @@ export default function RootLayout() {
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="create" options={{ presentation: 'modal' }} />
           <Stack.Screen name="editar-perfil" options={{ presentation: 'modal' }} />
+          <Stack.Screen name="cotizar" options={{ presentation: 'modal' }} />
+          <Stack.Screen name="pagar" options={{ presentation: 'modal' }} />
           <Stack.Screen
             name="comments"
             options={{

@@ -33,7 +33,7 @@ export default function EditarPerfilScreen() {
   const low = Number(priceLow);
   const high = Number(priceHigh);
   const error = (() => {
-    if (role.trim() === '') return 'Contá qué tipo de arte hacés.';
+    if (profile.isArtist && role.trim() === '') return 'Contá qué tipo de arte hacés.';
     if (hasForbiddenContact(`${bio} ${about}`))
       return 'No se permiten teléfonos ni WhatsApp: el contacto va por la plataforma.';
     if (!Number.isInteger(low) || !Number.isInteger(high) || low <= 0 || high <= 0)
@@ -81,16 +81,18 @@ export default function EditarPerfilScreen() {
             contentContainerClassName="gap-5 p-5"
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}>
-            <Field label="Qué hacés">
-              <TextInput
-                value={role}
-                onChangeText={setRole}
-                placeholder="Ilustradora, ceramista, muralista…"
-                placeholderTextColor={colors.stone[700]}
-                maxLength={40}
-                className={inputClass}
-              />
-            </Field>
+            {profile.isArtist && (
+              <Field label="Qué hacés">
+                <TextInput
+                  value={role}
+                  onChangeText={setRole}
+                  placeholder="Ilustradora, ceramista, muralista…"
+                  placeholderTextColor={colors.stone[700]}
+                  maxLength={40}
+                  className={inputClass}
+                />
+              </Field>
+            )}
 
             <Field label={`Bio corta · ${bio.length}/${BIO_MAX}`}>
               <TextInput
@@ -132,59 +134,61 @@ export default function EditarPerfilScreen() {
               </View>
             </Field>
 
-            <Field label="Ficha de comisión">
-              <View className="gap-4 rounded-2xl bg-sand-50 p-4">
-                <View className="flex-row items-center gap-3">
-                  <View className="flex-1">
-                    <Text className="text-sm font-semibold text-ink">Abierto a comisiones</Text>
-                    <Text className="text-xs text-stone-700">Los clientes pueden solicitarte un encargo</Text>
+            {profile.isArtist && (
+              <Field label="Ficha de comisión">
+                <View className="gap-4 rounded-2xl bg-sand-50 p-4">
+                  <View className="flex-row items-center gap-3">
+                    <View className="flex-1">
+                      <Text className="text-sm font-semibold text-ink">Abierto a comisiones</Text>
+                      <Text className="text-xs text-stone-700">Los clientes pueden solicitarte un encargo</Text>
+                    </View>
+                    <Switch
+                      value={commissionsOpen}
+                      onValueChange={setCommissionsOpen}
+                      trackColor={{ false: colors.sand[300], true: colors.accent.DEFAULT }}
+                      thumbColor={colors.sand[50]}
+                    />
                   </View>
-                  <Switch
-                    value={commissionsOpen}
-                    onValueChange={setCommissionsOpen}
-                    trackColor={{ false: colors.sand[300], true: colors.accent.DEFAULT }}
-                    thumbColor={colors.sand[50]}
-                  />
-                </View>
 
-                <View className="flex-row gap-3">
-                  <View className="flex-1 gap-1">
-                    <Text className="text-xs text-stone-700">Desde (miles de ₡)</Text>
-                    <TextInput
-                      value={priceLow}
-                      onChangeText={setPriceLow}
-                      keyboardType="number-pad"
-                      maxLength={4}
-                      className="rounded-xl bg-sand-100 px-4 py-3 text-base text-ink"
-                    />
+                  <View className="flex-row gap-3">
+                    <View className="flex-1 gap-1">
+                      <Text className="text-xs text-stone-700">Desde (miles de ₡)</Text>
+                      <TextInput
+                        value={priceLow}
+                        onChangeText={setPriceLow}
+                        keyboardType="number-pad"
+                        maxLength={4}
+                        className="rounded-xl bg-sand-100 px-4 py-3 text-base text-ink"
+                      />
+                    </View>
+                    <View className="flex-1 gap-1">
+                      <Text className="text-xs text-stone-700">Hasta (miles de ₡)</Text>
+                      <TextInput
+                        value={priceHigh}
+                        onChangeText={setPriceHigh}
+                        keyboardType="number-pad"
+                        maxLength={4}
+                        className="rounded-xl bg-sand-100 px-4 py-3 text-base text-ink"
+                      />
+                    </View>
                   </View>
-                  <View className="flex-1 gap-1">
-                    <Text className="text-xs text-stone-700">Hasta (miles de ₡)</Text>
-                    <TextInput
-                      value={priceHigh}
-                      onChangeText={setPriceHigh}
-                      keyboardType="number-pad"
-                      maxLength={4}
-                      className="rounded-xl bg-sand-100 px-4 py-3 text-base text-ink"
-                    />
-                  </View>
-                </View>
 
-                {commissionsOpen && (
-                  <View className="gap-1">
-                    <Text className="text-xs text-stone-700">Tomando pedidos hasta</Text>
-                    <TextInput
-                      value={openUntil}
-                      onChangeText={setOpenUntil}
-                      placeholder="noviembre"
-                      placeholderTextColor={colors.stone[700]}
-                      maxLength={20}
-                      className="rounded-xl bg-sand-100 px-4 py-3 text-base text-ink"
-                    />
-                  </View>
-                )}
-              </View>
-            </Field>
+                  {commissionsOpen && (
+                    <View className="gap-1">
+                      <Text className="text-xs text-stone-700">Tomando pedidos hasta</Text>
+                      <TextInput
+                        value={openUntil}
+                        onChangeText={setOpenUntil}
+                        placeholder="noviembre"
+                        placeholderTextColor={colors.stone[700]}
+                        maxLength={20}
+                        className="rounded-xl bg-sand-100 px-4 py-3 text-base text-ink"
+                      />
+                    </View>
+                  )}
+                </View>
+              </Field>
+            )}
 
             {error && <Text className="text-sm text-accent">{error}</Text>}
           </ScrollView>

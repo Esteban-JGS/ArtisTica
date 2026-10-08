@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { Image, Pressable, ScrollView, Switch, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { CURRENT_AUTHOR, usePostsStore } from '@/stores/posts-store';
+import { usePostsStore } from '@/stores/posts-store';
 import { useProfileStore } from '@/stores/profile-store';
 import { colors } from '@/theme';
 
@@ -24,7 +24,9 @@ export default function CrearScreen() {
   const publish = () => {
     if (!canPublish || !image) return;
     addPost({
-      ...CURRENT_AUTHOR,
+      name: profile.name,
+      initial: profile.initial,
+      color: profile.color,
       role: profile.role,
       place: profile.place,
       time: 'ahora',

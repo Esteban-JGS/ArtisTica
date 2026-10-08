@@ -30,8 +30,6 @@ const QUICK_CONTACTS: {
 ];
 
 const SHARE_ACTIONS: { id: string; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
-  { id: 'copy', label: 'Copiar enlace', icon: 'link-outline' },
-  { id: 'story', label: 'Compartir en tu historia', icon: 'sparkles-outline' },
   { id: 'tag', label: 'Etiquetar a un amigo', icon: 'pricetag-outline' },
   { id: 'external', label: 'Compartir afuera de Artística', icon: 'arrow-redo-outline' },
 ];
@@ -67,6 +65,10 @@ export default function CompartirScreen() {
     setSentTo((current) => (current.includes(id) ? current : [...current, id]));
 
   const handleAction = async (id: string) => {
+    if (id === 'tag') {
+      router.setParams({ mode: 'tag' });
+      return;
+    }
     if (id === 'external') {
       await Share.share({
         message: authorName ? `Mirá esta obra de ${authorName} en Artística` : 'Mirá esta obra en Artística',

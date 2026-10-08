@@ -23,6 +23,8 @@ import Animated, {
 } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { type Party, useCommissionsStore } from '@/stores/commissions-store';
+import { usePostsStore } from '@/stores/posts-store';
 import { colors } from '@/theme';
 
 export default function SolicitarComisionScreen() {
@@ -76,17 +78,34 @@ export default function SolicitarComisionScreen() {
     });
 
   const [idea, setIdea] = useState('');
-  const [sent, setSent] = useState(false);
+  const [consultaId, setConsultaId] = useState<string | null>(null);
   const [referenceAttached, setReferenceAttached] = useState(Boolean(postImage));
+  const createConsulta = useCommissionsStore((state) => state.createConsulta);
+  const artistPost = usePostsStore((state) => state.posts.find((post) => post.name === artistName));
+  const sent = consultaId !== null;
 
   const handleSend = () => {
     if (!idea.trim()) return;
-    // Sin backend todavia: solo confirma en pantalla. Cuando exista la
-    // consulta real, esto manda la idea (mas el post de referencia, si
-    // quedo adjunto) a la API y crea el pedido en estado "consulta". El
-    // presupuesto lo propone el artista en la cotizacion, no el cliente
-    // aca: evita anclar el precio a la baja.
-    setSent(true);
+    // Crea el pedido en estado "consulta" con la idea y el post de
+    // referencia, si quedo adjunto. El presupuesto lo propone el artista
+    // en la cotizacion, no el cliente aca: evita anclar el precio a la baja.
+    const name = artistName ?? 'Artista';
+    const artist: Party = {
+      name,
+      initial: artistPost?.initial ?? name.charAt(0).toUpperCase(),
+      color: artistPost?.color ?? 'terracota',
+    };
+    setConsultaId(
+      createConsulta({
+        artist,
+        idea: idea.trim(),
+        referenceImage: referenceAttached ? postImage : undefined,
+      }),
+    );
+  };
+
+  const viewConsulta = () => {
+    if (consultaId) router.replace({ pathname: '/comision/[id]', params: { id: consultaId } });
   };
 
   return (
@@ -126,10 +145,13 @@ export default function SolicitarComisionScreen() {
                   Listo, le avisamos a {artistName ?? 'el artista'}
                 </Text>
                 <Text className="text-center text-sm text-stone-700">
-                  Te va a responder por el chat de esta consulta.
+                  Te va a responder con una cotización por el chat de esta consulta. La seguís en Mensajes.
                 </Text>
-                <Pressable onPress={handleClose} className="mt-2 rounded-full bg-accent px-6 py-3">
-                  <Text className="text-sm font-semibold text-sand-50">Listo</Text>
+                <Pressable onPress={viewConsulta} className="mt-2 rounded-full bg-accent px-6 py-3">
+                  <Text className="text-sm font-semibold text-sand-50">Ver mi consulta</Text>
+                </Pressable>
+                <Pressable onPress={handleClose} className="py-2">
+                  <Text className="text-sm font-semibold text-stone-800">Seguir explorando</Text>
                 </Pressable>
               </View>
             ) : (

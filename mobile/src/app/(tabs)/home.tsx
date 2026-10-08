@@ -7,7 +7,9 @@ import { Image, Pressable, Text, View } from 'react-native';
 import { AppBackground } from '@/components/app-background';
 import { Avatar } from '@/components/avatar';
 import { navBarVisibility } from '@/lib/nav-visibility';
-import { ageInMinutes, CURRENT_AUTHOR, type Post, usePostsStore } from '@/stores/posts-store';
+import { useCommissionsStore } from '@/stores/commissions-store';
+import { ageInMinutes, type Post, usePostsStore } from '@/stores/posts-store';
+import { useProfileStore } from '@/stores/profile-store';
 import { colors, FLOAT_SHADOW, NOTE_SHADOW, roleColors } from '@/theme';
 import Animated, {
   Easing,
@@ -119,7 +121,7 @@ function LikeBurst({ trigger }: { trigger: number }) {
 }
 
 function openArtistProfile(post: Post) {
-  if (post.name === CURRENT_AUTHOR.name) {
+  if (post.name === useProfileStore.getState().profile.name) {
     router.navigate('/profile');
     return;
   }
@@ -298,6 +300,8 @@ function PostCard({ post }: { post: Post }) {
 export default function InicioScreen() {
   const allPosts = usePostsStore((state) => state.posts);
   const followed = usePostsStore((state) => state.followed);
+  const ownName = useProfileStore((state) => state.profile.name);
+  const hasUnread = useCommissionsStore((state) => state.notifications.some((item) => !item.read));
   const [tab, setTab] = useState<'seguidos' | 'para-ti'>('seguidos');
 
   // Seguidos es siempre cronologico y solo trae a quien seguis (mas lo
@@ -305,9 +309,9 @@ export default function InicioScreen() {
   const posts = useMemo(() => {
     if (tab === 'para-ti') return allPosts;
     return allPosts
-      .filter((post) => post.name === CURRENT_AUTHOR.name || followed.includes(post.name))
+      .filter((post) => post.name === ownName || followed.includes(post.name))
       .sort((a, b) => ageInMinutes(a.time) - ageInMinutes(b.time));
-  }, [allPosts, followed, tab]);
+  }, [allPosts, followed, ownName, tab]);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const scrollY = useSharedValue(0);
   const wasCollapsed = useSharedValue(false);
@@ -463,6 +467,13 @@ export default function InicioScreen() {
                 }}>
                 <Ionicons name="notifications-outline" size={20} color={colors.ink.DEFAULT} />
               </LiquidGlassView>
+              {hasUnread && (
+                <View
+                  pointerEvents="none"
+                  className="absolute right-2.5 top-2.5 h-2.5 w-2.5 rounded-full bg-accent"
+                  style={{ borderWidth: 1.5, borderColor: colors.sand[50] }}
+                />
+              )}
             </Pressable>
           </View>
         </View>

@@ -515,16 +515,6 @@ const INITIAL_POSTS: Post[] = [
   },
 ];
 
-// Autoria fija porque todavia no hay sesion real contra el backend.
-// Cuando exista, estos datos salen del perfil autenticado.
-export const CURRENT_AUTHOR = {
-  name: 'Luna Atelier',
-  role: 'Ilustradora',
-  initial: 'L',
-  color: 'terracota' as const,
-  place: 'San José',
-};
-
 // Artistas que la cuenta mock ya sigue al abrir la app, para que la
 // pestana Seguidos no arranque vacia.
 const INITIAL_FOLLOWED = ['Sofi Cerámica', 'Vale Grabados', 'Cami Lentes', 'Pau Murales', 'Fabián Sarchí'];
