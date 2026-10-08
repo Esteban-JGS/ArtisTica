@@ -22,6 +22,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.core.exceptions import ReglaDeNegocioViolada, ResourceNotFound
 from src.domain.enums import TipoReaccion
 from src.models import MediaAsset, Obra, Profile, Publicacion, Reaccion
+from src.services.comentarios import totales_por_publicacion
 from src.services.medios import (
     asignar_medios,
     borrar_objetos_de,
@@ -53,6 +54,8 @@ class PublicacionDetalle:
     me_gusta_total: int = 0
     # Nulo si nadie mira
     mi_me_gusta: bool | None = None
+    # Comentarios mas respuestas visibles: el "Comentarios · N" de la app
+    comentarios_total: int = 0
 
 
 async def _me_gusta(
@@ -84,7 +87,7 @@ async def detallar(
     usuario: Profile | None,
     nuevo_talento: Mapping[uuid.UUID, bool] | None = None,
 ) -> list[PublicacionDetalle]:
-    """Medios, obras, artistas y me gusta de una pagina entera.
+    """Medios, obras, artistas, me gusta y comentarios de una pagina entera.
 
     Una consulta por cada uno, sin importar el tamano de la pagina. `usuario`
     es quien mira: sin el, `mi_me_gusta` queda nulo. Nada de esto cambia el
@@ -106,6 +109,7 @@ async def detallar(
     filas = await session.execute(select(Profile).where(Profile.id.in_(artista_ids)))
     artistas = {a.id: a for a in filas.scalars()}
     totales, mias = await _me_gusta(session, ids, usuario)
+    comentarios = await totales_por_publicacion(session, ids)
     return [
         PublicacionDetalle(
             publicacion=p,
@@ -115,6 +119,7 @@ async def detallar(
             nuevo_talento=marcas.get(p.id),
             me_gusta_total=totales.get(p.id, 0),
             mi_me_gusta=None if mias is None else p.id in mias,
+            comentarios_total=comentarios.get(p.id, 0),
         )
         for p in publicaciones
     ]

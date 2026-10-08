@@ -114,6 +114,8 @@ class PublicacionRespuesta(BaseModel):
     me_gusta_total: int
     # Nulo sin token
     mi_me_gusta: bool | None
+    # Comentarios mas respuestas; tampoco ordena nada
+    comentarios_total: int
 
     @classmethod
     def desde(cls, detalle: PublicacionDetalle, almacenamiento: Almacenamiento) -> Self:
@@ -128,4 +130,5 @@ class PublicacionRespuesta(BaseModel):
             nuevo_talento=detalle.nuevo_talento,
             me_gusta_total=detalle.me_gusta_total,
             mi_me_gusta=detalle.mi_me_gusta,
+            comentarios_total=detalle.comentarios_total,
         )
