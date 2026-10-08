@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 
 from src.api.v1 import (
+    busqueda,
     catalogo,
     comentarios,
     medios,
@@ -16,3 +17,4 @@ api_router.include_router(catalogo.router)
 api_router.include_router(publicaciones.router)
 api_router.include_router(social.router)
 api_router.include_router(comentarios.router)
+api_router.include_router(busqueda.router)
