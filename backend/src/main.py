@@ -1,7 +1,6 @@
 import logging
 from contextlib import asynccontextmanager
 
-import sentry_sdk
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 
@@ -13,17 +12,13 @@ from src.core.exceptions import (
     ReglaDeNegocioViolada,
     ResourceNotFound,
 )
+from src.core.sentry import configurar_sentry
 from src.payments.errores import ErrorPasarela, PasarelaNoDisponible
 from src.storage import AlmacenamientoNoDisponible, ErrorAlmacenamiento
 
 logger = logging.getLogger(__name__)
 
-if settings.SENTRY_DSN:
-    sentry_sdk.init(
-        dsn=settings.SENTRY_DSN,
-        environment=settings.ENVIRONMENT,
-        traces_sample_rate=1.0,
-    )
+configurar_sentry(settings)
 
 
 @asynccontextmanager

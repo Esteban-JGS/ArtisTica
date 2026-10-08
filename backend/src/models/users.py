@@ -22,6 +22,8 @@ class Profile(Base, TimestampMixin):
     __table_args__ = (
         # Filtro por categorias de Explorar, con el operador &&
         Index("ix_profiles_categorias", "categorias", postgresql_using="gin"),
+        # Busqueda de artistas: el orden de su paginacion
+        Index("ix_profiles_created_at_id", text("created_at DESC"), text("id DESC")),
     )
 
     # El id viene de auth.users de Supabase
