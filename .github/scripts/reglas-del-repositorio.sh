@@ -22,14 +22,16 @@ revisar_commits() {
     echo "Commits: sin BASE_SHA y HEAD_SHA, no se revisan"
     return
   fi
-  local sha shas encontrados=0
+  local sha shas mensaje encontrados=0
   # Asignacion aparte para que un rango invalido corte el script
   shas=$(git rev-list "$base..$cabeza")
   for sha in $shas; do
-    if git log -1 --format=%B "$sha" | grep -qiE 'co-authored-by|claude'; then
+    # El nombre del archivo CLAUDE.md no cuenta como mencion: se quita antes
+    mensaje=$(git log -1 --format=%B "$sha" | sed -E 's/claude\.md//Ig')
+    if grep -qiE 'co-authored-by|claude' <<<"$mensaje"; then
       echo "Commit con coautor o mencion a una herramienta de asistencia:"
       git log -1 --format='  %h %s' "$sha"
-      git log -1 --format=%B "$sha" | grep -iE 'co-authored-by|claude' | sed 's/^/    /'
+      grep -iE 'co-authored-by|claude' <<<"$mensaje" | sed 's/^/    /'
       encontrados=1
     fi
   done
