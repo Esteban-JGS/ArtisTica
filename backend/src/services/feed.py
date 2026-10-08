@@ -51,7 +51,7 @@ async def seguidos(
     publicaciones, siguiente = await traer_pagina(
         session, stmt, Publicacion, parametros
     )
-    return await detallar(session, publicaciones), siguiente
+    return await detallar(session, publicaciones, usuario), siguiente
 
 
 # Explorar
@@ -118,6 +118,7 @@ async def explorar(
     categorias: Sequence[str],
     umbral: int,
     cada_n: int,
+    usuario: Profile | None,
 ) -> tuple[list[PublicacionDetalle], str | None]:
     """Una pagina con la cuota de nuevos talentos y el cursor de los dos flujos.
 
@@ -152,7 +153,7 @@ async def explorar(
     marcas: dict[uuid.UUID, bool] = {
         i.elemento.id: i.origen == Origen.NUEVO_TALENTO for i in pagina
     }
-    detalles = await detallar(session, [i.elemento for i in pagina], marcas)
+    detalles = await detallar(session, [i.elemento for i in pagina], usuario, marcas)
     agotados = all(p is EstadoFlujo.AGOTADO for p in posiciones.values())
     siguiente = None if agotados else codificar_cursor_compuesto(posiciones)
     return detalles, siguiente

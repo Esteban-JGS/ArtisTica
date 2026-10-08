@@ -22,7 +22,7 @@ from src.core.config import settings
 from src.domain import catalogo as dominio
 from src.domain import perfiles as dominio_perfiles
 from src.domain.enums import EstadoObra, PlanArtista, TipoServicio
-from src.models import MediaAsset
+from src.schemas.medios import ImagenPublica
 from src.schemas.perfiles import Categorias
 from src.services.catalogo import LimitesArtista, ObraDetalle, ServicioDetalle
 from src.storage import Almacenamiento
@@ -146,24 +146,6 @@ class ServicioActualizacion(BaseModel):
 # Salida
 
 
-class MedioDeObra(BaseModel):
-    id: uuid.UUID
-    url: str
-    miniatura_url: str | None
-
-    @classmethod
-    def desde(cls, medio: MediaAsset, almacenamiento: Almacenamiento) -> Self:
-        return cls(
-            id=medio.id,
-            url=almacenamiento.url_publica(medio.bucket, medio.storage_path),
-            miniatura_url=(
-                almacenamiento.url_publica(medio.bucket, medio.thumbnail_path)
-                if medio.thumbnail_path
-                else None
-            ),
-        )
-
-
 class ObraRespuesta(BaseModel):
     id: uuid.UUID
     artista_handle: str
@@ -173,7 +155,7 @@ class ObraRespuesta(BaseModel):
     # Solo en una obra disponible: en exhibicion no se vende y vendida ya no se vende
     precio: Decimal | None
     categorias: list[str]
-    medios: list[MedioDeObra]
+    medios: list[ImagenPublica]
     created_at: datetime
 
     @classmethod
@@ -188,7 +170,7 @@ class ObraRespuesta(BaseModel):
             estado=obra.estado,
             precio=obra.precio if disponible else None,
             categorias=list(obra.categorias or []),
-            medios=[MedioDeObra.desde(m, almacenamiento) for m in detalle.medios],
+            medios=[ImagenPublica.desde(m, almacenamiento) for m in detalle.medios],
             created_at=obra.created_at,
         )
 

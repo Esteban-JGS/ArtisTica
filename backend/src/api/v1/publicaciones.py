@@ -1,8 +1,9 @@
 """Endpoints de publicaciones y del feed.
 
 Cada handler que escribe cierra la transaccion con commit despues de llamar al
-servicio. Ver una publicacion, el listado de un artista y Explorar son publicos;
-Seguidos pide token.
+servicio. Ver una publicacion, el listado de un artista y Explorar son publicos,
+con token opcional para saber si quien mira les dio me gusta; Seguidos pide
+token.
 """
 
 import uuid
@@ -11,7 +12,13 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 
-from src.api.deps import AlmacenamientoDeMedios, Artista, Sesion, Usuario
+from src.api.deps import (
+    AlmacenamientoDeMedios,
+    Artista,
+    Sesion,
+    Usuario,
+    UsuarioOpcional,
+)
 from src.api.paginacion import Pagina, Paginacion
 from src.core.config import settings
 from src.schemas.perfiles import Categoria
@@ -63,10 +70,11 @@ async def crear_publicacion(
 @router.get("/publicaciones/{publicacion_id}")
 async def obtener_publicacion(
     publicacion_id: uuid.UUID,
+    usuario: UsuarioOpcional,
     session: Sesion,
     almacenamiento: AlmacenamientoDeMedios,
 ) -> PublicacionRespuesta:
-    detalle = await servicio.obtener(session, publicacion_id)
+    detalle = await servicio.obtener(session, publicacion_id, usuario)
     return PublicacionRespuesta.desde(detalle, almacenamiento)
 
 
@@ -100,11 +108,12 @@ async def eliminar_publicacion(
 @router.get("/artistas/{handle}/publicaciones")
 async def listar_publicaciones_del_artista(
     handle: str,
+    usuario: UsuarioOpcional,
     session: Sesion,
     almacenamiento: AlmacenamientoDeMedios,
     paginacion: Paginacion,
 ) -> Pagina[PublicacionRespuesta]:
-    detalles, siguiente = await servicio.listar_de(session, handle, paginacion)
+    detalles, siguiente = await servicio.listar_de(session, handle, paginacion, usuario)
     return _pagina(detalles, siguiente, almacenamiento)
 
 
@@ -136,7 +145,17 @@ def parametros_de_explorar(
         int, Query(ge=1, le=settings.PAGINA_TAMANO_MAXIMO)
     ] = settings.PAGINA_TAMANO_DEFECTO,
 ) -> ParametrosExplorar:
-    """Explorar lleva un cursor compuesto: uno mal formado da 422."""
+    """Explorar lleva un cursor compuesto: uno mal formado da 422.
+
+    DT21: una pagina mas chica que `EXPLORAR_CADA_N` dejaria la cuota de nuevos
+    talentos en 0, asi que tambien da 422. Se lee en cada solicitud.
+    """
+    minimo = settings.EXPLORAR_CADA_N
+    if tamano < minimo:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=f"Explorar pide un tamano de al menos {minimo}",
+        )
     try:
         posiciones = feed.leer_cursor_explorar(cursor)
     except CursorInvalido as exc:
@@ -152,6 +171,7 @@ Explorar = Annotated[ParametrosExplorar, Depends(parametros_de_explorar)]
 @router.get("/feed/explorar")
 async def feed_explorar(
     parametros: Explorar,
+    usuario: UsuarioOpcional,
     session: Sesion,
     almacenamiento: AlmacenamientoDeMedios,
 ) -> Pagina[PublicacionRespuesta]:
@@ -162,5 +182,6 @@ async def feed_explorar(
         categorias=parametros.categorias,
         umbral=settings.NUEVO_TALENTO_MAX_SEGUIDORES,
         cada_n=settings.EXPLORAR_CADA_N,
+        usuario=usuario,
     )
     return _pagina(detalles, siguiente, almacenamiento)

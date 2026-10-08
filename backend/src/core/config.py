@@ -93,6 +93,16 @@ class Settings(BaseSettings):
                 "WORKERS mayor que 1 no se permite con PASARELA=falsa "
                 "o ALMACENAMIENTO=falso"
             )
+        # DT21: con paginas mas chicas que N, la cuota de nuevos talentos da 0
+        errores.extend(
+            f"EXPLORAR_CADA_N ({self.EXPLORAR_CADA_N}) no puede ser mayor "
+            f"que {nombre} ({tamano})"
+            for nombre, tamano in (
+                ("PAGINA_TAMANO_DEFECTO", self.PAGINA_TAMANO_DEFECTO),
+                ("PAGINA_TAMANO_MAXIMO", self.PAGINA_TAMANO_MAXIMO),
+            )
+            if tamano < self.EXPLORAR_CADA_N
+        )
         if errores:
             raise ValueError("; ".join(errores))
         return self

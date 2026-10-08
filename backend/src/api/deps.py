@@ -15,8 +15,12 @@ from src.payments.fabrica import obtener_pasarela
 from src.storage import Almacenamiento, obtener_almacenamiento
 
 security = HTTPBearer()
+# Sin token no falla: decide quien depende del payload
+security_opcional = HTTPBearer(auto_error=False)
 
-Credenciales = Annotated[HTTPAuthorizationCredentials, Depends(security)]
+CredencialesOpcionales = Annotated[
+    HTTPAuthorizationCredentials | None, Depends(security_opcional)
+]
 
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
@@ -28,17 +32,23 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 Sesion = Annotated[AsyncSession, Depends(get_db)]
 
 
-async def get_current_user_payload(credentials: Credenciales) -> dict:
-    """Extrae el JWT y devuelve el payload verificado sin consultar la DB."""
+async def get_current_user_payload(credentials: CredencialesOpcionales) -> dict | None:
+    """Extrae el JWT y devuelve el payload verificado sin consultar la DB.
+
+    Sin token devuelve None; un token invalido o vencido da 401. Es la unica
+    dependencia de token, la que sobrescriben las pruebas, para el usuario
+    obligatorio y para el opcional.
+    """
+    if credentials is None:
+        return None
     # verify_token puede ir a la red por el JWKS: no se bloquea el loop
     return await run_in_threadpool(verify_token, credentials.credentials)
 
 
-PayloadToken = Annotated[dict, Depends(get_current_user_payload)]
+PayloadToken = Annotated[dict | None, Depends(get_current_user_payload)]
 
 
-async def get_current_user_id(payload: PayloadToken) -> uuid.UUID:
-    """El id del usuario segun el token. Sirve antes de que exista el perfil."""
+def _id_del_payload(payload: dict) -> uuid.UUID:
     user_id_str = payload.get("sub")
     if not user_id_str:
         raise HTTPException(
@@ -51,6 +61,14 @@ async def get_current_user_id(payload: PayloadToken) -> uuid.UUID:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="ID de usuario malformado"
         ) from e
+
+
+async def get_current_user_id(payload: PayloadToken) -> uuid.UUID:
+    """El id del usuario segun el token. Sirve antes de que exista el perfil."""
+    if payload is None:
+        # La misma respuesta que daba HTTPBearer() sin token
+        raise security.make_not_authenticated_error()
+    return _id_del_payload(payload)
 
 
 IdUsuario = Annotated[uuid.UUID, Depends(get_current_user_id)]
@@ -67,6 +85,18 @@ async def get_current_user(user_id: IdUsuario, session: Sesion) -> Profile:
 
 
 Usuario = Annotated[Profile, Depends(get_current_user)]
+
+
+async def get_usuario_opcional(
+    payload: PayloadToken, session: Sesion
+) -> Profile | None:
+    """Quien mira, si mando token. Sin token o sin perfil, None; token roto, 401."""
+    if payload is None:
+        return None
+    return await session.get(Profile, _id_del_payload(payload))
+
+
+UsuarioOpcional = Annotated[Profile | None, Depends(get_usuario_opcional)]
 
 
 async def get_current_artista(current_user: Usuario) -> Profile:

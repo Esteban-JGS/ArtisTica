@@ -16,11 +16,12 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
-from sqlalchemy import Select, select
+from sqlalchemy import Select, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.exceptions import ReglaDeNegocioViolada, ResourceNotFound
-from src.models import MediaAsset, Obra, Profile, Publicacion
+from src.domain.enums import TipoReaccion
+from src.models import MediaAsset, Obra, Profile, Publicacion, Reaccion
 from src.services.medios import (
     asignar_medios,
     borrar_objetos_de,
@@ -49,18 +50,51 @@ class PublicacionDetalle:
     obra: Obra | None
     # Solo en Explorar: verdadero o falso. Nulo en los demas listados
     nuevo_talento: bool | None = None
+    me_gusta_total: int = 0
+    # Nulo si nadie mira
+    mi_me_gusta: bool | None = None
+
+
+async def _me_gusta(
+    session: AsyncSession, ids: list[uuid.UUID], usuario: Profile | None
+) -> tuple[dict[uuid.UUID, int], set[uuid.UUID] | None]:
+    """El total de cada publicacion y las que marco quien mira: dos consultas."""
+    es_me_gusta = Reaccion.tipo == TipoReaccion.ME_GUSTA.value
+    filas = await session.execute(
+        select(Reaccion.publicacion_id, func.count(Reaccion.id))
+        .where(Reaccion.publicacion_id.in_(ids), es_me_gusta)
+        .group_by(Reaccion.publicacion_id)
+    )
+    totales: dict[uuid.UUID, int] = dict(filas.tuples().all())
+    if usuario is None:
+        return totales, None
+    mias = await session.execute(
+        select(Reaccion.publicacion_id).where(
+            Reaccion.publicacion_id.in_(ids),
+            Reaccion.profile_id == usuario.id,
+            es_me_gusta,
+        )
+    )
+    return totales, set(mias.scalars())
 
 
 async def detallar(
     session: AsyncSession,
     publicaciones: Sequence[Publicacion],
+    usuario: Profile | None,
     nuevo_talento: Mapping[uuid.UUID, bool] | None = None,
 ) -> list[PublicacionDetalle]:
-    """Medios, obras y artistas de una pagina entera: una consulta por cada uno."""
+    """Medios, obras, artistas y me gusta de una pagina entera.
+
+    Una consulta por cada uno, sin importar el tamano de la pagina. `usuario`
+    es quien mira: sin el, `mi_me_gusta` queda nulo. Nada de esto cambia el
+    orden de la pagina.
+    """
     if not publicaciones:
         return []
     marcas = nuevo_talento or {}
-    medios = await medios_de_publicaciones(session, [p.id for p in publicaciones])
+    ids = [p.id for p in publicaciones]
+    medios = await medios_de_publicaciones(session, ids)
     obra_ids = {p.obra_id for p in publicaciones if p.obra_id is not None}
     obras: dict[uuid.UUID, Obra] = {}
     if obra_ids:
@@ -71,6 +105,7 @@ async def detallar(
     artista_ids = {p.artista_id for p in publicaciones}
     filas = await session.execute(select(Profile).where(Profile.id.in_(artista_ids)))
     artistas = {a.id: a for a in filas.scalars()}
+    totales, mias = await _me_gusta(session, ids, usuario)
     return [
         PublicacionDetalle(
             publicacion=p,
@@ -78,13 +113,17 @@ async def detallar(
             medios=medios.get(p.id, []),
             obra=obras.get(p.obra_id) if p.obra_id is not None else None,
             nuevo_talento=marcas.get(p.id),
+            me_gusta_total=totales.get(p.id, 0),
+            mi_me_gusta=None if mias is None else p.id in mias,
         )
         for p in publicaciones
     ]
 
 
-async def _uno(session: AsyncSession, publicacion: Publicacion) -> PublicacionDetalle:
-    return (await detallar(session, [publicacion]))[0]
+async def _uno(
+    session: AsyncSession, publicacion: Publicacion, usuario: Profile | None
+) -> PublicacionDetalle:
+    return (await detallar(session, [publicacion], usuario))[0]
 
 
 async def _bloquear_publicacion(
@@ -146,11 +185,11 @@ async def crear(
     session.add(publicacion)
     await session.flush()
     await asignar_medios(session, elegidos, publicacion_id=publicacion.id)
-    return await _uno(session, publicacion)
+    return await _uno(session, publicacion, artista)
 
 
 async def obtener(
-    session: AsyncSession, publicacion_id: uuid.UUID
+    session: AsyncSession, publicacion_id: uuid.UUID, usuario: Profile | None
 ) -> PublicacionDetalle:
     """Vista publica: nunca una publicacion borrada."""
     stmt = select(Publicacion).where(
@@ -159,7 +198,7 @@ async def obtener(
     publicacion = (await session.execute(stmt)).scalar_one_or_none()
     if publicacion is None:
         raise ResourceNotFound("Publicacion no encontrada")
-    return await _uno(session, publicacion)
+    return await _uno(session, publicacion, usuario)
 
 
 async def editar(
@@ -171,7 +210,7 @@ async def editar(
     publicacion = await _bloquear_publicacion(session, artista.id, publicacion_id)
     publicacion.texto = texto
     await session.flush()
-    return await _uno(session, publicacion)
+    return await _uno(session, publicacion, artista)
 
 
 async def eliminar(
@@ -201,7 +240,10 @@ async def eliminar(
 
 
 async def listar_de(
-    session: AsyncSession, handle: str, parametros: ParametrosPagina
+    session: AsyncSession,
+    handle: str,
+    parametros: ParametrosPagina,
+    usuario: Profile | None,
 ) -> tuple[list[PublicacionDetalle], str | None]:
     """Las publicaciones de un artista, sin las borradas."""
     stmt = select(Profile.id).where(Profile.handle == handle)
@@ -214,4 +256,4 @@ async def listar_de(
     publicaciones, siguiente = await traer_pagina(
         session, consulta, Publicacion, parametros
     )
-    return await detallar(session, publicaciones), siguiente
+    return await detallar(session, publicaciones, usuario), siguiente
