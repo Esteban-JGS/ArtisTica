@@ -343,7 +343,8 @@ Con un pedido promedio de US$150, una tarifa promedio de 7% y 300 suscriptores d
 | Backend: obras y servicios | Completo, con los límites del plan Taller |
 | Backend: publicaciones y feed | Completo: Seguidos cronológico y Explorar con cuota de nuevos talentos |
 | Backend: seguidores y me gusta | Completo, con contadores que nunca alteran el orden del feed |
-| Endpoints de negocio e integración con la aplicación | En desarrollo: perfiles, planes, imágenes, obras, servicios, publicaciones, feed, seguidores y me gusta disponibles |
+| Backend: comentarios y búsqueda | Completo: comentarios con un nivel de respuestas y búsqueda de publicaciones y artistas |
+| Endpoints de negocio e integración con la aplicación | En desarrollo: toda la parte social disponible (perfiles, planes, imágenes, obras, servicios, publicaciones, feed, seguidores, me gusta, comentarios y búsqueda). Falta la contratación |
 
 ### 5.2 Backend
 
@@ -358,10 +359,11 @@ Con un pedido promedio de US$150, una tarifa promedio de 7% y 300 suscriptores d
 | Obras y servicios | Galería del artista con obras en exhibición o disponibles, servicios de encargo y de evento, límites del plan Taller que nunca ocultan contenido al bajar de plan, y catálogo público paginado |
 | Publicaciones y feed | Publicaciones con texto, imágenes y una obra opcional, nunca con precio; feed Seguidos en orden cronológico y Explorar filtrado por categorías con cuota de nuevos talentos |
 | Seguidores y me gusta | Seguir artistas, contadores y listas de seguidores, y me gusta en publicaciones. Los contadores se muestran pero no ordenan ningún feed |
+| Comentarios y búsqueda | Comentarios con un nivel de respuestas y me gusta, que no admiten teléfonos ni WhatsApp; búsqueda de publicaciones en español y de artistas por nombre, siempre por recencia |
 
 Indicadores al cierre del avance:
 
-- 331 pruebas automatizadas.
+- 343 pruebas automatizadas.
 - Ningún saldo almacenado en la base de datos: ArtísTica no custodia dinero.
 - Montos calculados con aritmética decimal exacta.
 
@@ -373,7 +375,7 @@ Pantallas implementadas con el rediseño visual Liquid Glass: Inicio (feed con e
 
 | Etapa | Contenido |
 |---|---|
-| Contenido | Comentarios, búsqueda y miniaturas de imágenes |
+| Contenido | Miniaturas de imágenes |
 | Contratación | Consultas, chat, pedidos y recepción de avisos de pago |
 | Métricas y moderación | Panel del artista, reportes y clasificación para revisión humana |
 | Integración | Conexión de la aplicación con la API |
@@ -384,7 +386,7 @@ La demostración de noviembre usa la pasarela simulada, que reproduce autorizaci
 
 | Riesgo | Mitigación |
 |---|---|
-| Plazo: quedan seis etapas de backend y la integración | Las promociones ya salieron del MVP; si hace falta, Explorar queda solo por categorías |
+| Plazo: quedan cinco etapas de backend y la integración | Las promociones ya salieron del MVP; si hace falta, Explorar queda solo por categorías |
 | ONVO no responde a tiempo | La demostración no depende de ONVO |
 | La integración llega tarde | Los endpoints se construyen en el orden en que la aplicación los necesita |
 
