@@ -92,7 +92,6 @@ export default function PerfilArtistaScreen() {
     role?: string;
     color?: string;
   }>();
-  const [isFollowing, setIsFollowing] = useState(false);
   const [tab, setTab] = useState<'portafolio' | 'sobre-mi'>('portafolio');
   const allPosts = usePostsStore((state) => state.posts);
   const { width: windowWidth } = useWindowDimensions();
@@ -103,6 +102,8 @@ export default function PerfilArtistaScreen() {
 
   const roleColor = color && color in roleColors ? roleColors[color as keyof typeof roleColors] : roleColors.terracota;
   const displayName = name ?? id;
+  const isFollowing = usePostsStore((state) => state.followed.includes(displayName));
+  const toggleFollow = usePostsStore((state) => state.toggleFollow);
   const stats = useMemo(() => mockCommissionStats(id), [id]);
 
   const artistPosts = allPosts.filter((post) => post.name === displayName);
@@ -190,7 +191,7 @@ export default function PerfilArtistaScreen() {
               Responde en {stats.responseDays}d · {stats.delivered} entregadas · {stats.followers} seguidores
             </Text>
             <Pressable
-              onPress={() => setIsFollowing((value) => !value)}
+              onPress={() => toggleFollow(displayName)}
               className={isFollowing ? 'mt-2 rounded-full bg-sand-50 px-6 py-2' : 'mt-2 rounded-full bg-accent px-6 py-2'}>
               <Text className={isFollowing ? 'text-sm font-semibold text-ink' : 'text-sm font-semibold text-sand-50'}>
                 {isFollowing ? 'Siguiendo' : 'Seguir'}

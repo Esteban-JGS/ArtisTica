@@ -515,17 +515,55 @@ const INITIAL_POSTS: Post[] = [
   },
 ];
 
+// Autoria fija porque todavia no hay sesion real contra el backend.
+// Cuando exista, estos datos salen del perfil autenticado.
+export const CURRENT_AUTHOR = {
+  name: 'Luna Atelier',
+  role: 'Ilustradora',
+  initial: 'L',
+  color: 'terracota' as const,
+  place: 'San José',
+};
+
+// Artistas que la cuenta mock ya sigue al abrir la app, para que la
+// pestana Seguidos no arranque vacia.
+const INITIAL_FOLLOWED = ['Sofi Cerámica', 'Vale Grabados', 'Cami Lentes', 'Pau Murales', 'Fabián Sarchí'];
+
+const MINUTES_PER_UNIT: Record<string, number> = {
+  min: 1,
+  h: 60,
+  d: 60 * 24,
+  sem: 60 * 24 * 7,
+  mes: 60 * 24 * 30,
+  meses: 60 * 24 * 30,
+  año: 60 * 24 * 365,
+  años: 60 * 24 * 365,
+};
+
+// Antiguedad aproximada de un texto relativo ("hace 2 h", "ayer"), para
+// poder ordenar el feed de Seguidos cronologicamente sobre los mocks.
+export function ageInMinutes(time: string) {
+  if (time === 'ahora') return 0;
+  if (time === 'ayer') return 60 * 24;
+  const match = /^hace (\d+) (\S+)$/.exec(time);
+  if (!match) return Number.MAX_SAFE_INTEGER;
+  return Number(match[1]) * (MINUTES_PER_UNIT[match[2]] ?? Number.MAX_SAFE_INTEGER);
+}
+
 type PostsState = {
   posts: Post[];
+  followed: string[];
   addPost: (post: Omit<Post, 'id' | 'likes' | 'comments' | 'shares'>) => void;
   hidePost: (id: string) => void;
+  toggleFollow: (name: string) => void;
 };
 
 // Mock de sesion, sin persistencia: el feed se resetea a INITIAL_POSTS al
-// recargar la app. Cuando exista el backend, addPost y hidePost se
-// reemplazan por la mutacion real y esta store se puede borrar.
+// recargar la app. Cuando exista el backend, addPost, hidePost y
+// toggleFollow se reemplazan por la mutacion real y esta store se puede borrar.
 export const usePostsStore = create<PostsState>((set) => ({
   posts: INITIAL_POSTS,
+  followed: INITIAL_FOLLOWED,
   addPost: (post) =>
     set((state) => ({
       posts: [
@@ -534,4 +572,10 @@ export const usePostsStore = create<PostsState>((set) => ({
       ],
     })),
   hidePost: (id) => set((state) => ({ posts: state.posts.filter((post) => post.id !== id) })),
+  toggleFollow: (name) =>
+    set((state) => ({
+      followed: state.followed.includes(name)
+        ? state.followed.filter((item) => item !== name)
+        : [...state.followed, name],
+    })),
 }));

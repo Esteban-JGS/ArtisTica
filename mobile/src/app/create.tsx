@@ -5,20 +5,10 @@ import { useState } from 'react';
 import { Image, Pressable, ScrollView, Switch, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { usePostsStore } from '@/stores/posts-store';
+import { CURRENT_AUTHOR, usePostsStore } from '@/stores/posts-store';
 import { colors } from '@/theme';
 
 const CATEGORIES = ['Dibujantes', 'Músicos', 'Pintores', 'Artesanos', 'Escultores'];
-
-// Autoria fija porque todavia no hay sesion real contra el backend.
-// Cuando exista, estos datos salen del perfil autenticado.
-const CURRENT_AUTHOR = {
-  name: 'Luna Atelier',
-  role: 'Ilustradora',
-  initial: 'L',
-  color: 'terracota' as const,
-  place: 'San José',
-};
 
 export default function CrearScreen() {
   const addPost = usePostsStore((state) => state.addPost);
@@ -81,16 +71,13 @@ export default function CrearScreen() {
             <View className="items-center gap-3 rounded-2xl border border-dashed border-stone-500 bg-sand-50 px-6 py-10">
               <Ionicons name="image-outline" size={28} color={colors.stone[700]} />
               <Text className="text-base font-semibold text-ink">Muestra tu creatividad</Text>
-              <Text className="text-sm text-stone-700">Imagen, audio o video</Text>
+              <Text className="text-sm text-stone-700">Subí una foto de tu obra</Text>
               <View className="flex-row gap-2">
                 <Pressable onPress={pickFromLibrary} className="rounded-full bg-sand-200 px-4 py-2">
                   <Text className="text-sm font-medium text-ink">Galería</Text>
                 </Pressable>
                 <Pressable onPress={pickFromCamera} className="rounded-full bg-sand-200 px-4 py-2">
                   <Text className="text-sm font-medium text-ink">Cámara</Text>
-                </Pressable>
-                <Pressable className="rounded-full bg-sand-200 px-4 py-2">
-                  <Text className="text-sm font-medium text-ink">Audio</Text>
                 </Pressable>
               </View>
             </View>

@@ -4,13 +4,13 @@ import { useState } from 'react';
 import { Image, Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native';
 
 import { AppBackground } from '@/components/app-background';
-import { usePostsStore } from '@/stores/posts-store';
+import { CURRENT_AUTHOR, usePostsStore } from '@/stores/posts-store';
 import { BACKGROUND_OPTIONS, backgroundSource, useBackgroundStore } from '@/stores/background-store';
 import { colors, NOTE_SHADOW, roleColors } from '@/theme';
 
 const FEATURED_COUNT = 3;
 const PORTFOLIO_COUNT = 12;
-const OWN_NAME = 'Luna Atelier';
+const OWN_NAME = CURRENT_AUTHOR.name;
 const OWN_COLOR = roleColors.terracota;
 const OWN_AVATAR = 'https://picsum.photos/seed/luna-atelier-avatar/300/300';
 

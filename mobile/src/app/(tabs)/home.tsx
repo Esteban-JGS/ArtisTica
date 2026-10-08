@@ -1,13 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LiquidGlassView } from '@sbaiahmed1/react-native-blur';
 import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Image, Pressable, Text, View } from 'react-native';
 
 import { AppBackground } from '@/components/app-background';
 import { Avatar } from '@/components/avatar';
 import { navBarVisibility } from '@/lib/nav-visibility';
-import { type Post, usePostsStore } from '@/stores/posts-store';
+import { ageInMinutes, CURRENT_AUTHOR, type Post, usePostsStore } from '@/stores/posts-store';
 import { colors, FLOAT_SHADOW, NOTE_SHADOW, roleColors } from '@/theme';
 import Animated, {
   Easing,
@@ -257,6 +257,9 @@ function PostCard({ post }: { post: Post }) {
               <View className="h-4 w-px bg-sand-50/25" />
 
               <Pressable
+                onPress={() =>
+                  router.push({ pathname: '/share', params: { authorName: post.name, mode: 'tag' } })
+                }
                 accessibilityRole="button"
                 accessibilityLabel="Etiquetar"
                 className="h-11 w-11 items-center justify-center">
@@ -289,8 +292,18 @@ function PostCard({ post }: { post: Post }) {
 }
 
 export default function InicioScreen() {
-  const posts = usePostsStore((state) => state.posts);
+  const allPosts = usePostsStore((state) => state.posts);
+  const followed = usePostsStore((state) => state.followed);
   const [tab, setTab] = useState<'seguidos' | 'para-ti'>('seguidos');
+
+  // Seguidos es siempre cronologico y solo trae a quien seguis (mas lo
+  // propio). Para ti respeta el orden curado de la store.
+  const posts = useMemo(() => {
+    if (tab === 'para-ti') return allPosts;
+    return allPosts
+      .filter((post) => post.name === CURRENT_AUTHOR.name || followed.includes(post.name))
+      .sort((a, b) => ageInMinutes(a.time) - ageInMinutes(b.time));
+  }, [allPosts, followed, tab]);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const scrollY = useSharedValue(0);
   const wasCollapsed = useSharedValue(false);
@@ -363,6 +376,17 @@ export default function InicioScreen() {
         {posts.map((post) => (
           <PostCard key={post.id} post={post} />
         ))}
+
+        {tab === 'seguidos' && posts.length === 0 && (
+          <View className="items-center gap-3 py-10">
+            <Text className="text-center text-sm text-stone-700">
+              Todavía no seguís a nadie. Encontrá artistas en Para ti o en Explorar.
+            </Text>
+            <Pressable onPress={() => setTab('para-ti')} className="rounded-full bg-accent px-5 py-2">
+              <Text className="text-sm font-semibold text-sand-50">Ver Para ti</Text>
+            </Pressable>
+          </View>
+        )}
       </Animated.ScrollView>
 
       <View pointerEvents="box-none" className="absolute inset-x-0 top-0 pt-14">
