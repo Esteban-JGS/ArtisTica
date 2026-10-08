@@ -63,9 +63,10 @@ Las decisiones se numeran D y las deudas técnicas DT.
 | 5f | Deuda: política de lint | Cerrado | Aprobado | Ninguna |
 | 5b | Obras y servicios con límites de plan | Cerrado | Aprobado tras correctivo | Ninguna |
 | 6 | Publicaciones, feed Seguidos y Explorar por cursor | Cerrado | Aprobado con deuda | DT21 |
-| DT22 | Lote 6c | `ix_comentarios_publicacion_id` sobra, porque lo cubre el índice compuesto `(publicacion_id, created_at)`. Y la búsqueda de artistas pagina por `profiles.created_at`, que no tiene índice | El próximo lote que traiga migración: borrar el índice redundante y crear `profiles (created_at DESC, id DESC)` |
+| DT22 | Lote 6c | `ix_comentarios_publicacion_id` sobra, porque lo cubre el índice compuesto `(publicacion_id, created_at)`. Y la búsqueda de artistas pagina por `profiles.created_at`, que no tiene índice | Pagada en el lote 6d |
 | 6b | Seguir, contadores y me gusta, con la deuda DT21 | Cerrado | Aprobado | Ninguna |
 | 6c | Comentarios con respuestas, me gusta en comentarios y búsqueda | Cerrado | Aprobado con deuda | DT22 |
+| 6d | Mejoras chicas: índices, Sentry y controles en el CI | Cerrado | Aprobado | Ninguna |
 | 7 | Consultas y chat | Pendiente | | |
 | 8 | Endpoints de pedidos y cobros | Pendiente | | |
 | 9 | Webhooks idempotentes y vigilancia de autorizaciones | Pendiente | | |
@@ -124,6 +125,7 @@ Las decisiones se numeran D y las deudas técnicas DT.
 | 5b | El prompt puso la paginación en `src/api/`, aunque el servicio la necesitaba, y no fijó un orden de bloqueos. El servicio quedó dependiendo de la API, y editar una obra bloqueaba la obra antes que el perfil, al revés de lo que hará el lote 8 | Correctivo del lote 5b en la misma rama: la paginación pasa a `src/services/` y el perfil se bloquea siempre antes que la obra, el servicio o el pedido |
 | 6 | El prompt pedía a cada flujo de Explorar solo su cuota más uno, lo que no llena la página cuando un flujo se agota, y la prueba 12 exigía la página llena. También nombraba `MedioRespuesta`, un esquema que se llama `MedioDeObra` | El ejecutor completa con una segunda consulta al otro flujo. El nombre queda en DT21 |
 | 6b | El prompt pedía un `HTTPBearer` propio para el usuario opcional y, a la vez, que las pruebas lo cubrieran sobrescribiendo `get_current_user_payload`: las dos cosas no se pueden cumplir juntas. También pedía nombrar `MedioDeObra` en una prueba y que el `grep` de ese nombre saliera vacío | El ejecutor hizo opcional la dependencia de token y deja que cada consumidor decida: el usuario obligatorio responde el mismo 401 de antes y el opcional queda anónimo. La prueba verifica el esquema por su forma, sin nombrar el viejo |
+| 6d | El control de commits buscaba la palabra a secas, así que rechazaba un mensaje que solo nombra el archivo de instrucciones de la raíz. Además el script no corría a mano en Windows por los fines de línea | El orquestador quitó el nombre del archivo antes de buscar y agregó `*.sh text eol=lf` a `.gitattributes`. Probado con el caso permitido y con dos casos que tienen que fallar |
 
 ## Pendientes fuera de los lotes
 
@@ -140,7 +142,7 @@ Cosas que ningún lote cubre y que hay que resolver antes de la integración, la
 | P7 | Notificaciones push | El Maestro las incluye en el stack (Expo Notifications) y ningún lote las contempla. Sin ellas, el artista no se entera de una consulta nueva ni el cliente de una cotización o de un cobro | Decidir si entran al MVP. Si entran, lote nuevo después del 9 | Esteban y Brian |
 | P8 | Chat en tiempo real | El Maestro lo deja pendiente: WebSockets en FastAPI o Supabase Realtime. Realtime exige políticas de RLS en `mensajes`, lo que choca con la regla de RLS sin políticas | Al armar el lote 7. Propuesta para el MVP: consulta periódica desde la app | Orquestador |
 | P9 | Límites de abuso | El Maestro pide un límite diario de consultas nuevas para cuentas recientes (lote 7). Además, la API no tiene ningún límite general de solicitudes | El de consultas en el lote 7; el general antes de producción | Orquestador |
-| P10 | Configuración de Sentry | `traces_sample_rate=1.0`, y Sentry adjunta por defecto las variables locales de cada error, que pueden incluir tokens. Falta fijar `include_local_variables=False`, dejar explícito `send_default_pii=False` (ya viene apagado) y bajar el muestreo | Antes de definir `SENTRY_DSN` en cualquier entorno | Orquestador |
+| P10 | Configuración de Sentry | `traces_sample_rate=1.0`, y Sentry adjunta por defecto las variables locales de cada error, que pueden incluir tokens. Falta fijar `include_local_variables=False`, dejar explícito `send_default_pii=False` (ya viene apagado) y bajar el muestreo | Resuelto en el lote 6d: `configurar_sentry` con `include_local_variables=False`, `send_default_pii=False` y `SENTRY_TRACES_SAMPLE_RATE` (0.1 por defecto) | Orquestador |
 | P11 | CORS | No hay `CORSMiddleware`. La app nativa no lo necesita, pero Expo web o cualquier panel web sí | Al integrar, si se usa web | Esteban |
 | P12 | Borrar la cuenta y los datos personales | No hay forma de borrar una cuenta. Apple exige poder hacerlo desde la app para publicarla, y la Ley 8968 de protección de datos de Costa Rica da derecho a suprimirlos. Además `profiles.id` no tiene llave foránea a `auth.users`: borrar el usuario en Supabase no borra su perfil | Antes de publicar en las tiendas | Orquestador |
 | P13 | El worker ejecuta cada job dentro de la transacción que bloquea la fila con `FOR UPDATE` | Un job lento, por ejemplo una llamada a un proveedor de IA, retiene una conexión y el bloqueo todo ese tiempo. Además las miniaturas no se generan, así que todo medio queda en estado `pendiente` | Lote 9, que reescribe el worker, y lote 11 para las miniaturas | Orquestador |
