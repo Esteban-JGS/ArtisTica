@@ -510,7 +510,7 @@ async def bandeja(
 async def resumen_no_leidos(session: AsyncSession, usuario: Profile) -> tuple[int, int]:
     """Cuantas consultas tienen algo sin leer y cuantos mensajes, en una consulta."""
     stmt = (
-        select(func.count(func.distinct(Mensaje.consulta_id)), func.count(Mensaje.id))
+        select(func.count(Mensaje.consulta_id.distinct()), func.count(Mensaje.id))
         .join(Consulta, Consulta.id == Mensaje.consulta_id)
         .where(_participa(usuario.id), _no_leido(usuario.id))
     )
