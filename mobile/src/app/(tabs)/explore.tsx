@@ -3,10 +3,15 @@ import { FlashList } from '@shopify/flash-list';
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Image, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 
-import { AppBackground } from '@/components/app-background';
+import { AppBackground, useCorkScroll } from '@/components/app-background';
 import { type Post, usePostsStore } from '@/stores/posts-store';
 import { colors } from '@/theme';
+
+// FlashList expone getScrollableNode, asi que Reanimated le engancha el
+// scroll en el hilo de UI igual que a un ScrollView y el corcho no se atrasa.
+const AnimatedFlashList = Animated.createAnimatedComponent(FlashList<Post>);
 
 const CATEGORIES = ['Todos', 'Dibujantes', 'Pintores', 'Artesanos', 'Escultores', 'Fotógrafos', 'Músicos'];
 
@@ -48,6 +53,7 @@ function openArtwork(post: Post) {
 }
 
 export default function ExplorarScreen() {
+  const { scrollY, onScroll } = useCorkScroll();
   const posts = usePostsStore((state) => state.posts);
   const [category, setCategory] = useState('Todos');
   const [query, setQuery] = useState('');
@@ -66,7 +72,7 @@ export default function ExplorarScreen() {
 
   return (
     <View className="flex-1 bg-sand-100">
-      <AppBackground />
+      <AppBackground scrollY={scrollY} />
       <View className="gap-3 px-5 pb-3 pt-14">
         <View className="flex-row items-center gap-2 rounded-full bg-sand-50 px-4 py-3">
           <Ionicons name="search" size={18} color={colors.stone[700]} />
@@ -116,7 +122,9 @@ export default function ExplorarScreen() {
         </ScrollView>
       </View>
 
-      <FlashList
+      <AnimatedFlashList
+        onScroll={onScroll}
+        scrollEventThrottle={16}
         data={artworks}
         numColumns={2}
         keyExtractor={(item) => item.id}

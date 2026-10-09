@@ -2,10 +2,11 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { router, useLocalSearchParams } from 'expo-router';
 import type { ReactNode } from 'react';
-import { Alert, Image, Pressable, ScrollView, Text, View } from 'react-native';
+import { Alert, Image, Pressable, Text, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { AppBackground } from '@/components/app-background';
+import { AppBackground, useCorkScroll } from '@/components/app-background';
 import { Avatar } from '@/components/avatar';
 import { StatusBadge } from '@/components/status-badge';
 import {
@@ -137,6 +138,7 @@ function Stars({ value, onChange }: { value: number; onChange?: (stars: number) 
 }
 
 export default function ComisionScreen() {
+  const { scrollY, onScroll } = useCorkScroll();
   const { id } = useLocalSearchParams<{ id: string }>();
   const commission = useCommissionsStore((state) => state.commissions.find((item) => item.id === id));
   const rejectQuote = useCommissionsStore((state) => state.rejectQuote);
@@ -234,7 +236,7 @@ export default function ComisionScreen() {
 
   return (
     <View className="flex-1 bg-sand-100">
-      <AppBackground />
+      <AppBackground scrollY={scrollY} />
       <SafeAreaView edges={['top', 'bottom']} className="flex-1">
         <View className="flex-row items-center justify-between px-5 py-3">
           <Pressable onPress={() => router.back()} hitSlop={8} accessibilityLabel="Volver">
@@ -246,7 +248,11 @@ export default function ComisionScreen() {
           </Pressable>
         </View>
 
-        <ScrollView contentContainerClassName="gap-4 px-5 pb-6" showsVerticalScrollIndicator={false}>
+        <Animated.ScrollView
+          onScroll={onScroll}
+          scrollEventThrottle={16}
+          contentContainerClassName="gap-4 px-5 pb-6"
+          showsVerticalScrollIndicator={false}>
           <View style={NOTE_SHADOW} className="gap-3 rounded-2xl bg-sand-50 p-4">
             <View className="flex-row items-center gap-3">
               <Avatar initial={counterpart.initial} color={counterpart.color} />
@@ -332,7 +338,7 @@ export default function ComisionScreen() {
                 : 'Pago protegido: cobrás el anticipo al aceptar y el saldo queda autorizado desde la vista previa. Todo lo acordado en el chat sirve como evidencia.'}
             </Text>
           </View>
-        </ScrollView>
+        </Animated.ScrollView>
 
         {action && <View className="border-t border-sand-300 bg-sand-100 px-5 pb-2 pt-3">{action}</View>}
       </SafeAreaView>

@@ -1,10 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Image, Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Image, Pressable, Text, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 
-import { AppBackground } from '@/components/app-background';
+import { AppBackground, useCorkScroll } from '@/components/app-background';
+import { GlassHeader, useGlassHeaderOffset } from '@/components/glass-header';
+import { PolaroidGrid } from '@/components/polaroid-grid';
 import { usePostsStore } from '@/stores/posts-store';
 import { colors, NOTE_SHADOW, roleColors } from '@/theme';
 
@@ -94,11 +96,8 @@ export default function PerfilArtistaScreen() {
   }>();
   const [tab, setTab] = useState<'portafolio' | 'sobre-mi'>('portafolio');
   const allPosts = usePostsStore((state) => state.posts);
-  const { width: windowWidth } = useWindowDimensions();
-  // aspect-square con ancho en porcentaje no resuelve la altura dentro de
-  // un flex-wrap en este motor de layout: las imagenes quedan en 0px de
-  // alto y desaparecen. Se calcula un tamano fijo en su lugar.
-  const gridItemSize = (windowWidth - 40 - 16) / 3;
+  const { scrollY, onScroll } = useCorkScroll();
+  const headerOffset = useGlassHeaderOffset();
 
   const roleColor = color && color in roleColors ? roleColors[color as keyof typeof roleColors] : roleColors.terracota;
   const displayName = name ?? id;
@@ -129,152 +128,147 @@ export default function PerfilArtistaScreen() {
 
   return (
     <View className="flex-1 bg-sand-100">
-      <AppBackground />
-      <SafeAreaView edges={['top']} className="flex-1">
-        <View className="flex-row items-center justify-between px-5 py-3">
-          <Pressable onPress={() => router.back()} hitSlop={8}>
-            <Ionicons name="chevron-back" size={24} color={colors.ink.DEFAULT} />
-          </Pressable>
-          <Text className="text-base font-semibold text-ink">{displayName}</Text>
-          <View style={{ width: 24 }} />
+      <AppBackground scrollY={scrollY} />
+
+      <Animated.ScrollView
+        onScroll={onScroll}
+        scrollEventThrottle={16}
+        className="flex-1"
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingTop: headerOffset }}
+        contentContainerClassName="px-5 pb-8">
+        {/* Foto de perfil pineada a la par de unas obras, no sola arriba
+            de una caja de stats: asi el perfil abre mostrando quien
+            sos y que haces en el mismo gesto, no en dos bloques separados. */}
+        <View className="flex-row justify-center pt-4" style={{ paddingLeft: 36 }}>
+          <View style={[NOTE_SHADOW, { width: 104 }]} className="rounded-xl">
+            <Pin color={roleColor.fg} />
+            <View
+              className="items-center justify-center overflow-hidden rounded-xl bg-sand-50"
+              style={{ width: 104, height: 120 }}>
+              <View
+                className="h-16 w-16 items-center justify-center overflow-hidden rounded-full"
+                style={{ borderWidth: 2, borderColor: roleColor.base }}>
+                <Image source={{ uri: avatarPhoto }} className="h-full w-full" />
+              </View>
+            </View>
+          </View>
+
+          {featured.map((item, index) => (
+            <Pressable
+              key={item.id}
+              onPress={() => openObra(item)}
+              style={[
+                NOTE_SHADOW,
+                {
+                  width: 92,
+                  height: 92,
+                  marginLeft: -22,
+                  marginTop: index % 2 === 0 ? 16 : 26,
+                  transform: [{ rotate: `${index % 2 === 0 ? -6 : 5}deg` }],
+                  zIndex: FEATURED_COUNT - index,
+                },
+              ]}
+              className="overflow-hidden rounded-xl bg-sand-50">
+              <Image source={{ uri: item.image }} className="h-full w-full" />
+            </Pressable>
+          ))}
         </View>
 
-        <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerClassName="px-5 pb-8">
-          {/* Foto de perfil pineada a la par de unas obras, no sola arriba
-              de una caja de stats: asi el perfil abre mostrando quien
-              sos y que haces en el mismo gesto, no en dos bloques separados. */}
-          <View className="flex-row justify-center pt-4" style={{ paddingLeft: 36 }}>
-            <View style={[NOTE_SHADOW, { width: 104 }]} className="rounded-xl">
-              <Pin color={roleColor.fg} />
-              <View
-                className="items-center justify-center overflow-hidden rounded-xl bg-sand-50"
-                style={{ width: 104, height: 120 }}>
-                <View
-                  className="h-16 w-16 items-center justify-center overflow-hidden rounded-full"
-                  style={{ borderWidth: 2, borderColor: roleColor.base }}>
-                  <Image source={{ uri: avatarPhoto }} className="h-full w-full" />
-                </View>
-              </View>
-            </View>
-
-            {featured.map((item, index) => (
-              <Pressable
-                key={item.id}
-                onPress={() => openObra(item)}
-                style={[
-                  NOTE_SHADOW,
-                  {
-                    width: 92,
-                    height: 92,
-                    marginLeft: -22,
-                    marginTop: index % 2 === 0 ? 16 : 26,
-                    transform: [{ rotate: `${index % 2 === 0 ? -6 : 5}deg` }],
-                    zIndex: FEATURED_COUNT - index,
-                  },
-                ]}
-                className="overflow-hidden rounded-xl bg-sand-50">
-                <Image source={{ uri: item.image }} className="h-full w-full" />
-              </Pressable>
-            ))}
-          </View>
-
-          <View className="mt-5 items-center gap-1.5">
-            <Text className="font-serif text-2xl italic text-ink">{displayName}</Text>
-            {role && (
-              <View className="rounded-full px-2 py-0.5" style={{ backgroundColor: roleColor.bg }}>
-                <Text className="text-xs font-medium" style={{ color: roleColor.fg }}>
-                  {role}
-                </Text>
-              </View>
-            )}
-            <Text className="mt-1 text-xs text-stone-700">
-              Responde en {stats.responseDays}d · {stats.delivered} entregadas · {stats.followers} seguidores
-            </Text>
-            <Pressable
-              onPress={() => toggleFollow(displayName)}
-              className={isFollowing ? 'mt-2 rounded-full bg-sand-50 px-6 py-2' : 'mt-2 rounded-full bg-accent px-6 py-2'}>
-              <Text className={isFollowing ? 'text-sm font-semibold text-ink' : 'text-sm font-semibold text-sand-50'}>
-                {isFollowing ? 'Siguiendo' : 'Seguir'}
-              </Text>
-            </Pressable>
-          </View>
-
-          <View className="mt-6" style={[NOTE_SHADOW, { alignSelf: 'stretch' }]}>
-            <Pin color={roleColor.fg} />
-            <View className="gap-3 rounded-xl bg-sand-50 p-4">
-              <View className="flex-row items-center justify-between">
-                <Text className="text-sm font-semibold text-ink">Ficha de comisión</Text>
-                <View
-                  className="rounded-full px-2.5 py-1"
-                  style={{ backgroundColor: stats.isOpen ? 'rgba(63,107,99,0.16)' : 'rgba(139,130,121,0.16)' }}>
-                  <Text
-                    className="text-[11px] font-semibold uppercase"
-                    style={{ color: stats.isOpen ? colors.sage : colors.stone[900] }}>
-                    {stats.isOpen ? 'Abierto' : 'Cerrado'}
-                  </Text>
-                </View>
-              </View>
-              <Text className="text-sm text-stone-800">
-                Desde ₡{stats.priceLow}k hasta ₡{stats.priceHigh}k, según la pieza.
-              </Text>
-              <Text className="text-xs text-stone-700">
-                {stats.isOpen ? `Tomando pedidos hasta ${stats.openUntil}.` : 'Por ahora no está tomando pedidos nuevos.'}
-              </Text>
-              <Pressable
-                onPress={() =>
-                  router.push({ pathname: '/solicitar-comision', params: { artistName: displayName } })
-                }
-                disabled={!stats.isOpen}
-                className={stats.isOpen ? 'items-center rounded-full bg-accent py-3' : 'items-center rounded-full bg-accent/40 py-3'}>
-                <Text className="text-sm font-semibold text-sand-50">Solicitar comisión</Text>
-              </Pressable>
-            </View>
-          </View>
-
-          <View className="mt-6 flex-row gap-6 border-b border-sand-300">
-            <Pressable onPress={() => setTab('portafolio')} className="pb-3">
-              <Text
-                className={
-                  tab === 'portafolio'
-                    ? 'border-b-2 border-ink pb-3 text-sm font-semibold text-ink'
-                    : 'text-sm text-stone-700'
-                }>
-                Portafolio
-              </Text>
-            </Pressable>
-            <Pressable onPress={() => setTab('sobre-mi')} className="pb-3">
-              <Text
-                className={
-                  tab === 'sobre-mi'
-                    ? 'border-b-2 border-ink pb-3 text-sm font-semibold text-ink'
-                    : 'text-sm text-stone-700'
-                }>
-                Sobre mí
-              </Text>
-            </Pressable>
-          </View>
-
-          {tab === 'portafolio' ? (
-            <View className="flex-row flex-wrap gap-2 py-4">
-              {rest.map((item) => (
-                <Pressable key={item.id} onPress={() => openObra(item)}>
-                  <Image
-                    source={{ uri: item.image }}
-                    className="rounded-xl"
-                    style={{ width: gridItemSize, height: gridItemSize }}
-                  />
-                </Pressable>
-              ))}
-            </View>
-          ) : (
-            <View className="py-4">
-              <Text className="text-sm text-stone-800">
-                {role ?? 'Artista'} independiente. Trabaja por comisión y responde directo por acá.
+        <View className="mt-6 items-center gap-1.5 rounded-xl bg-sand-50 p-4" style={NOTE_SHADOW}>
+          <Text className="font-serif text-2xl italic text-ink">{displayName}</Text>
+          {role && (
+            <View className="rounded-full px-2 py-0.5" style={{ backgroundColor: roleColor.bg }}>
+              <Text className="text-xs font-medium" style={{ color: roleColor.fg }}>
+                {role}
               </Text>
             </View>
           )}
-        </ScrollView>
-      </SafeAreaView>
+          <Text className="mt-1 text-xs text-stone-700">
+            Responde en {stats.responseDays}d · {stats.delivered} entregadas · {stats.followers} seguidores
+          </Text>
+          <Pressable
+            onPress={() => toggleFollow(displayName)}
+            className={isFollowing ? 'mt-2 rounded-full bg-sand-200 px-6 py-2' : 'mt-2 rounded-full bg-accent px-6 py-2'}>
+            <Text className={isFollowing ? 'text-sm font-semibold text-ink' : 'text-sm font-semibold text-sand-50'}>
+              {isFollowing ? 'Siguiendo' : 'Seguir'}
+            </Text>
+          </Pressable>
+        </View>
+
+        <View className="mt-6" style={[NOTE_SHADOW, { alignSelf: 'stretch' }]}>
+          <Pin color={roleColor.fg} />
+          <View className="gap-3 rounded-xl bg-sand-50 p-4">
+            <View className="flex-row items-center justify-between">
+              <Text className="text-sm font-semibold text-ink">Ficha de comisión</Text>
+              <View
+                className="rounded-full px-2.5 py-1"
+                style={{ backgroundColor: stats.isOpen ? 'rgba(63,107,99,0.16)' : 'rgba(139,130,121,0.16)' }}>
+                <Text
+                  className="text-[11px] font-semibold uppercase"
+                  style={{ color: stats.isOpen ? colors.sage : colors.stone[900] }}>
+                  {stats.isOpen ? 'Abierto' : 'Cerrado'}
+                </Text>
+              </View>
+            </View>
+            <Text className="text-sm text-stone-800">
+              Desde ₡{stats.priceLow}k hasta ₡{stats.priceHigh}k, según la pieza.
+            </Text>
+            <Text className="text-xs text-stone-700">
+              {stats.isOpen ? `Tomando pedidos hasta ${stats.openUntil}.` : 'Por ahora no está tomando pedidos nuevos.'}
+            </Text>
+            <Pressable
+              onPress={() =>
+                router.push({ pathname: '/solicitar-comision', params: { artistName: displayName } })
+              }
+              disabled={!stats.isOpen}
+              className={stats.isOpen ? 'items-center rounded-full bg-accent py-3' : 'items-center rounded-full bg-accent/40 py-3'}>
+              <Text className="text-sm font-semibold text-sand-50">Solicitar comisión</Text>
+            </Pressable>
+          </View>
+        </View>
+
+        <View className="mt-6 flex-row gap-6 rounded-xl bg-sand-50 px-4 pt-3" style={NOTE_SHADOW}>
+          <Pressable onPress={() => setTab('portafolio')} className="pb-3">
+            <Text
+              className={
+                tab === 'portafolio'
+                  ? 'border-b-2 border-ink pb-3 text-sm font-semibold text-ink'
+                  : 'text-sm text-stone-700'
+              }>
+              Portafolio
+            </Text>
+          </Pressable>
+          <Pressable onPress={() => setTab('sobre-mi')} className="pb-3">
+            <Text
+              className={
+                tab === 'sobre-mi'
+                  ? 'border-b-2 border-ink pb-3 text-sm font-semibold text-ink'
+                  : 'text-sm text-stone-700'
+              }>
+              Sobre mí
+            </Text>
+          </Pressable>
+        </View>
+
+        {tab === 'portafolio' ? (
+          <PolaroidGrid items={rest} tapeColor={roleColor.base} onOpen={openObra} />
+        ) : (
+          <View className="mt-4 rounded-xl bg-sand-50 p-4" style={NOTE_SHADOW}>
+            <Text className="text-sm text-stone-800">
+              {role ?? 'Artista'} independiente. Trabaja por comisión y responde directo por acá.
+            </Text>
+          </View>
+        )}
+      </Animated.ScrollView>
+
+      <GlassHeader scrollY={scrollY}>
+        <Pressable onPress={() => router.back()} hitSlop={8} accessibilityLabel="Volver">
+          <Ionicons name="chevron-back" size={24} color={colors.ink.DEFAULT} />
+        </Pressable>
+        <Text className="text-base font-semibold text-ink">{displayName}</Text>
+        <View style={{ width: 24 }} />
+      </GlassHeader>
     </View>
   );
 }

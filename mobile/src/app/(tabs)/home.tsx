@@ -480,7 +480,7 @@ export default function InicioScreen() {
 
         <Animated.View
           pointerEvents={isCollapsed ? 'none' : 'auto'}
-          className="mx-5 flex-row rounded-full bg-sand-200 p-1"
+          className="mx-5 flex-row rounded-full bg-ink p-1"
           style={[FLOAT_SHADOW, pillStyle]}>
           <Pressable
             onPress={() => setTab('seguidos')}
@@ -489,7 +489,7 @@ export default function InicioScreen() {
               className={
                 tab === 'seguidos'
                   ? 'text-center text-sm font-semibold text-ink'
-                  : 'text-center text-sm text-stone-800'
+                  : 'text-center text-sm text-sand-200'
               }>
               Seguidos
             </Text>
@@ -501,7 +501,7 @@ export default function InicioScreen() {
               className={
                 tab === 'para-ti'
                   ? 'text-center text-sm font-semibold text-ink'
-                  : 'text-center text-sm text-stone-800'
+                  : 'text-center text-sm text-sand-200'
               }>
               Para ti
             </Text>

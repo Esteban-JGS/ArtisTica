@@ -44,6 +44,7 @@ const USE_LIQUID_GLASS = true;
 const ACCENT = colors.accent.DEFAULT;
 const INK = colors.ink.DEFAULT;
 const CREAM = colors.sand[50];
+
 const ITEM_SIZE = 56;
 const ITEM_GAP = 10;
 const PILL_PADDING = 8;
@@ -130,7 +131,7 @@ function HomeTabButton({
           },
           iconStyle,
         ]}>
-        <Ionicons name="home" size={26} color={isActive ? CREAM : INK} />
+        <Ionicons name="home" size={26} color={CREAM} />
       </Animated.View>
     </GestureDetector>
   );
@@ -249,7 +250,7 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
             <Ionicons
               name={TAB_ICONS[route.name] ?? 'ellipse'}
               size={26}
-              color={isActive ? CREAM : INK}
+              color={CREAM}
             />
           </Pressable>
         );
@@ -298,14 +299,14 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
         {USE_LIQUID_GLASS ? (
           <LiquidGlassView
             glassType="clear"
-            glassTintColor={CREAM}
-            glassOpacity={0.7}
+            glassTintColor={INK}
+            glassOpacity={0.92}
             isInteractive={false}
             style={pillStyle}>
             {pillContent}
           </LiquidGlassView>
         ) : (
-          <View style={[pillStyle, { backgroundColor: 'rgba(253,248,243,0.72)' }]}>
+          <View style={[pillStyle, { backgroundColor: 'rgba(32,29,26,0.92)' }]}>
             {pillContent}
           </View>
         )}
