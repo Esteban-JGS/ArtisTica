@@ -19,12 +19,15 @@ from src.core.config import settings
 from src.domain.enums import EstadoPedido
 from src.domain.pedidos import Rol
 from src.domain.politicas import PoliticasPedido
+from src.schemas.medios import SolicitudSubida, SubidaRespuesta
 from src.schemas.pedidos import (
     DatosCotizacion,
+    DescargaRespuesta,
     Despacho,
     NuevaCotizacion,
     NuevaDisputa,
     NuevaVistaPrevia,
+    NuevoFinal,
     Pago,
     PedidoRespuesta,
     ResultadoPagoRespuesta,
@@ -169,7 +172,12 @@ async def entregar_vista_previa(
 ) -> PedidoRespuesta:
     """El pedido sigue en proceso hasta que el cliente autoriza el saldo (D24)."""
     detalle = await contratacion.entregar_vista_previa(
-        session, usuario, pedido_id, datos.medio_id, datos.nota
+        session,
+        usuario,
+        pedido_id,
+        datos.medio_id,
+        datos.nota,
+        bucket_publico=settings.BUCKET_MEDIOS,
     )
     await session.commit()
     return PedidoRespuesta.desde(detalle, almacenamiento)
@@ -212,6 +220,75 @@ async def aprobar(
     )
     await session.commit()
     return PedidoRespuesta.desde(detalle, almacenamiento)
+
+
+# Archivo final del encargo, en el bucket privado
+
+
+@router.post("/pedidos/{pedido_id}/entregables/subida", status_code=CREADO)
+async def solicitar_subida_final(
+    pedido_id: uuid.UUID,
+    datos: SolicitudSubida,
+    usuario: Usuario,
+    session: Sesion,
+    almacenamiento: AlmacenamientoDeMedios,
+) -> SubidaRespuesta:
+    """Se confirma como cualquier medio, con POST /medios/{medio_id}/confirmar."""
+    medio, subida = await contratacion.solicitar_subida_final(
+        session,
+        almacenamiento,
+        usuario,
+        pedido_id,
+        datos.content_type,
+        datos.tamano_bytes,
+        bucket_privado=settings.BUCKET_ENTREGABLES,
+        maximo_pendientes=settings.MEDIOS_PENDIENTES_MAXIMOS,
+    )
+    await session.commit()
+    return SubidaRespuesta.desde(medio, subida)
+
+
+@router.post("/pedidos/{pedido_id}/entregables/final", status_code=CREADO)
+async def entregar_final(
+    pedido_id: uuid.UUID,
+    datos: NuevoFinal,
+    usuario: Usuario,
+    session: Sesion,
+    almacenamiento: AlmacenamientoDeMedios,
+) -> PedidoRespuesta:
+    detalle = await contratacion.entregar_final(
+        session,
+        usuario,
+        pedido_id,
+        datos.medio_id,
+        datos.nota,
+        bucket_privado=settings.BUCKET_ENTREGABLES,
+    )
+    await session.commit()
+    return PedidoRespuesta.desde(detalle, almacenamiento)
+
+
+@router.get("/pedidos/{pedido_id}/entregables/{entregable_id}/descarga")
+async def descargar_entregable(
+    pedido_id: uuid.UUID,
+    entregable_id: uuid.UUID,
+    usuario: Usuario,
+    session: Sesion,
+    almacenamiento: AlmacenamientoDeMedios,
+    response: Response,
+) -> DescargaRespuesta:
+    """URL firmada de corta duracion. Solo el cliente o el artista del pedido."""
+    descarga = await contratacion.descargar_entregable(
+        session,
+        almacenamiento,
+        usuario,
+        pedido_id,
+        entregable_id,
+        segundos=settings.DESCARGA_FIRMADA_SEGUNDOS,
+    )
+    # Ningun intermediario guarda la URL firmada
+    response.headers["Cache-Control"] = "no-store"
+    return DescargaRespuesta.desde(descarga)
 
 
 # Obra disponible

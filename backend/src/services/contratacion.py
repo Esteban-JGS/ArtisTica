@@ -12,6 +12,9 @@ pasarela devuelve el mismo resultado. Nunca se cobra dos veces.
 
 Un pago con 3DS (D23) se registra solo cuando `consultar_cobro` lo confirma.
 Que el cliente vuelva del banco no prueba nada.
+
+Tambien controla quien sube y descarga el archivo final: recibe el
+almacenamiento, los buckets y la vigencia de la descarga.
 """
 
 import enum
@@ -40,10 +43,12 @@ from src.models import (
     Consulta,
     EstadoCobro,
     EstadoPedido,
+    MediaAsset,
     Obra,
     Pedido,
     Profile,
     TipoCobro,
+    TipoEntregable,
     TipoPedido,
 )
 from src.payments.contrato import (
@@ -55,9 +60,10 @@ from src.payments.contrato import (
     SolicitudCobro,
 )
 from src.payments.errores import AutorizacionVencida, PagoRechazado
-from src.services import pedidos
+from src.services import medios, pedidos
 from src.services.pedidos import PedidoDetalle
 from src.services.perfiles import bloquear_perfil, exigir_cobro_habilitado
+from src.storage.contrato import Almacenamiento, DescargaFirmada, SubidaFirmada
 
 MENSAJE_RECHAZO = "La pasarela rechazo el pago. Proba con otra tarjeta"
 MENSAJE_AUTENTICACION = (
@@ -562,13 +568,93 @@ async def entregar_vista_previa(
     pedido_id: uuid.UUID,
     medio_id: uuid.UUID,
     nota: str | None,
+    *,
+    bucket_publico: str,
 ) -> PedidoDetalle:
     pedido = await pedidos.pedido_visible(session, usuario, pedido_id)
     _exigir_rol(pedido, usuario, Rol.ARTISTA)
     await pedidos.entregar_vista_previa(
-        session, pedido_id=pedido.id, media_asset_id=medio_id, nota=nota
+        session,
+        pedido_id=pedido.id,
+        media_asset_id=medio_id,
+        nota=nota,
+        bucket_publico=bucket_publico,
     )
     return await pedidos.detallar_uno(session, pedido, usuario)
+
+
+# Archivo final del encargo, en el bucket privado (D12)
+
+
+async def solicitar_subida_final(
+    session: AsyncSession,
+    almacenamiento: Almacenamiento,
+    usuario: Profile,
+    pedido_id: uuid.UUID,
+    content_type: str,
+    tamano_bytes: int,
+    *,
+    bucket_privado: str,
+    maximo_pendientes: int,
+) -> tuple[MediaAsset, SubidaFirmada]:
+    """Firma la subida del archivo final. Se confirma como cualquier medio."""
+    pedido = await pedidos.pedido_visible(session, usuario, pedido_id)
+    _exigir_rol(pedido, usuario, Rol.ARTISTA)
+    pedidos.exigir_final_admitido(pedido)
+    return await medios.solicitar_subida(
+        session,
+        almacenamiento,
+        usuario,
+        content_type,
+        tamano_bytes,
+        maximo_pendientes=maximo_pendientes,
+        bucket=bucket_privado,
+    )
+
+
+async def entregar_final(
+    session: AsyncSession,
+    usuario: Profile,
+    pedido_id: uuid.UUID,
+    medio_id: uuid.UUID,
+    nota: str | None,
+    *,
+    bucket_privado: str,
+) -> PedidoDetalle:
+    pedido = await pedidos.pedido_visible(session, usuario, pedido_id)
+    _exigir_rol(pedido, usuario, Rol.ARTISTA)
+    await pedidos.entregar_final(
+        session,
+        pedido_id=pedido.id,
+        media_asset_id=medio_id,
+        nota=nota,
+        bucket_privado=bucket_privado,
+    )
+    return await pedidos.detallar_uno(session, pedido, usuario)
+
+
+async def descargar_entregable(
+    session: AsyncSession,
+    almacenamiento: Almacenamiento,
+    usuario: Profile,
+    pedido_id: uuid.UUID,
+    entregable_id: uuid.UUID,
+    *,
+    segundos: int,
+) -> DescargaFirmada:
+    """URL firmada del archivo final, solo para el cliente o el artista."""
+    pedido = await pedidos.pedido_visible(session, usuario, pedido_id)
+    _exigir_rol(pedido, usuario, Rol.CLIENTE, Rol.ARTISTA)
+    entregable, medio = await pedidos.entregable_del_pedido(
+        session, pedido.id, entregable_id
+    )
+    if entregable.tipo is not TipoEntregable.FINAL:
+        raise ReglaDeNegocioViolada(
+            "Solo se descarga un archivo final: la vista previa ya viene en el pedido"
+        )
+    return await almacenamiento.firmar_descarga(
+        medio.bucket, medio.storage_path, segundos=segundos
+    )
 
 
 async def pagar_saldo(

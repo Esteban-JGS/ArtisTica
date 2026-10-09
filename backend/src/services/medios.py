@@ -30,8 +30,8 @@ logger = logging.getLogger(__name__)
 TRABAJO_MINIATURA = "generate_thumbnail"
 
 MOTIVO_MEDIO_INVALIDO = (
-    "Algun medio no sirve: tiene que ser tuyo, confirmado, sin borrar y "
-    "sin asociar a otra obra o publicacion"
+    "Algun medio no sirve: tiene que ser tuyo, confirmado, sin borrar, "
+    "sin asociar a otra obra o publicacion y sin entregar en un pedido"
 )
 
 
@@ -272,6 +272,13 @@ async def tomar_medios_sueltos(
         if not _sirve(medio, propietario_id, pertenece_a):
             raise ReglaDeNegocioViolada(MOTIVO_MEDIO_INVALIDO)
         elegidos.append(medio)
+    # DT24: un entregable de un pedido no pasa a una obra ni a una publicacion.
+    # Con los medios ya bloqueados, no se cruza con una entrega en curso.
+    entregado = await session.execute(
+        select(Entregable.id).where(Entregable.media_asset_id.in_(ids)).limit(1)
+    )
+    if entregado.first() is not None:
+        raise ReglaDeNegocioViolada(MOTIVO_MEDIO_INVALIDO)
     return elegidos
 
 
