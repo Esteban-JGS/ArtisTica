@@ -142,11 +142,11 @@ Consecuencia: las respuestas pendientes de la pasarela cambian configuración o,
 
 ---
 
-## 4. Estado real del repositorio (9 de octubre de 2026, lote 8 completo)
+## 4. Estado real del repositorio (9 de octubre de 2026, lote 9 completo)
 
 El detalle vive en `orquestacion/BITACORA.md` (estado de lotes, deuda, pendientes) y en la sección 5 de `docs/ArtisTica_Documentacion_Oficial.md`. Esta es la foto para orientarse.
 
-**Backend:** unos 83 módulos y 13,000 líneas en `backend/src`, 442 pruebas contra un Postgres real, 9 migraciones encadenadas (cabeza `d3e4f5a6b7c8`), lint con 29 familias de reglas de Ruff. El CI corre además `.github/scripts/reglas-del-repositorio.sh` (commits sin coautores ni menciones, archivos sin guiones largos ni medios) y sube y baja la última migración con `alembic check`.
+**Backend:** unos 83 módulos y 13,000 líneas en `backend/src`, 503 pruebas contra un Postgres real, 9 migraciones encadenadas (cabeza `d3e4f5a6b7c8`), lint con 29 familias de reglas de Ruff. El CI corre además `.github/scripts/reglas-del-repositorio.sh` (commits sin coautores ni menciones, archivos sin guiones largos ni medios) y sube y baja la última migración con `alembic check`.
 
 | Capa | Qué hay |
 |---|---|
@@ -155,11 +155,12 @@ El detalle vive en `orquestacion/BITACORA.md` (estado de lotes, deuda, pendiente
 | `src/payments/` | Contrato, pasarela falsa completa y adaptador de ONVO probado solo con transporte simulado |
 | `src/storage/` | Contrato, almacenamiento falso y adaptador de Supabase probado solo con transporte simulado |
 | `src/api/v1/` | perfiles, medios, catálogo, publicaciones y feed, social, comentarios, búsqueda, consultas, pedidos, moderación |
-| `src/workers/` | El loop de la cola funciona con reintentos. **Los cuatro handlers son relleno** (miniaturas, embeddings, estilos, moderación) |
+| `src/workers/` | El worker toma cada job en una transacción corta, lo ejecuta sin bloqueo y recupera los colgados. **Los cuatro handlers son relleno** (miniaturas, embeddings, estilos, moderación) |
+| `src/tareas/` | El barrido de vencimientos, que corre cada minuto dentro del proceso de la API (D26) |
 
-**Hecho:** toda la parte social (perfiles, planes, onboarding de la pasarela, imágenes, obras, servicios, publicaciones, Seguidos, Explorar con nuevos talentos, seguidores, me gusta, comentarios y búsqueda), las consultas con su chat, los pedidos con sus cobros y 3DS, el archivo final en un bucket privado y la resolución de disputas por moderación. Deuda abierta: DT25, DT27 y DT28, con lote asignado en la bitácora.
+**Hecho:** toda la parte social (perfiles, planes, onboarding de la pasarela, imágenes, obras, servicios, publicaciones, Seguidos, Explorar con nuevos talentos, seguidores, me gusta, comentarios y búsqueda), las consultas con su chat, los pedidos con sus cobros y 3DS, el archivo final en un bucket privado, la resolución de disputas por moderación y los vencimientos con la reautorización del saldo (D27, D28). Deuda abierta: DT27 a DT31, con lote asignado en la bitácora.
 
-**Falta:** avisos de pago y vencimientos (9), métricas (10), moderación y trabajos reales del worker con IA (11). Además, los pendientes P1 a P15 de la bitácora: nada corre todavía contra Supabase ni ONVO reales, no hay backend desplegado y la app usa datos de ejemplo.
+**Falta:** webhooks, conciliación y DT28 (9b), métricas (10), moderación y trabajos reales del worker con IA (11). Además, los pendientes P1 a P15 de la bitácora: nada corre todavía contra Supabase ni ONVO reales, no hay backend desplegado y la app usa datos de ejemplo.
 
 ---
 
@@ -187,7 +188,8 @@ El detalle vive en `orquestacion/BITACORA.md` (estado de lotes, deuda, pendiente
 | 8b | Endpoints de pedidos y cobros | 2, 8 | No | Alto |
 | 8c | Entregables privados (D25) | 8b | No | Medio |
 | 8d | Resolución de disputas y deuda DT23, DT24 y DT26 | 8c | No | Alto |
-| 9 | Webhooks idempotentes y vigilancia de autorizaciones | 3, 8 | No | Alto |
+| 9 | Worker seguro, barrido de vencimientos y DT25 (D26) | 3, 8 | No | Alto |
+| 9b | Webhooks idempotentes, conciliación y DT28 | 9 | No | Alto |
 | 10 | Métricas: `post_views` y panel | 1, 6 | Sí, con 11 | Medio |
 | 11 | Moderación, reportes y jobs del worker (miniaturas y clasificación) | 1, 5 | Sí, con 10 | Medio |
 
