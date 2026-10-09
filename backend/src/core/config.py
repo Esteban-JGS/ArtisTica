@@ -80,6 +80,16 @@ class Settings(BaseSettings):
     # D9. Cuanto se supone que dura una autorizacion cuando la pasarela no
     # informa el vencimiento.
     DIAS_VIGENCIA_AUTORIZACION_SUPUESTA: int = Field(default=5, ge=1)
+    # Dias para volver a autorizar un saldo vencido, contados desde que vencio
+    DIAS_REAUTORIZACION_SALDO: int = Field(default=7, ge=1)
+    # Minutos sin terminar el 3DS de La quiero para soltar la obra (DT25)
+    MINUTOS_ABANDONO_3DS: int = Field(default=30, ge=5)
+
+    # Barrido de vencimientos, dentro del proceso de la API
+    BARRIDO_ACTIVO: bool = True
+    BARRIDO_INTERVALO_SEGUNDOS: int = Field(default=60, ge=10)
+    # Un job en processing por mas de esto cuenta como un intento fallido
+    JOB_TIEMPO_MAXIMO_MINUTOS: int = Field(default=15, ge=1)
 
     model_config = SettingsConfigDict(
         env_file=".env", env_file_encoding="utf-8", case_sensitive=True, extra="ignore"

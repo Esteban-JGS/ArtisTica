@@ -1,11 +1,15 @@
+import asyncio
+import contextlib
 import logging
 from contextlib import asynccontextmanager
+from datetime import UTC, datetime
 
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 
 from src.api.v1.router import api_router
 from src.core.config import settings
+from src.core.database import AsyncSessionLocal
 from src.core.exceptions import (
     ActorNoAutorizado,
     InvalidStateTransition,
@@ -14,19 +18,44 @@ from src.core.exceptions import (
     ResourceNotFound,
 )
 from src.core.sentry import configurar_sentry
+from src.domain.politicas import PoliticasPedido
 from src.payments.errores import ErrorPasarela, PasarelaNoDisponible
+from src.payments.fabrica import obtener_pasarela
 from src.storage import AlmacenamientoNoDisponible, ErrorAlmacenamiento
+from src.tareas.barrido import ciclo
 
 logger = logging.getLogger(__name__)
 
 configurar_sentry(settings)
 
 
+def _ahora() -> datetime:
+    return datetime.now(UTC)
+
+
+def _politicas() -> PoliticasPedido:
+    return PoliticasPedido.desde_config(settings)
+
+
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
-    # Logica de inicializacion (ej. cargar configuraciones, pre-calentar caches)
+    # El barrido corre aca y no en el worker: usa la misma pasarela que la API
+    barrido: asyncio.Task | None = None
+    if settings.BARRIDO_ACTIVO:
+        barrido = asyncio.create_task(
+            ciclo(
+                AsyncSessionLocal,
+                obtener_pasarela(),
+                intervalo=settings.BARRIDO_INTERVALO_SEGUNDOS,
+                politicas_de=_politicas,
+                reloj=_ahora,
+            )
+        )
     yield
-    # Logica de apagado
+    if barrido is not None:
+        barrido.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            await barrido
 
 
 app = FastAPI(

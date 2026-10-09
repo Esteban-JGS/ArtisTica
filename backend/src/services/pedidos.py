@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import ColumnElement, or_, select
+from sqlalchemy import ColumnElement, Select, and_, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -170,6 +170,17 @@ async def descartar_intento(session: AsyncSession, *, cobro: Cobro) -> Cobro:
         raise InvalidStateTransition(
             "Solo se descarta el intento de un cobro pendiente"
         )
+    cobro.referencia_pasarela = None
+    cobro.intentos += 1
+    await session.flush()
+    return cobro
+
+
+async def reabrir_saldo_vencido(session: AsyncSession, *, cobro: Cobro) -> Cobro:
+    """El saldo vencido vuelve a pendiente para autorizarlo otra vez. Conserva
+    `autorizado_hasta`: de ahi sale el plazo de reautorizacion."""
+    dominio.validar_transicion_cobro(cobro.estado, EstadoCobro.PENDIENTE)
+    cobro.estado = EstadoCobro.PENDIENTE
     cobro.referencia_pasarela = None
     cobro.intentos += 1
     await session.flush()
@@ -555,11 +566,13 @@ async def registrar_saldo_autorizado(
     autorizado_hasta: datetime,
     ahora: datetime,
 ) -> Pedido:
-    """Segundo paso (D24): el cliente vio la vista previa y autorizo el saldo."""
+    """Segundo paso (D24): el cliente vio la vista previa y autorizo el saldo.
+    Si el pedido ya esta ahi, es la reautorizacion de un saldo vencido."""
     pedido = await _bloquear(session, Pedido, pedido_id)
-    dominio.validar_transicion(
-        pedido.tipo, pedido.estado, EstadoPedido.VISTA_PREVIA_ENTREGADA
-    )
+    if pedido.estado is not EstadoPedido.VISTA_PREVIA_ENTREGADA:
+        dominio.validar_transicion(
+            pedido.tipo, pedido.estado, EstadoPedido.VISTA_PREVIA_ENTREGADA
+        )
     if autorizado_hasta <= ahora:
         raise ReglaDeNegocioViolada("La autorizacion del saldo ya vencio")
     await exigir_vista_previa(session, pedido.id)
@@ -824,6 +837,118 @@ async def completar_vencidos(session: AsyncSession, *, ahora: datetime) -> int:
         pedido.estado = EstadoPedido.COMPLETADO
     await session.flush()
     return len(pedidos)
+
+
+async def registrar_autorizacion_vencida(
+    session: AsyncSession, *, pedido_id: uuid.UUID, cobro_id: uuid.UUID, ahora: datetime
+) -> Cobro:
+    """La pasarela ya no retiene la autorizacion: la libero o vencio sola."""
+    pedido = await _bloquear(session, Pedido, pedido_id)
+    cobros = await _cobros(session, pedido.id)
+    cobro = next((c for c in cobros if c.id == cobro_id), None)
+    if cobro is None:
+        raise ResourceNotFound("Cobro no encontrado")
+    dominio.validar_transicion_cobro(cobro.estado, EstadoCobro.VENCIDO)
+    if cobro.autorizado_hasta is None or cobro.autorizado_hasta > ahora:
+        raise ReglaDeNegocioViolada("La autorizacion todavia no vencio")
+    cobro.estado = EstadoCobro.VENCIDO
+    await session.flush()
+    return cobro
+
+
+async def cancelar_por_vencimiento(
+    session: AsyncSession,
+    *,
+    pedido_id: uuid.UUID,
+    hechos: HechosPasarela,
+    ahora: datetime,
+) -> PlanCobros:
+    """Como cancelar_pedido, pero sin actor: lo cancela el barrido."""
+    pedido = await _bloquear(session, Pedido, pedido_id)
+    cobros = await _cobros(session, pedido.id)
+    plan = dominio.planear_vencimiento(pedido.tipo, pedido.estado, cobros)
+    dominio.verificar_hechos(plan, hechos)
+
+    _aplicar_plan(plan, cobros, ahora)
+    pedido.estado = EstadoPedido.CANCELADO
+    await session.flush()
+    return plan
+
+
+TOPE_CANDIDATOS = 100
+
+
+@dataclass(frozen=True)
+class CandidatosVencimiento:
+    """Ids de pedido por caso. Lectura sin bloqueo: cada operacion vuelve a
+    comprobar la condicion con el pedido bloqueado."""
+
+    la_quiero_abandonados: tuple[uuid.UUID, ...]
+    autorizaciones_vencidas: tuple[uuid.UUID, ...]
+    reautorizaciones_vencidas: tuple[uuid.UUID, ...]
+    eventos_impagos: tuple[uuid.UUID, ...]
+
+
+async def _ids(session: AsyncSession, stmt: Select) -> tuple[uuid.UUID, ...]:
+    filas = await session.execute(stmt.limit(TOPE_CANDIDATOS))
+    # Sin repetidos y en el orden de la consulta
+    return tuple(dict.fromkeys(filas.scalars()))
+
+
+async def candidatos_vencimiento(
+    session: AsyncSession, *, ahora: datetime, politicas: PoliticasPedido
+) -> CandidatosVencimiento:
+    con_cobro = select(Pedido.id).join(Cobro, Cobro.pedido_id == Pedido.id)
+    la_quiero = (
+        con_cobro.where(
+            Pedido.tipo == TipoPedido.OBRA_DISPONIBLE,
+            Pedido.estado == EstadoPedido.COTIZADO,
+            Cobro.tipo == TipoCobro.TOTAL,
+            Cobro.estado == EstadoCobro.PENDIENTE,
+            Cobro.referencia_pasarela.is_not(None),
+            Pedido.created_at <= ahora - politicas.abandono_3ds,
+        )
+    ).order_by(Pedido.created_at)
+    autorizaciones = (
+        con_cobro.where(
+            Cobro.estado == EstadoCobro.AUTORIZADO,
+            Cobro.autorizado_hasta <= ahora,
+            or_(
+                and_(
+                    Pedido.tipo == TipoPedido.ENCARGO,
+                    Pedido.estado == EstadoPedido.VISTA_PREVIA_ENTREGADA,
+                ),
+                and_(
+                    Pedido.tipo == TipoPedido.OBRA_DISPONIBLE,
+                    Pedido.estado == EstadoPedido.EN_PROCESO,
+                ),
+            ),
+        )
+    ).order_by(Cobro.autorizado_hasta)
+    reautorizaciones = (
+        con_cobro.where(
+            Pedido.tipo == TipoPedido.ENCARGO,
+            Pedido.estado == EstadoPedido.VISTA_PREVIA_ENTREGADA,
+            Cobro.tipo == TipoCobro.SALDO,
+            Cobro.estado.in_((EstadoCobro.VENCIDO, EstadoCobro.PENDIENTE)),
+            Cobro.autorizado_hasta <= ahora - politicas.plazo_reautorizacion_saldo,
+        )
+    ).order_by(Cobro.autorizado_hasta)
+    eventos = (
+        select(Pedido.id)
+        .where(
+            Pedido.tipo == TipoPedido.EVENTO,
+            Pedido.estado == EstadoPedido.ANTICIPO_PAGADO,
+            Pedido.fecha_evento <= ahora,
+        )
+        .order_by(Pedido.fecha_evento)
+    )
+    return CandidatosVencimiento(
+        la_quiero_abandonados=await _ids(session, la_quiero),
+        autorizaciones_vencidas=await _ids(session, autorizaciones),
+        reautorizaciones_vencidas=await _ids(session, reautorizaciones),
+        eventos_impagos=await _ids(session, eventos),
+    )
 
 
 # Lectura. Un pedido en el que no participa quien pide da 404.

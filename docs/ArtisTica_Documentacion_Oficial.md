@@ -178,7 +178,10 @@ Las publicaciones promocionadas nunca aparecen en Seguidos, siempre llevan la et
 | El cliente cancela un encargo | Sin costo antes del anticipo. Después, el anticipo no se devuelve |
 | El artista cancela o incumple | Se devuelve el 100% de lo cobrado |
 | Disputa | Moderación decide si el pedido se completa o se cancela, y puede ordenar la devolución total o parcial de lo cobrado, incluido el anticipo |
-| El evento llega con el saldo sin pagar | Se trata como una cancelación del cliente con menos de siete días |
+| El evento llega con el saldo sin pagar | Se trata como una cancelación del cliente con menos de siete días. El saldo de un evento solo se paga antes de su fecha |
+| Vence la autorización del saldo de un encargo | El cliente puede renovarla durante siete días. Si no lo hace, el pedido se cancela y el anticipo queda para el artista |
+| Vence la autorización de una obra antes del despacho | El pedido se cancela por incumplimiento del artista. No hay nada cobrado que devolver y la obra vuelve a estar disponible |
+| El cliente abandona la verificación del banco al comprar una obra | A los 30 minutos se libera la autorización y la obra vuelve a estar disponible |
 
 Todas estas reglas se pueden cambiar por configuración, sin modificar el código.
 
@@ -223,6 +226,12 @@ Al programar los estados del pedido faltaban definiciones: el porcentaje del ant
 #### Cambio de plan con pedidos abiertos
 
 ONVO aplica una sola tarifa por cuenta, mientras que ArtísTica la fija por pedido. Si un artista cambiaba de plan con pedidos abiertos, esos pedidos podían terminar cobrándose con la tarifa nueva. Para evitarlo, cada pedido conserva su tarifa y el sistema ajusta la de la cuenta justo antes de cada cobro. También se consultó a ONVO si admite una tarifa por cobro.
+
+#### Salida de un saldo vencido
+
+La regla original permitía que el cliente renovara durante siete días la autorización vencida del saldo de un encargo y, pasado ese plazo, que el artista abriera una disputa. Al programar los vencimientos se vio que esa disputa no le servía al artista: una autorización vencida ya no se puede cobrar, así que moderación solo podía cancelar el pedido, y el único resultado posible distinto de no hacer nada era que el artista perdiera el anticipo.
+
+Se cambió la regla. Pasados los siete días sin renovación, el pedido se cancela de forma automática como una cancelación del cliente después del anticipo, que queda para el artista. El cliente renueva la autorización desde la misma pantalla de pago, sin un paso nuevo en la aplicación.
 
 #### Artistas informales y el registro en la pasarela
 
@@ -284,6 +293,12 @@ Resolver una disputa puede requerir varias operaciones en la pasarela, como cobr
 
 Se definió un orden: primero se ejecuta lo que puede fallar por una regla del negocio, que es cobrar lo autorizado, después las liberaciones y al final las devoluciones. La resolución solo se registra cuando todas terminaron, y cada operación lleva un identificador fijo para que repetirla no cobre ni devuelva dos veces.
 
+#### Vencimientos con la pasarela simulada
+
+Los vencimientos se revisan con una tarea que corre cada minuto. El lugar natural para ella era el proceso aparte que atiende la cola de trabajos, pero la pasarela simulada guarda sus cobros en la memoria de cada proceso, de modo que en la demostración ese proceso no habría visto ninguno de los pagos hechos desde la aplicación. Por eso la tarea corre dentro del proceso de la API. Cada pedido se revisa por separado y se vuelve a comprobar con el pedido bloqueado, así que dos copias de la API que revisen a la vez no ejecutan nada dos veces.
+
+En la misma etapa se corrigió la cola de trabajos, que ejecutaba cada trabajo mientras mantenía bloqueada su fila en la base de datos. Un trabajo lento retenía una conexión todo ese tiempo, y si el proceso se detenía a mitad de camino el trabajo volvía a la cola sin contar el intento. Ahora el trabajo se marca como tomado, se ejecuta sin bloqueo, y uno que queda tomado más de quince minutos cuenta como un intento fallido.
+
 #### Feed de Seguidos en la aplicación
 
 El prototipo del feed de Seguidos mostraba publicaciones de cuentas que la persona no seguía, en el mismo orden que Para ti, lo que contradecía el principio de un feed cronológico limitado a las cuentas seguidas. Ahora Seguidos muestra solo esas cuentas y las publicaciones propias, de la más reciente a la más antigua, mientras que Para ti conserva su propio orden.
@@ -304,7 +319,7 @@ La textura de corcho del fondo estaba teñida con el color terracota de la marca
 | Backend, base de datos e integración continua | Completo. El proyecto se ejecuta, el esquema cubre el MVP y cada cambio se valida automáticamente |
 | Backend, parte social | Completo. Incluye perfiles y planes, imágenes, obras y servicios, publicaciones, feed, seguidores, me gusta, comentarios y búsqueda |
 | Backend, contratación y pagos | Completo. Incluye consultas y chat, los tres tipos de pedido, cobros con verificación 3D Secure, archivo final privado y resolución de disputas por moderación |
-| Backend, avisos de pago y vencimientos | Pendiente |
+| Backend, avisos de pago y vencimientos | En curso. Los vencimientos están completos; faltan la recepción de los avisos de pago y la conciliación de los cobros |
 | Backend, métricas, moderación de contenido y procesos con IA | Pendiente |
 | Integración de la aplicación con la API | Pendiente. La aplicación todavía usa datos de ejemplo |
 
@@ -328,8 +343,9 @@ El backend se construyó por etapas. La siguiente tabla resume lo que quedó lis
 | Pedidos y cobros | El artista cotiza desde la consulta y el cliente paga el anticipo. En un encargo, el artista entrega vistas previas, el cliente autoriza el saldo al verlas y se cobra cuando aprueba; en un evento, el saldo se cobra antes de la fecha; una obra disponible se reserva con el total autorizado y se cobra al despacharla. También hay contraoferta, rechazo, cancelación con las políticas de reembolso y apertura de disputas. Cada pago se confirma con la pasarela antes de registrarse |
 | Archivo final | Una vez pagado el encargo, el artista sube el archivo final a un almacenamiento privado, y solo las dos partes pueden descargarlo con un enlace que vence a los diez minutos |
 | Disputas | Moderación ve las disputas abiertas, de la más antigua a la más reciente, con el pedido y el chat de la consulta como evidencia. Al resolver, la API ejecuta en la pasarela lo que se decidió (cobrar lo autorizado, liberarlo o devolver lo cobrado) y después registra la resolución |
+| Vencimientos | Una tarea revisa cada minuto los pedidos con plazos cumplidos: completa los que pasaron el plazo de disputa, marca las autorizaciones vencidas, cancela los pedidos según las reglas de la sección 3.5 y libera las obras cuya compra quedó a medias. Antes de cancelar, consulta con la pasarela si el cliente llegó a pagar. La cola de trabajos ejecuta cada trabajo sin mantener bloqueada su fila |
 
-Al cierre de este avance, el backend cuenta con 442 pruebas automatizadas. La base de datos no almacena ningún saldo, porque ArtísTica no custodia dinero, y todos los montos se calculan con aritmética decimal exacta.
+El backend cuenta con 503 pruebas automatizadas. La base de datos no almacena ningún saldo, porque ArtísTica no custodia dinero, y todos los montos se calculan con aritmética decimal exacta.
 
 ### 5.3 Aplicación móvil
 
@@ -349,7 +365,7 @@ Todo el recorrido funciona con datos de ejemplo, porque las pantallas todavía n
 
 | Área | Pendiente |
 |---|---|
-| Contratación | Recepción de los avisos de pago y seguimiento de las autorizaciones que vencen |
+| Contratación | Recepción de los avisos de pago y conciliación de los cobros |
 | Pago desde la aplicación | Formulario de tarjeta que envía los datos directamente a la pasarela y solo comparte con la API el identificador que esta devuelve, además de la verificación 3D Secure cuando el banco la pida |
 | Pasarela real | Enviar las consultas técnicas a ONVO, obtener acceso a su entorno de pruebas y probar el adaptador en ese entorno |
 | Inteligencia artificial | Elegir el proveedor. Lo necesitan la detección de contenido sospechoso de haber sido generado por IA, la clasificación de estilos y la búsqueda por similitud, que hoy solo tienen su estructura |

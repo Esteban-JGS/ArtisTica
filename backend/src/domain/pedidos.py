@@ -83,6 +83,8 @@ TRANSICIONES_COBRO: Mapping[EstadoCobro, frozenset[EstadoCobro]] = {
     C.PENDIENTE: frozenset({C.AUTORIZADO, C.CAPTURADO, C.CANCELADO}),
     C.AUTORIZADO: frozenset({C.CAPTURADO, C.CANCELADO, C.VENCIDO}),
     C.CAPTURADO: frozenset({C.REEMBOLSADO}),
+    # Solo la reautorizacion del saldo de un encargo
+    C.VENCIDO: frozenset({C.PENDIENTE}),
 }
 
 # La consulta de La quiero nace ya convertida y no pasa por esta tabla
@@ -410,6 +412,64 @@ def planear_cancelacion(
         # Obra disponible antes del despacho: no hay nada capturado
         porcentaje = CIEN
 
+    acciones = (
+        _accion_al_cerrar(c, porcentaje, capturar_autorizados=False) for c in cobros
+    )
+    return PlanCobros(tuple(a for a in acciones if a is not None))
+
+
+# Vencimientos
+
+
+def limite_reautorizacion(
+    autorizado_hasta: datetime, politicas: PoliticasPedido
+) -> datetime:
+    return autorizado_hasta + politicas.plazo_reautorizacion_saldo
+
+
+def validar_reautorizacion(
+    estado_pedido: EstadoPedido,
+    estado_saldo: EstadoCobro,
+    autorizado_hasta: datetime | None,
+    ahora: datetime,
+    politicas: PoliticasPedido,
+) -> None:
+    """El cliente vuelve a autorizar el saldo de un encargo con la vista previa
+    entregada. Pendiente es un reintento despues de un rechazo."""
+    if (
+        estado_pedido is not E.VISTA_PREVIA_ENTREGADA
+        or estado_saldo not in (C.VENCIDO, C.PENDIENTE)
+        or autorizado_hasta is None
+    ):
+        raise InvalidStateTransition("El saldo no se puede volver a autorizar")
+    if ahora >= limite_reautorizacion(autorizado_hasta, politicas):
+        raise FueraDePlazo("Ya paso el plazo para volver a autorizar el saldo")
+
+
+def validar_saldo_evento_a_tiempo(
+    fecha_evento: datetime | None, ahora: datetime
+) -> None:
+    if fecha_evento is None or ahora >= fecha_evento:
+        raise FueraDePlazo("El saldo de un evento se paga antes de su fecha")
+
+
+# Lo que se devuelve al cancelar por vencimiento: nada en encargo y evento, el
+# anticipo queda para el artista; todo en la obra, que no tiene nada capturado
+_REEMBOLSO_POR_VENCIMIENTO: Mapping[tuple[TipoPedido, EstadoPedido], Decimal] = {
+    (T.ENCARGO, E.VISTA_PREVIA_ENTREGADA): CERO,
+    (T.EVENTO, E.ANTICIPO_PAGADO): CERO,
+    (T.OBRA_DISPONIBLE, E.EN_PROCESO): CIEN,
+}
+
+
+def planear_vencimiento(
+    tipo: TipoPedido, estado: EstadoPedido, cobros: Iterable[CobroVista]
+) -> PlanCobros:
+    """Cancelacion que aplica el barrido, sin actor ni fecha."""
+    validar_transicion(tipo, estado, E.CANCELADO)
+    porcentaje = _REEMBOLSO_POR_VENCIMIENTO.get((tipo, estado))
+    if porcentaje is None:
+        raise InvalidStateTransition(f"Un {tipo} en {estado} no se cancela por vencido")
     acciones = (
         _accion_al_cerrar(c, porcentaje, capturar_autorizados=False) for c in cobros
     )
