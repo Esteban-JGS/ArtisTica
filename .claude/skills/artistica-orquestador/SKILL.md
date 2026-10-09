@@ -142,11 +142,11 @@ Consecuencia: las respuestas pendientes de la pasarela cambian configuración o,
 
 ---
 
-## 4. Estado real del repositorio (8 de octubre de 2026, lote 8b)
+## 4. Estado real del repositorio (8 de octubre de 2026, lote 8c)
 
 El detalle vive en `orquestacion/BITACORA.md` (estado de lotes, deuda, pendientes) y en la sección 5 de `docs/ArtisTica_Documentacion_Oficial.md`. Esta es la foto para orientarse.
 
-**Backend:** unos 80 módulos y 10,400 líneas en `backend/src`, 419 pruebas contra un Postgres real, 9 migraciones encadenadas (cabeza `d3e4f5a6b7c8`), lint con 29 familias de reglas de Ruff. El CI corre además `.github/scripts/reglas-del-repositorio.sh` (commits sin coautores ni menciones, archivos sin guiones largos ni medios) y sube y baja la última migración con `alembic check`.
+**Backend:** unos 80 módulos y 10,400 líneas en `backend/src`, 431 pruebas contra un Postgres real, 9 migraciones encadenadas (cabeza `d3e4f5a6b7c8`), lint con 29 familias de reglas de Ruff. El CI corre además `.github/scripts/reglas-del-repositorio.sh` (commits sin coautores ni menciones, archivos sin guiones largos ni medios) y sube y baja la última migración con `alembic check`.
 
 | Capa | Qué hay |
 |---|---|
@@ -157,9 +157,9 @@ El detalle vive en `orquestacion/BITACORA.md` (estado de lotes, deuda, pendiente
 | `src/api/v1/` | perfiles, medios, catálogo, publicaciones y feed, social, comentarios, búsqueda, consultas, pedidos |
 | `src/workers/` | El loop de la cola funciona con reintentos. **Los cuatro handlers son relleno** (miniaturas, embeddings, estilos, moderación) |
 
-**Hecho:** toda la parte social (perfiles, planes, onboarding de la pasarela, imágenes, obras, servicios, publicaciones, Seguidos, Explorar con nuevos talentos, seguidores, me gusta, comentarios y búsqueda), las consultas con su chat, los pedidos con sus cobros y 3DS. Deuda abierta: DT23 a DT25, con lote asignado en la bitácora.
+**Hecho:** toda la parte social (perfiles, planes, onboarding de la pasarela, imágenes, obras, servicios, publicaciones, Seguidos, Explorar con nuevos talentos, seguidores, me gusta, comentarios y búsqueda), las consultas con su chat, los pedidos con sus cobros y 3DS, y el archivo final en un bucket privado. Deuda abierta: DT23 a DT27, con lote asignado en la bitácora.
 
-**Falta:** entregables privados y disputas (8c), avisos de pago y vencimientos (9), métricas (10), moderación y trabajos reales del worker con IA (11). Además, los pendientes P1 a P15 de la bitácora: nada corre todavía contra Supabase ni ONVO reales, no hay backend desplegado y la app usa datos de ejemplo.
+**Falta:** resolución de disputas (8d), avisos de pago y vencimientos (9), métricas (10), moderación y trabajos reales del worker con IA (11). Además, los pendientes P1 a P15 de la bitácora: nada corre todavía contra Supabase ni ONVO reales, no hay backend desplegado y la app usa datos de ejemplo.
 
 ---
 
@@ -185,7 +185,8 @@ El detalle vive en `orquestacion/BITACORA.md` (estado de lotes, deuda, pendiente
 | 7 | Consultas y chat | 6d | No | Medio |
 | 8 | Contrato de pagos con 3DS (D23, D24) | 3, 7 | No | Alto |
 | 8b | Endpoints de pedidos y cobros | 2, 8 | No | Alto |
-| 8c | Entregables privados y resolución de disputas | 8b | No | Medio |
+| 8c | Entregables privados (D25) | 8b | No | Medio |
+| 8d | Resolución de disputas y deuda DT23, DT24 y DT26 | 8c | No | Alto |
 | 9 | Webhooks idempotentes y vigilancia de autorizaciones | 3, 8 | No | Alto |
 | 10 | Métricas: `post_views` y panel | 1, 6 | Sí, con 11 | Medio |
 | 11 | Moderación, reportes y jobs del worker (miniaturas y clasificación) | 1, 5 | Sí, con 10 | Medio |
