@@ -81,7 +81,7 @@ El stack no se cambia. Estas reglas son invariantes; ningún prompt puede pedir 
 | Custodia | La pasarela custodia el dinero. ArtísTica **no** administra fondos de terceros. No existe saldo propio, retención propia ni payouts desde fondos nuestros |
 | Ledger | Registro y conciliación de pedidos, cobros y liquidaciones. **Nunca** una columna de saldo mutable |
 | Atomicidad | El estado del pedido y el estado del cobro cambian en la misma transacción de base de datos |
-| Orden de bloqueos | El perfil se bloquea antes que la obra, el servicio o el pedido (D18). Al revés, dos transacciones se traban |
+| Orden de bloqueos | El perfil se bloquea antes que la obra, el servicio, la consulta o el pedido, y la consulta antes que el pedido (D18, D21). Al revés, dos transacciones se traban |
 | Capas | `src/domain/` no importa SQLAlchemy ni FastAPI; `src/services/` no importa `src/api/` |
 | Idempotencia | Todo webhook de pago se procesa una sola vez aunque llegue repetido |
 | Chat | Toda conversación cliente-artista pertenece a una consulta. Entre artistas, mensajes libres. Público con público, no existe |
@@ -95,7 +95,9 @@ El stack no se cambia. Estas reglas son invariantes; ningún prompt puede pedir 
 
 ## 3. Decisiones de rumbo tomadas
 
-Estas cuatro son acuerdos posteriores al Documento Maestro. Donde contradicen al Maestro, el Maestro se corrige (ver `orquestacion/CORRECCIONES-DOCUMENTO-MAESTRO.md`).
+Estas cuatro son los acuerdos de base posteriores al Documento Maestro. Donde contradicen al Maestro, el Maestro se corrige (ver `orquestacion/CORRECCIONES-DOCUMENTO-MAESTRO.md`).
+
+**Las decisiones D5 en adelante viven solo en la tabla de decisiones de `orquestacion/BITACORA.md`.** Antes de escribir un prompt, leé la tabla completa: hay políticas de dinero (D5, D7, D8, D9), de producto (D10, D11, D12, D19, D20) y de arquitectura (D13, D16, D17, D18) que los prompts tienen que respetar.
 
 ### D1. `consulta` es entidad, no estado del pedido
 
@@ -122,9 +124,10 @@ Nada fuera de `backend/src/payments/` sabe que existe ONVO.
 
 | Elemento | Forma |
 |---|---|
-| Contrato | `PasarelaDePagos` con `crear_cuenta_conectada`, `autorizar`, `capturar`, `cancelar_autorizacion`, `reembolsar`, `parsear_webhook` |
+| Contrato | `PasarelaDePagos` (`backend/src/payments/contrato.py`) con `crear_cuenta_conectada` (con clave de idempotencia), `consultar_cuenta`, `configurar_tarifa`, `cobrar`, `autorizar`, `capturar`, `liberar_autorizacion`, `reembolsar`, `consultar_cobro` y `parsear_webhook` |
 | Adaptadores | Uno real y uno falso en memoria, para pruebas y para la demo |
-| Incógnitas | No se hardcodean. Van como capacidades declaradas del adaptador: `dias_vigencia_autorizacion`, `soporta_sinpe`, `comision_por_cobro`, `revierte_comision_en_reembolso` |
+| Incógnitas | No se hardcodean. Van como capacidades declaradas del adaptador (`Capacidades`): `dias_vigencia_autorizacion`, métodos soportados, `comision_por_cobro`, `revierte_comision_en_reembolso`, `soporta_idempotencia` y otras. Lo que ONVO no documenta queda `POR_CONFIRMAR` en el bloque de mapeo de `onvo.py` y como pregunta en `orquestacion/preguntas-onvo.md` |
+| Almacenamiento | Mismo patrón: contrato `Almacenamiento` en `backend/src/storage/`, adaptador de Supabase y uno falso |
 
 Consecuencia: las respuestas pendientes de la pasarela cambian configuración o, a lo sumo, un adaptador. Nunca el modelo de datos ni la máquina de estados.
 
@@ -139,35 +142,24 @@ Consecuencia: las respuestas pendientes de la pasarela cambian configuración o,
 
 ---
 
-## 4. Estado real del repositorio (auditoría del 23 de septiembre de 2026)
+## 4. Estado real del repositorio (8 de octubre de 2026)
 
-El backend son 1271 líneas en 38 archivos, con **un solo commit**. Nunca se ejecutó. Los otros commits del repositorio son de `mobile/`.
+El detalle vive en `orquestacion/BITACORA.md` (estado de lotes, deuda, pendientes) y en la sección 5 de `docs/ArtisTica_Documentacion_Oficial.md`. Esta es la foto para orientarse.
 
-### Qué se elimina
+**Backend:** unos 80 módulos y 10,400 líneas en `backend/src`, 366 pruebas contra un Postgres real, 8 migraciones encadenadas (cabeza `c2d3e4f5a6b7`), lint con 29 familias de reglas de Ruff. El CI corre además `.github/scripts/reglas-del-repositorio.sh` (commits sin coautores ni menciones, archivos sin guiones largos ni medios) y sube y baja la última migración con `alembic check`.
 
-| Qué | Por qué |
+| Capa | Qué hay |
 |---|---|
-| `src/models/commissions.py` completo | Máquina de un solo pago con `pagada_en_retencion` y `liberada`: escrow propio |
-| `LedgerEntry` con debit/credit, `Payout`, `GET /profiles/me/balance` | Saldo mutable y desembolso desde fondos nuestros |
-| `handlers/escrow.py` y el job `release_escrow` | Libera retención propia, que no existe |
-| `SUPABASE_JWT_SECRET` y `DAYS_UNTIL_AUTO_RELEASE` en config | Config muerta que invita a errores conocidos |
-| `tests/test_commissions.py` | Prueba una función definida dentro del propio test |
-| La migración inicial entera | La base nunca se migró: se reemplaza el archivo en vez de encadenar ALTERs |
+| `src/domain/` | Reglas puras: pedidos (máquina de estados y planes de cobro), políticas, perfiles, catálogo, medios, feed, comentarios, enums. No importa SQLAlchemy ni FastAPI |
+| `src/services/` | perfiles, medios, catálogo, publicaciones, feed, social, comentarios, búsqueda, consultas, paginación por cursor y **pedidos (sin endpoints todavía)**. Hacen `flush`, nunca `commit` |
+| `src/payments/` | Contrato, pasarela falsa completa y adaptador de ONVO probado solo con transporte simulado |
+| `src/storage/` | Contrato, almacenamiento falso y adaptador de Supabase probado solo con transporte simulado |
+| `src/api/v1/` | perfiles, medios, catálogo, publicaciones y feed, social, comentarios, búsqueda, consultas |
+| `src/workers/` | El loop de la cola funciona con reintentos. **Los cuatro handlers son relleno** (miniaturas, embeddings, estilos, moderación) |
 
-### Qué se rescata
+**Hecho:** toda la parte social (perfiles, planes, onboarding de la pasarela, imágenes, obras, servicios, publicaciones, Seguidos, Explorar con nuevos talentos, seguidores, me gusta, comentarios y búsqueda), las consultas con su chat y toda la deuda técnica pagada.
 
-| Qué | Condición |
-|---|---|
-| `src/core/security.py` | Tal cual. Es lo mejor hecho del repositorio |
-| `src/workers/main.py` | Tal cual el loop. Solo cambian los handlers |
-| `src/api/deps.py` | Con cambios: dependencias de rol y de plan |
-| Dockerfile, Dockerfile.worker, compose, workflow | Con los arreglos del lote 0 |
-| `Job`, `Report`, `ModerationAction`, `Follow`, `Comment`, `Reaction`, `MediaAsset` | Con renombrado al glosario |
-| Índices HNSW y GIN | El SQL se reusa en la migración nueva |
-
-### Qué no existe y hay que construir
-
-`obras`, `servicios`, `consultas`, `pedidos` con tipo, `cobros` por hitos, `resenas`, `impulsos`, `post_views`, agrupaciones, rol Público, planes Taller y Estudio, cuenta conectada, y toda la integración de pagos.
+**Falta:** pedidos y cobros (lotes 8 y 9), métricas (10), moderación y trabajos reales del worker con IA (11). Además, los pendientes P1 a P15 de la bitácora: nada corre todavía contra Supabase ni ONVO reales, no hay backend desplegado y la app usa datos de ejemplo.
 
 ---
 
@@ -187,8 +179,10 @@ El backend son 1271 líneas en 38 archivos, con **un solo commit**. Nunca se eje
 | 5f | Deuda: política de lint | 5e | No | Bajo |
 | 5b | Obras y servicios con límites de plan | 5f | No | Medio |
 | 6 | Publicaciones, feed Seguidos y Explorar por cursor | 5b | No | Medio |
-| 6b | Seguir, contadores, comentarios, reacciones y búsqueda | 6 | No | Medio |
-| 7 | Consultas y chat | 1, 4 | No | Medio |
+| 6b | Seguir, contadores y me gusta, con la deuda DT21 | 6 | No | Medio |
+| 6c | Comentarios con respuestas, me gusta en comentarios y búsqueda | 6b | No | Medio |
+| 6d | Mejoras chicas: índices, Sentry y controles en el CI (DT22, P10) | 6c | No | Bajo |
+| 7 | Consultas y chat | 6d | No | Medio |
 | 8 | Endpoints de pedidos y cobros | 2, 3, 7 | No | Medio alto |
 | 9 | Webhooks idempotentes y vigilancia de autorizaciones | 3, 8 | No | Alto |
 | 10 | Métricas: `post_views` y panel | 1, 6 | Sí, con 11 | Medio |
@@ -315,6 +309,8 @@ Los cambios del propio orquestador a documentación también van por rama `docs/
 - [ ] Si hubo migración: es reversible o está justificado que no lo sea, y no borra datos sin decirlo.
 - [ ] Si tocó pagos: el estado del pedido y el del cobro cambian en la misma transacción.
 - [ ] Si tocó modelos: no apareció ninguna columna de saldo mutable.
+- [ ] Capas y orden de bloqueos: `grep -rn "from src.api" src/services src/domain` vacío, y ninguna operación bloquea otra fila antes que el perfil (D18).
+- [ ] Toda tabla nueva tiene RLS activo y ninguna política (`pg_policies` vacío).
 - [ ] La documentación oficial está actualizada según la skill `documentacion-proyecto`, o el PR deja escrito por qué no aplica. Si el lote no la actualizó, el orquestador la actualiza en la misma rama antes de abrir el PR.
 
 **No bloqueantes (se anotan como deuda en la bitácora):**
@@ -344,3 +340,52 @@ Salen una y otra vez en este stack:
 10. Vistas de métricas sin conversión de zona horaria.
 11. `@app.on_event` en vez de `lifespan`.
 12. `create_type` pasado a `sqlalchemy.Enum` en vez de al `ENUM` del dialecto de PostgreSQL.
+13. Commits de los ejecutores con `Co-Authored-By`: se revisan siempre antes del push.
+14. Prompts con dos pedidos incompatibles, por ejemplo un `grep` que tiene que salir vacío y una prueba que necesita escribir lo buscado. Antes de entregar un prompt, revisá que cada criterio sea compatible con las pruebas obligatorias.
+15. Clases, rutas o columnas citadas en el prompt sin verificar contra el código. Antes de nombrarlas, buscalas.
+16. Al escribir un archivo, un escape de Unicode puede convertirse en el carácter real. Después de escribir un prompt, buscá guiones largos y medios en el archivo.
+17. `alembic check` no compara bien los índices con `DESC`: un índice así se verifica directo en `pg_indexes`.
+
+---
+
+## 10. Rutina de validación
+
+Lo que el orquestador corre por su cuenta sobre la rama del ejecutor, además de leer la entrega. La salida del ejecutor no alcanza: se repite.
+
+```
+cd backend
+export DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5433/artistica
+export ALEMBIC_DATABASE_URL=$DATABASE_URL SUPABASE_URL=https://proyecto.supabase.co
+PY=.venv/Scripts/python.exe          # en Windows; en otro sistema, .venv/bin/python
+docker start artistica-db-pruebas    # si no esta corriendo
+$PY -m ruff check . && $PY -m ruff format --check .
+$PY -m alembic upgrade head && $PY -m alembic downgrade -1 && $PY -m alembic upgrade head && $PY -m alembic check
+$PY -m pytest -q
+grep -rn "from src.api" src/services src/domain
+cd .. && git diff --name-only develop...<rama>
+git log develop..<rama> --format=%B | grep -ci "co-authored"
+bash .github/scripts/reglas-del-repositorio.sh   # desde el lote 6d
+```
+
+Además, según el lote:
+
+- **Revisá a mano el código de mayor riesgo:** dinero, autenticación, SQL con texto del usuario, bloqueos y migraciones. Las pruebas pueden pasar con un diseño equivocado: así se encontraron el orden de bloqueos del 5b y la URL del JWKS del lote 4.
+- **Si el lote cambia esquemas o dependencias sin cambiar comportamiento,** compará `app.openapi()` contra `develop` con un `git worktree` temporal.
+- **Si el lote dice que no tocó pruebas existentes,** verificalo con `git diff --stat develop...<rama> -- tests/`.
+
+## 11. Acuerdos de trabajo con Esteban
+
+- Esteban hace siempre el merge, con **"Create a merge commit"**. El orquestador sube la rama y abre el PR, nunca mergea.
+- **No se toca `orquestacion/BITACORA.md` en `develop` mientras haya un PR abierto que también la cambie**, porque el `git pull` choca. Se escribe el prompt nuevo (un archivo sin rastrear no choca) y la bitácora se actualiza después del merge o en la rama del lote.
+- Los cambios del orquestador a `orquestacion/`, a este manual y a la documentación oficial se commitean **en la rama del lote**, en commits aparte del código: primero orquestación, después agentes, después docs.
+- Al cerrar un lote: actualizar la documentación oficial (skill `documentacion-proyecto`), la bitácora (estado, deuda, decisiones, errores del orquestador) y, si cambió algo de fondo, este manual.
+- **El orquestador nunca deja nada preparado para commit en `develop`:** un archivo en el área de preparación se lo lleva el primer commit del ejecutor. Si hizo falta `git rm`, se deshace con `git restore --staged`.
+- Si GitHub Desktop pregunta al cambiar de rama, la respuesta es **"Bring my changes"**. "Leave my changes" crea un stash y el prompt parece perdido; se recupera con `git stash list` y `git stash apply`.
+- Respuestas en español y breves: veredicto primero, después la evidencia, después lo que cambió en la bitácora y al final el siguiente paso.
+
+## 12. Cómo retomar en una sesión nueva
+
+1. Cargá este manual y leé completos `orquestacion/BITACORA.md` y `AGENTS.md`.
+2. `git switch develop && git pull --ff-only`, `git status` y `gh pr list`, para saber qué está mergeado y qué no.
+3. El prompt en curso, si hay, es el único `lote-*.md` en `orquestacion/`. Si su PR ya se mergeó, se borra en la rama del lote siguiente (paso 7 del flujo).
+4. El chat y las notificaciones ya están decididos en D21 y D22: consulta periódica desde la app, aviso suave por datos de contacto, límite de consultas para cuentas nuevas y push fuera del MVP.

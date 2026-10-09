@@ -18,7 +18,7 @@ from .pedidos import (
     TipoEntregable,
     TipoPedido,
 )
-from .social import Comentario, Publicacion, Reaccion
+from .social import Comentario, MeGustaComentario, Publicacion, Reaccion
 from .users import EstadoOnboarding, Follow, PlanArtista, Profile, RolPerfil
 
 __all__ = [
@@ -42,6 +42,7 @@ __all__ = [
     "IdMixin",
     "Job",
     "LedgerEntry",
+    "MeGustaComentario",
     "MediaAsset",
     "Mensaje",
     "Obra",

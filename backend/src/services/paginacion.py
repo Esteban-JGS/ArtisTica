@@ -1,7 +1,9 @@
 """Paginacion por cursor sobre la base, para el catalogo y para el feed.
 
-Orden fijo `created_at DESC, id DESC`. El cursor es opaco: base64 url-safe del
-par (fecha, id) de la ultima fila entregada. Nunca se pagina con OFFSET, que
+Orden `created_at DESC, id DESC`, o el inverso con `ascendente`, para los
+comentarios. Con `columna`, otra fecha toma el lugar de `created_at`, como el
+ultimo mensaje en la bandeja de consultas. El cursor es opaco: base64 url-safe del par (fecha, id) de la
+ultima fila entregada, y no depende del orden. Nunca se pagina con OFFSET, que
 repite y saltea filas cuando se inserta mientras se recorre.
 
 El cursor compuesto lleva la posicion de varios flujos a la vez, como los dos
@@ -23,7 +25,7 @@ from typing import Any, Protocol
 
 from sqlalchemy import Select, tuple_
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import Mapped
+from sqlalchemy.orm import InstrumentedAttribute, Mapped
 
 
 class CursorInvalido(Exception):
@@ -147,22 +149,30 @@ async def traer_pagina[M: ConClaveDeOrden](
     stmt: Select[tuple[M]],
     modelo: type[M],
     parametros: ParametrosPagina,
+    *,
+    ascendente: bool = False,
+    columna: InstrumentedAttribute[datetime] | None = None,
 ) -> tuple[list[M], str | None]:
     """Las filas de la pagina y el cursor de la siguiente, o None si es la ultima.
 
     Se piden `tamano + 1` filas: la sobrante solo dice que hay pagina siguiente.
+    Con `ascendente` va del mas viejo al mas nuevo. `columna` es la fecha que
+    ordena; sin ella, `created_at`. El `id` siempre desempata.
     """
+    fecha = modelo.created_at if columna is None else columna
     if parametros.clave is not None:
-        stmt = stmt.where(
-            tuple_(modelo.created_at, modelo.id)
-            < tuple_(parametros.clave.creado_en, parametros.clave.id)
-        )
-    stmt = stmt.order_by(modelo.created_at.desc(), modelo.id.desc()).limit(
-        parametros.tamano + 1
-    )
+        fila = tuple_(fecha, modelo.id)
+        clave = tuple_(parametros.clave.creado_en, parametros.clave.id)
+        stmt = stmt.where(fila > clave if ascendente else fila < clave)
+    if ascendente:
+        orden = (fecha.asc(), modelo.id.asc())
+    else:
+        orden = (fecha.desc(), modelo.id.desc())
+    stmt = stmt.order_by(*orden).limit(parametros.tamano + 1)
     filas = list((await session.execute(stmt)).scalars())
     if len(filas) <= parametros.tamano:
         return filas, None
     pagina = filas[: parametros.tamano]
     ultima = pagina[-1]
-    return pagina, codificar_cursor(ultima.created_at, ultima.id)
+    marca = ultima.created_at if columna is None else getattr(ultima, columna.key)
+    return pagina, codificar_cursor(marca, ultima.id)

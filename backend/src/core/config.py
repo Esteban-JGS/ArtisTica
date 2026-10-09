@@ -24,6 +24,8 @@ class Settings(BaseSettings):
     # Environment
     ENVIRONMENT: str = "dev"
     SENTRY_DSN: str | None = None
+    # Fraccion de trazas que se mandan a Sentry, entre 0 y 1
+    SENTRY_TRACES_SAMPLE_RATE: float = Field(default=0.1, ge=0, le=1)
     # Procesos de uvicorn. Los adaptadores falsos guardan estado por proceso.
     WORKERS: int = Field(default=1, ge=1)
     # Pasarse a Estudio sin cobro. Solo para la demo: apagado en produccion.
@@ -62,6 +64,9 @@ class Settings(BaseSettings):
     # Paginacion por cursor de los listados
     PAGINA_TAMANO_DEFECTO: int = Field(default=20, ge=1)
     PAGINA_TAMANO_MAXIMO: int = Field(default=50, ge=1)
+    # Consultas: una cuenta con menos de estos dias abre pocas por cada 24 horas
+    DIAS_CUENTA_RECIENTE: int = Field(default=7, ge=1)
+    CONSULTAS_POR_DIA_CUENTA_RECIENTE: int = Field(default=5, ge=1)
     TARIFA_TALLER_PORCENTAJE: Decimal = Decimal("8")
     TARIFA_ESTUDIO_PORCENTAJE: Decimal = Decimal("5")
     # D9. Cuanto se supone que dura una autorizacion cuando la pasarela no
@@ -93,6 +98,16 @@ class Settings(BaseSettings):
                 "WORKERS mayor que 1 no se permite con PASARELA=falsa "
                 "o ALMACENAMIENTO=falso"
             )
+        # DT21: con paginas mas chicas que N, la cuota de nuevos talentos da 0
+        errores.extend(
+            f"EXPLORAR_CADA_N ({self.EXPLORAR_CADA_N}) no puede ser mayor "
+            f"que {nombre} ({tamano})"
+            for nombre, tamano in (
+                ("PAGINA_TAMANO_DEFECTO", self.PAGINA_TAMANO_DEFECTO),
+                ("PAGINA_TAMANO_MAXIMO", self.PAGINA_TAMANO_MAXIMO),
+            )
+            if tamano < self.EXPLORAR_CADA_N
+        )
         if errores:
             raise ValueError("; ".join(errores))
         return self

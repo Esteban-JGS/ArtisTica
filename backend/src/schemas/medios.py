@@ -90,3 +90,23 @@ class MedioRespuesta(BaseModel):
             content_type=medio.content_type,
             tamano_bytes=medio.tamano_bytes,
         )
+
+
+class ImagenPublica(BaseModel):
+    """Una imagen ya publicada, de una obra o de una publicacion."""
+
+    id: uuid.UUID
+    url: str
+    miniatura_url: str | None
+
+    @classmethod
+    def desde(cls, medio: MediaAsset, almacenamiento: Almacenamiento) -> Self:
+        return cls(
+            id=medio.id,
+            url=almacenamiento.url_publica(medio.bucket, medio.storage_path),
+            miniatura_url=(
+                almacenamiento.url_publica(medio.bucket, medio.thumbnail_path)
+                if medio.thumbnail_path
+                else None
+            ),
+        )

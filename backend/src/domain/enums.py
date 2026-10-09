@@ -47,6 +47,14 @@ class EstadoConsulta(enum.StrEnum):
     DESCARTADA = "descartada"
 
 
+# Social
+
+
+class TipoReaccion(enum.StrEnum):
+    # La columna `reacciones.tipo` es texto: un tipo nuevo no pide migracion
+    ME_GUSTA = "me_gusta"
+
+
 # Medios
 
 
