@@ -277,11 +277,13 @@ async def test_9b_05_la_quiero_con_3ds_rechazado_suelta_la_obra(
 
 
 async def test_9b_06_referencia_desconocida_sin_dinero_queda_sin_cobro(
-    cliente, sesion_api, pasarela_falsa
+    cliente, autenticar_como, sesion_api, pasarela_falsa
 ):
     s, http = sesion_api, cliente
+    # Como el payment-intent.failed de un pago rechazado: la referencia nunca
+    # se guardo en un cobro
     cuerpo, encabezados, evento_id = evento_falso(
-        pasarela_falsa, "cobro_capturado", "cobro_que_no_existe"
+        pasarela_falsa, "cobro_fallido", "cobro_que_no_existe"
     )
 
     r, _ = await enviar(http, pasarela_falsa, cuerpo, encabezados)
@@ -289,7 +291,13 @@ async def test_9b_06_referencia_desconocida_sin_dinero_queda_sin_cobro(
     evento = await evento_db(s, evento_id)
     assert evento.procesado_en is not None
     assert evento.intentos == 0
-    assert "no conoce" in evento.error
+    assert evento.error is None
+
+    # No llena la lista de moderacion
+    autenticar_como((await perfil(s, RolPerfil.ADMIN)).id)
+    r = await http.get(RUTA_EVENTOS, params={"tamano": 50})
+    assert r.status_code == 200, r.text
+    assert str(evento.id) not in {i["id"] for i in r.json()["items"]}
 
 
 async def test_9b_06_referencia_desconocida_con_dinero_es_discrepancia(
@@ -756,3 +764,35 @@ async def test_9b_29_procesar_que_se_pasa_del_tiempo_queda_para_el_barrido(
     anticipo = (await cobros_db(s, escena.pedido_id))[TipoCobro.ANTICIPO]
     assert anticipo.estado is EstadoCobro.PENDIENTE
     assert (await pedido_db(s, escena.pedido_id)).estado is EstadoPedido.COTIZADO
+
+
+# 30. Un intento en espera se consulta cada media hora
+
+
+async def test_9b_30_intento_en_espera_se_consulta_cada_media_hora(
+    cliente, autenticar_como, sesion_api, sesiones_prueba, pasarela_falsa
+):
+    s, http = sesion_api, cliente
+    escena, anticipo = await anticipo_con_3ds(http, autenticar_como, s, pasarela_falsa)
+    referencia, desde = anticipo.referencia_pasarela, anticipo.updated_at
+
+    async def consultas_al_barrer(minutos: int) -> list[str]:
+        with anotar(pasarela_falsa) as llamadas:
+            resumen = await barrer(
+                sesiones_prueba,
+                pasarela_falsa,
+                ahora=desde + timedelta(minutes=minutos),
+                politicas=POLITICAS,
+            )
+        assert resumen.intentos_en_espera == Conteo()
+        return llamadas
+
+    assert await consultas_al_barrer(31) == ["consultar_cobro"]
+    anticipo = (await cobros_db(s, escena.pedido_id))[TipoCobro.ANTICIPO]
+    assert anticipo.estado is EstadoCobro.PENDIENTE
+    assert anticipo.referencia_pasarela == referencia
+    assert anticipo.updated_at == desde + timedelta(minutes=31)
+    assert (await pedido_db(s, escena.pedido_id)).estado is EstadoPedido.COTIZADO
+
+    assert await consultas_al_barrer(32) == []
+    assert await consultas_al_barrer(62) == ["consultar_cobro"]

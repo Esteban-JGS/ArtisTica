@@ -189,6 +189,19 @@ async def descartar_intento(session: AsyncSession, *, cobro: Cobro) -> Cobro:
     return cobro
 
 
+async def posponer_intento(
+    session: AsyncSession, *, cobro: Cobro, ahora: datetime
+) -> Cobro:
+    """El intento sigue esperando el 3DS: el barrido vuelve a consultarlo
+    recien `abandono_3ds` despues de `ahora`, y no en cada vuelta."""
+    if not esperando_autenticacion(cobro):
+        raise InvalidStateTransition("Solo se pospone un intento que espera el 3DS")
+    # Explicito: asignarlo evita que onupdate ponga la hora del reloj
+    cobro.updated_at = ahora
+    await session.flush()
+    return cobro
+
+
 async def reabrir_saldo_vencido(session: AsyncSession, *, cobro: Cobro) -> Cobro:
     """El saldo vencido vuelve a pendiente para autorizarlo otra vez. Conserva
     `autorizado_hasta`: de ahi sale el plazo de reautorizacion."""

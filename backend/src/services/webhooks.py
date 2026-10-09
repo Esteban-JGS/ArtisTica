@@ -40,10 +40,10 @@ TIPOS_DE_COBRO = frozenset(
         TipoEvento.REEMBOLSO_CONFIRMADO,
     }
 )
-# Con estos el evento queda procesado y con el detalle para moderacion
-_PARA_MODERACION = frozenset(
-    {ResultadoConciliacion.DISCREPANCIA, ResultadoConciliacion.SIN_COBRO}
-)
+# Solo una discrepancia deja el detalle para moderacion. Un evento sin cobro
+# es esperado, como el de un pago rechazado cuya referencia nunca se guardo, y
+# no tiene dinero de por medio: si lo tuviera, seria una discrepancia
+_PARA_MODERACION = frozenset({ResultadoConciliacion.DISCREPANCIA})
 
 
 async def recibir(
@@ -146,7 +146,7 @@ async def pendientes(
 async def con_error(
     session: AsyncSession, parametros: ParametrosPagina
 ) -> tuple[list[EventoPasarela], str | None]:
-    """Para moderacion, del mas nuevo al mas viejo: discrepancias, eventos sin
-    cobro y los que fallan o agotaron los intentos."""
+    """Para moderacion, del mas nuevo al mas viejo: discrepancias y los que
+    fallan o agotaron los intentos."""
     stmt = select(EventoPasarela).where(EventoPasarela.error.is_not(None))
     return await traer_pagina(session, stmt, EventoPasarela, parametros)

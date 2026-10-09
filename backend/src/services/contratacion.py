@@ -1253,7 +1253,8 @@ async def _conciliar_intento(
     ctx: _Entorno, pedido: Pedido, cobro: Cobro
 ) -> Conciliacion:
     """El cobro espera el 3DS: se registra lo que la pasarela confirma, como en
-    `verificar_cobro`. Un monto o un estado que no cuadra no se registra."""
+    `verificar_cobro`. Un monto o un estado que no cuadra no se registra. Si
+    sigue en espera, la proxima consulta del barrido se pospone `abandono_3ds`."""
     try:
         async with ctx.session.begin_nested():
             foto = await _resolver_intento(ctx, pedido, cobro)
@@ -1264,6 +1265,7 @@ async def _conciliar_intento(
             "estado",
         )
     if foto.estado in _EN_ESPERA:
+        await pedidos.posponer_intento(ctx.session, cobro=cobro, ahora=ctx.ahora)
         return Conciliacion(ResultadoConciliacion.SIN_CAMBIOS)
     if (
         foto.estado in _SIN_DINERO
