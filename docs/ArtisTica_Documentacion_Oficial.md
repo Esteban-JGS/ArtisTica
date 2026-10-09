@@ -333,6 +333,14 @@ Con un pedido promedio de US$150, una tarifa promedio de 7% y 300 suscriptores d
 
 **Resolución.** La aplicación consulta cada pocos segundos los mensajes nuevos. Cada mensaje se guarda con la conversación bloqueada y una marca de tiempo que nunca retrocede, de modo que ninguno se pierde entre una consulta y la siguiente. Las notificaciones push pasan a la Etapa 2.
 
+#### Autenticación del banco al pagar con tarjeta
+
+**Situación.** Un banco puede exigir una verificación adicional del titular de la tarjeta (3D Secure) antes de aprobar un pago. La capa de pagos no contemplaba ese caso y lo trataba como un error.
+
+**Impacto.** Cualquier cliente cuyo banco pidiera la verificación no habría podido pagar un anticipo ni comprar una obra.
+
+**Resolución.** La aplicación registra la tarjeta directamente con ONVO y solo envía a la API un identificador, de modo que los datos de la tarjeta nunca pasan por los servidores de ArtísTica. Si el banco pide la verificación, la API devuelve la dirección donde el cliente se autentica, y al volver consulta el resultado con ONVO antes de dar el pago por hecho. La pasarela simulada reproduce el caso para las pruebas y la demostración.
+
 #### Feed de Seguidos en la aplicación
 
 **Situación.** El prototipo del feed de Seguidos mostraba publicaciones de cuentas que la persona no seguía, en el mismo orden que Para ti.
@@ -361,7 +369,7 @@ Con un pedido promedio de US$150, una tarifa promedio de 7% y 300 suscriptores d
 | Backend: base ejecutable e integración continua | Completo |
 | Backend: esquema de base de datos | Completo para el MVP |
 | Backend: reglas de pedidos y cobros | Completo y probado |
-| Backend: capa de pagos | Completa, con pasarela simulada y adaptador de ONVO |
+| Backend: capa de pagos | Completa, con pasarela simulada, adaptador de ONVO y verificación 3D Secure del banco |
 | Backend: identidad, roles y planes | Completo y probado |
 | Backend: almacenamiento de imágenes | Completo, con almacenamiento simulado y adaptador de Supabase |
 | Backend: obras y servicios | Completo, con los límites del plan Taller |
@@ -378,7 +386,7 @@ Con un pedido promedio de US$150, una tarifa promedio de 7% y 300 suscriptores d
 | Saneamiento | Proyecto instalable y migrable, con pruebas e integración continua en verde |
 | Esquema de datos | 21 tablas con seguridad a nivel de filas: perfiles, obras, publicaciones, consultas, pedidos, cobros, disputas, métricas y moderación, entre otras |
 | Reglas de pedidos | Todas las transiciones de pedidos y cobros, cálculo de anticipo y saldo, cancelaciones, disputas y vencimientos |
-| Capa de pagos | Contrato de pasarela, pasarela simulada completa y adaptador de ONVO |
+| Capa de pagos | Contrato de pasarela, pasarela simulada completa y adaptador de ONVO, con la verificación 3D Secure que puede pedir el banco del cliente |
 | Identidad y planes | Registro y edición de perfiles, roles, cambio de plan que respeta la tarifa de cada pedido y registro del artista en la pasarela |
 | Almacenamiento e imágenes | Subida directa desde el teléfono con un permiso firmado, verificación de tamaño y tipo antes de aceptar la imagen, y borrado |
 | Obras y servicios | Galería del artista con obras en exhibición o disponibles, servicios de encargo y de evento, límites del plan Taller que nunca ocultan contenido al bajar de plan, y catálogo público paginado |
@@ -389,7 +397,7 @@ Con un pedido promedio de US$150, una tarifa promedio de 7% y 300 suscriptores d
 
 Indicadores al cierre del avance:
 
-- 366 pruebas automatizadas.
+- 389 pruebas automatizadas.
 - Ningún saldo almacenado en la base de datos: ArtísTica no custodia dinero.
 - Montos calculados con aritmética decimal exacta.
 
