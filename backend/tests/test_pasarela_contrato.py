@@ -10,9 +10,11 @@ from src.core.config import Settings, settings
 from src.payments import fabrica
 from src.payments.config import ConfigOnvo
 from src.payments.contrato import (
+    EstadoCobroPasarela,
     EstadoOperacion,
     MetodoPago,
     PasarelaDePagos,
+    ResultadoCobro,
     SolicitudCobro,
     TipoEvento,
 )
@@ -28,6 +30,7 @@ from src.payments.errores import (
 from src.payments.falsa import (
     CAPACIDADES_POR_DEFECTO,
     ENCABEZADO_FIRMA,
+    MEDIO_PAGO_3DS,
     MEDIO_PAGO_RECHAZADO,
     PasarelaFalsa,
 )
@@ -310,3 +313,176 @@ async def test_16_fabrica_por_defecto_sin_clave_y_desconocida(monkeypatch):
 
     with pytest.raises(ValueError, match="PASARELA desconocida"):
         fabrica.construir_pasarela("pasarela_inventada")
+
+
+# Lote 8: autenticacion 3DS
+
+
+def url_3ds(referencia: str) -> str:
+    return f"https://pasarela-falsa.invalid/3ds/{referencia}"
+
+
+def con_3ds(cuenta_id: str, clave: str = "clave-3ds", **cambios) -> SolicitudCobro:
+    return solicitud(cuenta_id, clave, medio_pago_id=MEDIO_PAGO_3DS, **cambios)
+
+
+async def test_8_01_cobrar_con_3ds_y_autenticacion_aprobada(pasarela, cuenta):
+    resultado = await pasarela.cobrar(con_3ds(cuenta))
+
+    assert resultado.estado is EstadoOperacion.REQUIERE_ACCION
+    assert resultado.monto == MONTO
+    assert resultado.url_autenticacion == url_3ds(resultado.referencia)
+    consulta = await pasarela.consultar_cobro(resultado.referencia)
+    assert consulta.estado is EstadoCobroPasarela.REQUIERE_ACCION
+    assert consulta.url_autenticacion == resultado.url_autenticacion
+    assert consulta.monto_capturado == Decimal("0")
+
+    pasarela.completar_autenticacion(resultado.referencia, aprobada=True)
+
+    consulta = await pasarela.consultar_cobro(resultado.referencia)
+    assert consulta.estado is EstadoCobroPasarela.CAPTURADO
+    assert consulta.monto_capturado == MONTO
+    assert consulta.url_autenticacion is None
+
+
+async def test_8_02_autorizar_con_3ds_aprobada_vence_desde_la_aprobacion(
+    pasarela, cuenta, reloj
+):
+    resultado = await pasarela.autorizar(con_3ds(cuenta))
+    assert resultado.estado is EstadoOperacion.REQUIERE_ACCION
+    assert resultado.autorizado_hasta is None
+
+    reloj.avanzar(minutes=10)
+    pasarela.completar_autenticacion(resultado.referencia, aprobada=True)
+
+    consulta = await pasarela.consultar_cobro(resultado.referencia)
+    assert consulta.estado is EstadoCobroPasarela.AUTORIZADO
+    dias = CAPACIDADES_POR_DEFECTO.dias_vigencia_autorizacion
+    assert consulta.autorizado_hasta == reloj.ahora + timedelta(days=dias)
+    capturado = await pasarela.capturar(resultado.referencia, clave_idempotencia="c")
+    assert capturado.estado is EstadoOperacion.CAPTURADO
+    assert capturado.monto == MONTO
+
+
+async def test_8_03_autenticacion_rechazada_deja_el_cobro_fallido(pasarela, cuenta):
+    diferido = await pasarela.autorizar(con_3ds(cuenta, "a-1"))
+    directo = await pasarela.cobrar(con_3ds(cuenta, "a-2"))
+
+    for referencia in (diferido.referencia, directo.referencia):
+        pasarela.completar_autenticacion(referencia, aprobada=False)
+        consulta = await pasarela.consultar_cobro(referencia)
+        assert consulta.estado is EstadoCobroPasarela.FALLIDO
+        assert consulta.url_autenticacion is None
+        assert pasarela.inspeccionar_cobro(referencia).fallido is True
+
+    with pytest.raises(SolicitudInvalida):
+        await pasarela.capturar(diferido.referencia, clave_idempotencia="c-1")
+    with pytest.raises(SolicitudInvalida):
+        await pasarela.reembolsar(
+            directo.referencia, monto=MONTO, clave_idempotencia="r-1"
+        )
+    with pytest.raises(SolicitudInvalida):
+        pasarela.completar_autenticacion(directo.referencia, aprobada=True)
+
+
+async def test_8_04_liberar_un_cobro_que_espera_el_3ds(pasarela, cuenta):
+    resultado = await pasarela.autorizar(con_3ds(cuenta))
+
+    liberado = await pasarela.liberar_autorizacion(
+        resultado.referencia, clave_idempotencia="l-1"
+    )
+
+    assert liberado.estado is EstadoOperacion.LIBERADO
+    consulta = await pasarela.consultar_cobro(resultado.referencia)
+    assert consulta.estado is EstadoCobroPasarela.LIBERADO
+    assert consulta.url_autenticacion is None
+    with pytest.raises(SolicitudInvalida):
+        pasarela.completar_autenticacion(resultado.referencia, aprobada=True)
+
+
+async def test_8_05_capturar_o_reembolsar_antes_de_autenticar(pasarela, cuenta):
+    diferido = await pasarela.autorizar(con_3ds(cuenta, "a-1"))
+    directo = await pasarela.cobrar(con_3ds(cuenta, "a-2"))
+
+    with pytest.raises(SolicitudInvalida):
+        await pasarela.capturar(diferido.referencia, clave_idempotencia="c-1")
+    with pytest.raises(SolicitudInvalida):
+        await pasarela.reembolsar(
+            directo.referencia, monto=MONTO, clave_idempotencia="r-1"
+        )
+    assert pasarela.inspeccionar_cobro(diferido.referencia).estado is (
+        EstadoOperacion.REQUIERE_ACCION
+    )
+
+
+async def test_8_06_idempotencia_antes_y_despues_de_autenticar(pasarela, cuenta):
+    primero = await pasarela.autorizar(con_3ds(cuenta, "k-1"))
+    assert await pasarela.autorizar(con_3ds(cuenta, "k-1")) == primero
+
+    pasarela.completar_autenticacion(primero.referencia, aprobada=True)
+
+    # El resultado guardado no cambia: el estado vigente sale de consultar_cobro
+    despues = await pasarela.autorizar(con_3ds(cuenta, "k-1"))
+    assert despues == primero
+    assert despues.estado is EstadoOperacion.REQUIERE_ACCION
+    assert despues.url_autenticacion == primero.url_autenticacion
+    assert pasarela.total_cobros == 1
+    consulta = await pasarela.consultar_cobro(primero.referencia)
+    assert consulta.estado is EstadoCobroPasarela.AUTORIZADO
+
+    cobro = await pasarela.cobrar(con_3ds(cuenta, "k-2"))
+    pasarela.completar_autenticacion(cobro.referencia, aprobada=True)
+    assert await pasarela.cobrar(con_3ds(cuenta, "k-2")) == cobro
+    assert pasarela.total_cobros == 2
+
+
+async def test_8_07_validacion_de_url_retorno(pasarela, cuenta):
+    invalidas = ("", "   ", "https://pago listo", "pago", "/3ds/vuelta", "://x")
+    for numero, invalida in enumerate(invalidas):
+        with pytest.raises(SolicitudInvalida):
+            await pasarela.cobrar(con_3ds(cuenta, f"u-{numero}", url_retorno=invalida))
+    assert pasarela.total_cobros == 0
+
+    for valida in ("https://artistica.cr/pago/vuelta", "artistica://pago"):
+        resultado = await pasarela.cobrar(
+            con_3ds(cuenta, f"v-{valida}", url_retorno=valida)
+        )
+        assert resultado.estado is EstadoOperacion.REQUIERE_ACCION
+
+
+async def test_8_08_el_repr_no_muestra_la_url_de_autenticacion(pasarela, cuenta):
+    resultado = await pasarela.cobrar(con_3ds(cuenta))
+    consulta = await pasarela.consultar_cobro(resultado.referencia)
+    url = url_3ds(resultado.referencia)
+
+    assert resultado.url_autenticacion == consulta.url_autenticacion == url
+    for objeto in (resultado, consulta, pasarela):
+        assert url not in repr(objeto)
+        assert "pasarela-falsa.invalid" not in repr(objeto)
+
+    # El contrato no admite una URL fuera de REQUIERE_ACCION, ni lo contrario
+    with pytest.raises(ValueError, match="REQUIERE_ACCION"):
+        ResultadoCobro(
+            referencia="r",
+            estado=EstadoOperacion.CAPTURADO,
+            monto=MONTO,
+            url_autenticacion=url,
+        )
+    with pytest.raises(ValueError, match="REQUIERE_ACCION"):
+        ResultadoCobro(
+            referencia="r", estado=EstadoOperacion.REQUIERE_ACCION, monto=MONTO
+        )
+
+
+async def test_8_09_sin_3ds_nada_cambia(pasarela, cuenta):
+    cobro = await pasarela.cobrar(solicitud(cuenta, "s-1"))
+    autorizado = await pasarela.autorizar(solicitud(cuenta, "s-2"))
+
+    assert cobro.estado is EstadoOperacion.CAPTURADO
+    assert autorizado.estado is EstadoOperacion.AUTORIZADO
+    assert cobro.url_autenticacion is None
+    assert autorizado.url_autenticacion is None
+    for referencia in (cobro.referencia, autorizado.referencia):
+        assert (await pasarela.consultar_cobro(referencia)).url_autenticacion is None
+        with pytest.raises(SolicitudInvalida):
+            pasarela.completar_autenticacion(referencia, aprobada=True)

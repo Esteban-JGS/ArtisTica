@@ -12,6 +12,7 @@ from pydantic import SecretStr
 from src.payments import onvo
 from src.payments.config import ConfigOnvo
 from src.payments.contrato import (
+    EstadoCobroPasarela,
     EstadoCuenta,
     EstadoOperacion,
     MetodoPago,
@@ -91,7 +92,9 @@ def cuerpo(solicitud: httpx.Request) -> dict | None:
     return json.loads(solicitud.content, parse_float=Decimal)
 
 
-def cobro(metodo: MetodoPago = MetodoPago.TARJETA) -> SolicitudCobro:
+def cobro(
+    metodo: MetodoPago = MetodoPago.TARJETA, url_retorno: str | None = None
+) -> SolicitudCobro:
     return SolicitudCobro(
         monto=MONTO,
         metodo=metodo,
@@ -100,6 +103,7 @@ def cobro(metodo: MetodoPago = MetodoPago.TARJETA) -> SolicitudCobro:
         descripcion="Anticipo",
         metadatos={"pedido_id": "p-1"},
         medio_pago_id="pm_1",
+        url_retorno=url_retorno,
     )
 
 
@@ -452,3 +456,105 @@ def test_15_la_conversion_de_montos_no_pierde_centimos():
         a_unidad_menor(12.5)
     with pytest.raises(PasarelaNoDisponible):
         desde_unidad_menor(12.5)
+
+
+# Lote 8: autenticacion 3DS
+
+URL_3DS = "https://checkout.onvopay.com/3ds/pi_1?token=secreto"
+URL_RETORNO = "artistica://pago"
+ACCION_3DS = {
+    "type": "redirect_to_url",
+    "redirectToUrl": {"url": URL_3DS, "returnUrl": URL_RETORNO},
+}
+
+
+def confirmacion_3ds(**extra) -> dict[tuple[str, str], Manejador]:
+    return {
+        CREAR: responder(201, intencion("requires_payment_method")),
+        CONFIRMAR: responder(201, intencion("requires_action", **extra)),
+    }
+
+
+async def test_8_10_la_confirmacion_lleva_return_url_solo_si_hay():
+    for url_retorno, esperado in (
+        (
+            URL_RETORNO,
+            {onvo.CAMPO_MEDIO_PAGO: "pm_1", onvo.CAMPO_URL_RETORNO: URL_RETORNO},
+        ),
+        (None, {onvo.CAMPO_MEDIO_PAGO: "pm_1"}),
+    ):
+        simulador = Simulador(
+            {
+                CREAR: responder(201, intencion("requires_payment_method")),
+                CONFIRMAR: responder(201, intencion("succeeded")),
+            }
+        )
+        await simulador.pasarela().cobrar(cobro(url_retorno=url_retorno))
+        _, confirmar = simulador.solicitudes
+        assert cuerpo(confirmar) == esperado
+
+
+@pytest.mark.parametrize("operacion", ["cobrar", "autorizar"])
+async def test_8_11_requires_action_devuelve_la_url_de_autenticacion(operacion):
+    simulador = Simulador(confirmacion_3ds(nextAction=ACCION_3DS))
+    pasarela = simulador.pasarela()
+
+    resultado = await getattr(pasarela, operacion)(cobro(url_retorno=URL_RETORNO))
+
+    assert resultado.estado is EstadoOperacion.REQUIERE_ACCION
+    assert resultado.referencia == "pi_1"
+    assert resultado.monto == MONTO
+    assert resultado.url_autenticacion == URL_3DS
+    assert resultado.autorizado_hasta is None
+    assert resultado.capturado_en is None
+    assert URL_3DS not in repr(resultado)
+
+
+ACCIONES_INVALIDAS = {
+    "sin_next_action": {},
+    "next_action_nulo": {"nextAction": None},
+    "otro_tipo": {"nextAction": {**ACCION_3DS, "type": "use_stripe_sdk"}},
+    "sin_url": {"nextAction": {"type": "redirect_to_url", "redirectToUrl": {}}},
+    "url_vacia": {
+        "nextAction": {"type": "redirect_to_url", "redirectToUrl": {"url": ""}}
+    },
+}
+
+
+@pytest.mark.parametrize("operacion", ["cobrar", "autorizar"])
+@pytest.mark.parametrize("caso", ACCIONES_INVALIDAS)
+async def test_8_12_requires_action_sin_redireccion_no_es_reintentable(operacion, caso):
+    pasarela = Simulador(confirmacion_3ds(**ACCIONES_INVALIDAS[caso])).pasarela()
+
+    with pytest.raises(PasarelaNoDisponible) as capturado:
+        await getattr(pasarela, operacion)(cobro())
+
+    assert capturado.value.reintentable is False
+    assert URL_3DS not in str(capturado.value)
+
+
+async def test_8_13_consultar_cobro_en_requires_action_devuelve_la_url():
+    ruta = ("GET", onvo.RUTA_INTENCION.format(id="pi_1"))
+    simulador = Simulador(
+        {ruta: responder(200, intencion("requires_action", nextAction=ACCION_3DS))}
+    )
+
+    consulta = await simulador.pasarela().consultar_cobro("pi_1")
+
+    assert consulta.estado is EstadoCobroPasarela.REQUIERE_ACCION
+    assert consulta.url_autenticacion == URL_3DS
+    assert URL_3DS not in repr(consulta)
+
+    # Sin nextAction el estado se informa igual, sin URL
+    simulador = Simulador({ruta: responder(200, intencion("requires_action"))})
+    consulta = await simulador.pasarela().consultar_cobro("pi_1")
+    assert consulta.estado is EstadoCobroPasarela.REQUIERE_ACCION
+    assert consulta.url_autenticacion is None
+
+    # Fuera de requires_action no se lee nextAction
+    simulador = Simulador(
+        {ruta: responder(200, intencion("succeeded", nextAction=ACCION_3DS))}
+    )
+    consulta = await simulador.pasarela().consultar_cobro("pi_1")
+    assert consulta.estado is EstadoCobroPasarela.CAPTURADO
+    assert consulta.url_autenticacion is None

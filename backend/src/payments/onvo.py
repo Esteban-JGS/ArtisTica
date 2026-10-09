@@ -125,6 +125,22 @@ CAPTURA_MANUAL = "manual"
 CAPTURA_AUTOMATICA = "automatic"
 # https://docs.onvopay.com/openapi.yaml (schemas.ConfirmPaymentIntent)
 CAMPO_MEDIO_PAGO = "paymentMethodId"
+# 3D Secure. https://docs.onvopay.com/payments/three-ds (consultada el
+# 2026-10-08): la confirmacion lleva returnUrl y, si el banco pide
+# autenticacion, responde requires_action con
+# nextAction {"type": "redirect_to_url", "redirectToUrl": {"url", "returnUrl"}}.
+# Al volver, ONVO agrega payment_intent_id al returnUrl; que la autenticacion
+# salga bien no garantiza el pago, asi que el estado sale de consultar_cobro.
+# POR_CONFIRMAR (preguntas-onvo.md, 19): si acepta un returnUrl con esquema
+# propio como artistica://pago.
+# POR_CONFIRMAR (preguntas-onvo.md, 20): si una intencion en requires_action
+# se puede cancelar, o cuanto tarda en vencer si se abandona.
+CAMPO_URL_RETORNO = "returnUrl"
+CAMPO_ACCION_SIGUIENTE = "nextAction"
+CAMPO_TIPO_ACCION = "type"
+CAMPO_REDIRIGIR = "redirectToUrl"
+CAMPO_URL = "url"
+ACCION_REDIRIGIR = "redirect_to_url"
 # https://docs.onvopay.com/openapi.yaml (schemas.CapturePaymentIntent)
 CAMPO_MONTO_A_CAPTURAR = "amountToCapture"
 # https://docs.onvopay.com/openapi.yaml (schemas.PaymentIntent.metadata):
@@ -416,6 +432,8 @@ class PasarelaOnvo:
 
     async def cobrar(self, solicitud: SolicitudCobro) -> ResultadoCobro:
         intencion = await self._crear_y_confirmar(solicitud, diferida=False)
+        if intencion.get(CAMPO_ESTADO) == INTENCION_REQUIERE_ACCION:
+            return _requiere_accion(intencion, solicitud)
         return ResultadoCobro(
             referencia=_texto(intencion, CAMPO_ID),
             estado=EstadoOperacion.CAPTURADO,
@@ -425,6 +443,8 @@ class PasarelaOnvo:
 
     async def autorizar(self, solicitud: SolicitudCobro) -> ResultadoCobro:
         intencion = await self._crear_y_confirmar(solicitud, diferida=True)
+        if intencion.get(CAMPO_ESTADO) == INTENCION_REQUIERE_ACCION:
+            return _requiere_accion(intencion, solicitud)
         dias = CAPACIDADES.dias_vigencia_autorizacion
         return ResultadoCobro(
             referencia=_texto(intencion, CAMPO_ID),
@@ -512,9 +532,10 @@ class PasarelaOnvo:
         intencion = await self._solicitar(
             "GET", _ruta(RUTA_INTENCION, referencia), repetible=True
         )
+        estado = _estado_cobro(intencion)
         return ConsultaCobro(
             referencia=_texto(intencion, CAMPO_ID),
-            estado=_estado_cobro(intencion),
+            estado=estado,
             monto=_monto(intencion, CAMPO_MONTO),
             monto_capturado=_monto_capturado(intencion),
             # POR_CONFIRMAR: ONVO no expone el acumulado reembolsado
@@ -523,6 +544,11 @@ class PasarelaOnvo:
             # llama aplica PoliticasPedido.vencimiento_autorizacion (D9).
             autorizado_hasta=None,
             metadatos=_metadatos_recibidos(intencion),
+            url_autenticacion=(
+                _url_autenticacion(intencion)
+                if estado is EstadoCobroPasarela.REQUIERE_ACCION
+                else None
+            ),
         )
 
     # Webhooks
@@ -604,16 +630,23 @@ class PasarelaOnvo:
             repetible=True,
             clave_idempotencia=solicitud.clave_idempotencia,
         )
+        confirmacion = {CAMPO_MEDIO_PAGO: solicitud.medio_pago_id}
+        if solicitud.url_retorno is not None:
+            confirmacion[CAMPO_URL_RETORNO] = solicitud.url_retorno
         # Confirmar si mueve dinero. Sin idempotencia, un resultado incierto no
         # se puede repetir: un reintento crearia otra intencion y cobraria dos
         # veces. Se reconcilia por webhook o metadata.
         confirmada = await self._solicitar(
             "POST",
             _ruta(RUTA_CONFIRMAR, _texto(intencion, CAMPO_ID)),
-            {CAMPO_MEDIO_PAGO: solicitud.medio_pago_id},
+            confirmacion,
             repetible=CAPACIDADES.soporta_idempotencia,
             clave_idempotencia=solicitud.clave_idempotencia,
         )
+        # 3DS: el cliente se autentica afuera y el resultado sale de
+        # consultar_cobro. Lo resuelven cobrar y autorizar
+        if confirmada.get(CAMPO_ESTADO) == INTENCION_REQUIERE_ACCION:
+            return confirmada
         _exigir_estado(
             confirmada,
             INTENCION_REQUIERE_CAPTURA if diferida else INTENCION_EXITOSA,
@@ -810,12 +843,42 @@ def _exigir_estado(intencion: Mapping[str, Any], esperado: str) -> None:
         mensaje = error.get(CAMPO_ERROR_MENSAJE) or "sin mensaje"
         raise PagoRechazado(f"ONVO rechazo el pago: {codigo}: {mensaje}"[:300])
     if estado == INTENCION_REQUIERE_ACCION:
-        raise OperacionNoSoportada(
-            "El pago requiere una accion del comprador (3DS) que el contrato "
-            "todavia no cubre"
+        # cobrar y autorizar lo resuelven antes; aca solo llega una operacion
+        # sobre un cobro que todavia espera la autenticacion del cliente
+        raise SolicitudInvalida(
+            f"El cobro espera la autenticacion del cliente, no esta {esperado!r}"
         )
     raise _respuesta_inesperada(
         f"Estado {estado!r} cuando se esperaba {esperado!r}: reconciliar"
+    )
+
+
+def _url_autenticacion(intencion: Mapping[str, Any]) -> str | None:
+    """nextAction.redirectToUrl.url, o None si no viene como redirect_to_url."""
+    accion = intencion.get(CAMPO_ACCION_SIGUIENTE)
+    if not isinstance(accion, Mapping) or (
+        accion.get(CAMPO_TIPO_ACCION) != ACCION_REDIRIGIR
+    ):
+        return None
+    redirigir = accion.get(CAMPO_REDIRIGIR)
+    url = redirigir.get(CAMPO_URL) if isinstance(redirigir, Mapping) else None
+    return url if isinstance(url, str) and url else None
+
+
+def _requiere_accion(
+    intencion: Mapping[str, Any], solicitud: SolicitudCobro
+) -> ResultadoCobro:
+    url = _url_autenticacion(intencion)
+    if url is None:
+        # El cobro quedo a medias y sin forma de seguir: se reconcilia
+        raise _respuesta_inesperada(
+            "ONVO pidio una accion del cliente sin nextAction.redirectToUrl.url"
+        )
+    return ResultadoCobro(
+        referencia=_texto(intencion, CAMPO_ID),
+        estado=EstadoOperacion.REQUIERE_ACCION,
+        monto=solicitud.monto,
+        url_autenticacion=url,
     )
 
 

@@ -47,6 +47,7 @@ Revisamos la documentación pública y la especificación OpenAPI. Estas son las
 
 ## Pagos con autenticación adicional
 
-19. ¿Cómo se completa un pago que queda en `requires_action` por 3D Secure en una integración por API desde una app móvil?
+19. Su página de 3DS indica enviar `returnUrl` al confirmar y redirigir al cliente a `nextAction.redirectToUrl.url`. Desde una app móvil, ¿aceptan un `returnUrl` con esquema propio (`artistica://pago`)? Si no, usaríamos una página https nuestra que redirija a la app.
+20. ¿Se puede cancelar una intención que quedó en `requires_action` porque el cliente abandonó la autenticación? Si no se cancela, ¿cuánto tarda en vencer?
 
 Gracias. Si alguna de estas respuestas ya está documentada y no la encontramos, con el enlace nos basta.
