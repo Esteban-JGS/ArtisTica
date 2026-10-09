@@ -4,6 +4,8 @@ No cierra la transaccion: hace flush, y la abre y la cierra quien llama.
 Bloquea el pedido con SELECT ... FOR UPDATE antes de cambiarlo, en el orden
 de todo el backend (D18, D21): perfil del artista, pedido, consulta, obra.
 No llama a la pasarela: recibe los hechos que la pasarela ya confirmo.
+Cada captura y cada reembolso que registra se asientan en el ledger, en la
+misma transaccion.
 """
 
 import uuid
@@ -49,6 +51,7 @@ from src.models import (
     TipoEntregable,
     TipoPedido,
 )
+from src.services import ledger
 from src.services.paginacion import ParametrosPagina, traer_pagina
 from src.services.perfiles import bloquear_perfil
 
@@ -213,7 +216,14 @@ def _nuevos_cobros(
     ]
 
 
-def _aplicar_plan(plan: PlanCobros, cobros: Sequence[Cobro], ahora: datetime) -> None:
+async def _aplicar_plan(
+    session: AsyncSession,
+    pedido: Pedido,
+    plan: PlanCobros,
+    cobros: Sequence[Cobro],
+    ahora: datetime,
+) -> None:
+    """Cada captura y cada reembolso se asientan en el ledger."""
     cambios: list[tuple[Cobro, dominio.AccionCobro, EstadoCobro]] = []
     for cobro in cobros:
         accion = plan.de(cobro.id)
@@ -227,8 +237,14 @@ def _aplicar_plan(plan: PlanCobros, cobros: Sequence[Cobro], ahora: datetime) ->
         cobro.estado = hacia
         if hacia is EstadoCobro.CAPTURADO:
             cobro.capturado_en = ahora
+            await ledger.asentar_captura(
+                session, pedido=pedido, cobro=cobro, ahora=ahora
+            )
         if accion.accion is dominio.Accion.REEMBOLSAR:
             cobro.monto_reembolsado += accion.monto
+            await ledger.asentar_reembolso(
+                session, pedido=pedido, cobro=cobro, monto=accion.monto, ahora=ahora
+            )
 
 
 # Cotizacion
@@ -421,7 +437,7 @@ async def registrar_anticipo_capturado(
     anticipo.capturado_en = ahora
     consulta.estado = EstadoConsulta.CONVERTIDA
     pedido.estado = EstadoPedido.ANTICIPO_PAGADO
-    await session.flush()
+    await ledger.asentar_captura(session, pedido=pedido, cobro=anticipo, ahora=ahora)
     return pedido
 
 
@@ -611,7 +627,7 @@ async def registrar_saldo_capturado(
     saldo.capturado_en = ahora
     pedido.estado = EstadoPedido.SALDO_PAGADO
     pedido.disputable_hasta = disputable_hasta
-    await session.flush()
+    await ledger.asentar_captura(session, pedido=pedido, cobro=saldo, ahora=ahora)
     return pedido
 
 
@@ -675,7 +691,7 @@ async def registrar_despacho(
     pedido.guia_envio = guia_envio
     pedido.estado = EstadoPedido.SALDO_PAGADO
     pedido.disputable_hasta = disputable_hasta
-    await session.flush()
+    await ledger.asentar_captura(session, pedido=pedido, cobro=total, ahora=ahora)
     return pedido
 
 
@@ -722,7 +738,7 @@ async def cancelar_pedido(
     )
     dominio.verificar_hechos(plan, hechos)
 
-    _aplicar_plan(plan, cobros, ahora)
+    await _aplicar_plan(session, pedido, plan, cobros, ahora)
     pedido.estado = EstadoPedido.CANCELADO
     await session.flush()
     return plan
@@ -807,7 +823,7 @@ async def resolver_disputa(
     )
     dominio.verificar_hechos(plan, hechos)
 
-    _aplicar_plan(plan, cobros, ahora)
+    await _aplicar_plan(session, pedido, plan, cobros, ahora)
     disputa.estado = EstadoDisputa.RESUELTA
     disputa.resolucion = resolucion
     disputa.resuelta_por_id = admin.id
@@ -869,7 +885,7 @@ async def cancelar_por_vencimiento(
     plan = dominio.planear_vencimiento(pedido.tipo, pedido.estado, cobros)
     dominio.verificar_hechos(plan, hechos)
 
-    _aplicar_plan(plan, cobros, ahora)
+    await _aplicar_plan(session, pedido, plan, cobros, ahora)
     pedido.estado = EstadoPedido.CANCELADO
     await session.flush()
     return plan
