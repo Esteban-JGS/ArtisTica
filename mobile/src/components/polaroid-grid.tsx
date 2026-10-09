@@ -178,6 +178,10 @@ export function PolaroidGrid({
             flexDirection: 'row',
             flexWrap: 'wrap',
             justifyContent: columns === 1 ? 'center' : 'flex-start',
+            // Sin esto cada polaroid se estira al alto de la mas baja de su
+            // fila (por la caida escalonada) y la sombra dibuja esa caja
+            // estirada debajo del papel.
+            alignItems: 'flex-start',
             columnGap: COLUMN_GAP[columns],
             rowGap: ROW_GAP[columns],
           }}>
