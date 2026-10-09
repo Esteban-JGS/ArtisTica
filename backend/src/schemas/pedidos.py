@@ -1,7 +1,8 @@
 """Esquemas de pedidos y cobros. Las validaciones de forma dan 422.
 
 Ninguna respuesta lleva la referencia de la pasarela. La url de autenticacion
-del 3DS solo viaja en la respuesta al cliente que paga.
+del 3DS solo viaja en la respuesta al cliente que paga. El archivo final nunca
+lleva URL en el pedido: se firma aparte, para quien participa.
 """
 
 import uuid
@@ -18,8 +19,14 @@ from src.schemas.catalogo import Monto
 from src.schemas.medios import ImagenPublica
 from src.schemas.social import PerfilResumido
 from src.services.contratacion import Resultado, ResultadoPago
-from src.services.pedidos import PedidoDetalle, VistaPrevia, esperando_autenticacion
+from src.services.pedidos import (
+    EntregableFinal,
+    PedidoDetalle,
+    VistaPrevia,
+    esperando_autenticacion,
+)
 from src.storage import Almacenamiento
+from src.storage.contrato import DescargaFirmada
 
 Texto2000 = Annotated[
     str, StringConstraints(strip_whitespace=True, min_length=1, max_length=2000)
@@ -69,6 +76,13 @@ class Pago(BaseModel):
 
 
 class NuevaVistaPrevia(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    medio_id: uuid.UUID
+    nota: Nota | None = None
+
+
+class NuevoFinal(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     medio_id: uuid.UUID
@@ -131,6 +145,33 @@ class VistaPreviaRespuesta(BaseModel):
         )
 
 
+class FinalRespuesta(BaseModel):
+    """Sin URL: el archivo es privado y se pide con el endpoint de descarga."""
+
+    id: uuid.UUID
+    nota: str | None
+    created_at: datetime
+    content_type: str | None
+
+    @classmethod
+    def desde(cls, final: EntregableFinal) -> Self:
+        return cls(
+            id=final.entregable.id,
+            nota=final.entregable.nota,
+            created_at=final.entregable.created_at,
+            content_type=final.medio.content_type,
+        )
+
+
+class DescargaRespuesta(BaseModel):
+    url: str
+    expira_en: datetime
+
+    @classmethod
+    def desde(cls, descarga: DescargaFirmada) -> Self:
+        return cls(url=descarga.url, expira_en=descarga.expira_en)
+
+
 class PedidoRespuesta(BaseModel):
     id: uuid.UUID
     consulta_id: uuid.UUID
@@ -155,6 +196,7 @@ class PedidoRespuesta(BaseModel):
     updated_at: datetime
     cobros: list[CobroRespuesta]
     vistas_previas: list[VistaPreviaRespuesta]
+    finales: list[FinalRespuesta]
 
     @classmethod
     def desde(cls, detalle: PedidoDetalle, almacenamiento: Almacenamiento) -> Self:
@@ -185,6 +227,7 @@ class PedidoRespuesta(BaseModel):
                 VistaPreviaRespuesta.desde(v, almacenamiento)
                 for v in detalle.vistas_previas
             ],
+            finales=[FinalRespuesta.desde(f) for f in detalle.finales],
         )
 
 

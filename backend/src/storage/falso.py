@@ -11,12 +11,19 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 
-from src.storage.contrato import ErrorAlmacenamiento, InfoObjeto, SubidaFirmada
+from src.storage.contrato import (
+    DescargaFirmada,
+    ErrorAlmacenamiento,
+    InfoObjeto,
+    SubidaFirmada,
+)
 
 URL_BASE = "https://almacenamiento-falso.invalid"
 VIGENCIA_SUBIDA_FIRMADA = timedelta(hours=2)
 
-OPERACIONES = frozenset({"firmar_subida", "info", "descargar", "subir", "borrar"})
+OPERACIONES = frozenset(
+    {"firmar_subida", "info", "descargar", "subir", "borrar", "firmar_descarga"}
+)
 
 
 def _reloj_utc() -> datetime:
@@ -112,6 +119,20 @@ class AlmacenamientoFalso:
 
     def url_publica(self, bucket: str, ruta: str) -> str:
         return f"{URL_BASE}/{bucket}/{ruta}"
+
+    async def firmar_descarga(
+        self, bucket: str, ruta: str, *, segundos: int
+    ) -> DescargaFirmada:
+        if segundos <= 0:
+            raise ValueError("La descarga firmada necesita segundos positivos")
+        self._fallar_si_programado("firmar_descarga")
+        if (bucket, ruta) not in self._objetos:
+            raise ErrorAlmacenamiento(f"El objeto {bucket}/{ruta} no existe")
+        expira_en = self._reloj() + timedelta(seconds=segundos)
+        return DescargaFirmada(
+            url=f"{URL_BASE}/firmada/{bucket}/{ruta}?expira={int(expira_en.timestamp())}",
+            expira_en=expira_en,
+        )
 
     def _fallar_si_programado(self, operacion: str) -> None:
         if self._fallas[operacion]:

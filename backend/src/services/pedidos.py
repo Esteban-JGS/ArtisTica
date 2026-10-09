@@ -66,6 +66,14 @@ class VistaPrevia:
 
 
 @dataclass(frozen=True)
+class EntregableFinal:
+    """Vive en el bucket privado: se descarga con una URL firmada, nunca publica."""
+
+    entregable: Entregable
+    medio: MediaAsset
+
+
+@dataclass(frozen=True)
 class PedidoDetalle:
     pedido: Pedido
     cliente: Profile
@@ -74,6 +82,7 @@ class PedidoDetalle:
     soy: Rol
     cobros: list[Cobro]
     vistas_previas: list[VistaPrevia]
+    finales: list[EntregableFinal]
 
 
 # Carga y bloqueo
@@ -412,20 +421,10 @@ async def iniciar_trabajo(session: AsyncSession, *, pedido_id: uuid.UUID) -> Ped
     return pedido
 
 
-async def entregar_vista_previa(
-    session: AsyncSession,
-    *,
-    pedido_id: uuid.UUID,
-    media_asset_id: uuid.UUID,
-    nota: str | None = None,
-) -> Entregable:
-    """Primer paso (D24): el artista sube la vista previa y el pedido sigue en
-    en_proceso. Puede entregar varias, una por revision."""
-    pedido = await _bloquear(session, Pedido, pedido_id)
-    # Solo un encargo en proceso puede pasar a vista_previa_entregada
-    dominio.validar_transicion(
-        pedido.tipo, pedido.estado, EstadoPedido.VISTA_PREVIA_ENTREGADA
-    )
+async def _medio_para_entregar(
+    session: AsyncSession, pedido: Pedido, media_asset_id: uuid.UUID, bucket: str | None
+) -> MediaAsset:
+    """El medio del artista, subido, suelto, sin entregar y en `bucket`."""
     # Bloqueado: no se cruza con su borrado ni con otra entrega del mismo medio
     stmt = (
         select(MediaAsset)
@@ -445,21 +444,94 @@ async def entregar_vista_previa(
         raise ReglaDeNegocioViolada(
             "El medio esta asociado a una obra o una publicacion"
         )
+    if bucket is not None and medio.bucket != bucket:
+        raise ReglaDeNegocioViolada("El medio no esta en el bucket que corresponde")
     usado = await session.execute(
         select(Entregable.id).where(Entregable.media_asset_id == medio.id).limit(1)
     )
     if usado.first() is not None:
         raise ReglaDeNegocioViolada("El medio ya es un entregable")
+    return medio
 
+
+async def _crear_entregable(
+    session: AsyncSession,
+    pedido: Pedido,
+    medio: MediaAsset,
+    tipo: TipoEntregable,
+    nota: str | None,
+) -> Entregable:
     entregable = Entregable(
-        pedido_id=pedido.id,
-        media_asset_id=medio.id,
-        tipo=TipoEntregable.VISTA_PREVIA,
-        nota=nota,
+        pedido_id=pedido.id, media_asset_id=medio.id, tipo=tipo, nota=nota
     )
     session.add(entregable)
     await session.flush()
     return entregable
+
+
+async def entregar_vista_previa(
+    session: AsyncSession,
+    *,
+    pedido_id: uuid.UUID,
+    media_asset_id: uuid.UUID,
+    nota: str | None = None,
+    bucket_publico: str | None = None,
+) -> Entregable:
+    """Primer paso (D24): el artista sube la vista previa y el pedido sigue en
+    en_proceso. Puede entregar varias, una por revision.
+
+    Con `bucket_publico`, el medio tiene que estar ahi: en el privado no se
+    veria. La API siempre lo pasa."""
+    pedido = await _bloquear(session, Pedido, pedido_id)
+    # Solo un encargo en proceso puede pasar a vista_previa_entregada
+    dominio.validar_transicion(
+        pedido.tipo, pedido.estado, EstadoPedido.VISTA_PREVIA_ENTREGADA
+    )
+    medio = await _medio_para_entregar(session, pedido, media_asset_id, bucket_publico)
+    return await _crear_entregable(
+        session, pedido, medio, TipoEntregable.VISTA_PREVIA, nota
+    )
+
+
+ESTADOS_CON_FINAL = frozenset({EstadoPedido.SALDO_PAGADO, EstadoPedido.COMPLETADO})
+
+
+def exigir_final_admitido(pedido: Pedido) -> None:
+    """El archivo final es de un encargo con el saldo ya cobrado."""
+    if pedido.tipo is not TipoPedido.ENCARGO or pedido.estado not in ESTADOS_CON_FINAL:
+        raise InvalidStateTransition(
+            "El archivo final se entrega en un encargo con el saldo pagado"
+        )
+
+
+async def entregar_final(
+    session: AsyncSession,
+    *,
+    pedido_id: uuid.UUID,
+    media_asset_id: uuid.UUID,
+    nota: str | None,
+    bucket_privado: str,
+) -> Entregable:
+    """El archivo sin marca de agua, en el bucket privado. Puede haber varios."""
+    pedido = await _bloquear(session, Pedido, pedido_id)
+    exigir_final_admitido(pedido)
+    medio = await _medio_para_entregar(session, pedido, media_asset_id, bucket_privado)
+    return await _crear_entregable(session, pedido, medio, TipoEntregable.FINAL, nota)
+
+
+async def entregable_del_pedido(
+    session: AsyncSession, pedido_id: uuid.UUID, entregable_id: uuid.UUID
+) -> tuple[Entregable, MediaAsset]:
+    stmt = (
+        select(Entregable, MediaAsset)
+        .join(MediaAsset, MediaAsset.id == Entregable.media_asset_id)
+        .where(Entregable.id == entregable_id, Entregable.pedido_id == pedido_id)
+    )
+    fila = (await session.execute(stmt)).one_or_none()
+    if fila is None:
+        raise ResourceNotFound("Entregable no encontrado")
+    entregable, medio = fila
+    return entregable, medio
 
 
 async def exigir_vista_previa(session: AsyncSession, pedido_id: uuid.UUID) -> None:
@@ -779,34 +851,36 @@ async def _cobros_de(
     return por_pedido
 
 
-async def _vistas_previas_de(
+async def _entregables_de(
     session: AsyncSession, ids: list[uuid.UUID]
-) -> dict[uuid.UUID, list[VistaPrevia]]:
+) -> tuple[dict[uuid.UUID, list[VistaPrevia]], dict[uuid.UUID, list[EntregableFinal]]]:
+    """Vistas previas y finales en una sola consulta."""
     stmt = (
         select(Entregable, MediaAsset)
         .join(MediaAsset, MediaAsset.id == Entregable.media_asset_id)
-        .where(
-            Entregable.pedido_id.in_(ids),
-            Entregable.tipo == TipoEntregable.VISTA_PREVIA,
-        )
+        .where(Entregable.pedido_id.in_(ids))
         .order_by(Entregable.created_at, Entregable.id)
     )
-    por_pedido: dict[uuid.UUID, list[VistaPrevia]] = defaultdict(list)
+    vistas: dict[uuid.UUID, list[VistaPrevia]] = defaultdict(list)
+    finales: dict[uuid.UUID, list[EntregableFinal]] = defaultdict(list)
     for entregable, medio in await session.execute(stmt):
-        por_pedido[entregable.pedido_id].append(VistaPrevia(entregable, medio))
-    return por_pedido
+        if entregable.tipo is TipoEntregable.FINAL:
+            finales[entregable.pedido_id].append(EntregableFinal(entregable, medio))
+        else:
+            vistas[entregable.pedido_id].append(VistaPrevia(entregable, medio))
+    return vistas, finales
 
 
 async def detallar(
     session: AsyncSession, pedidos: Sequence[Pedido], usuario: Profile
 ) -> list[PedidoDetalle]:
-    """Perfiles, cobros y vistas previas de una pagina entera, sin N+1."""
+    """Perfiles, cobros y entregables de una pagina entera, sin N+1."""
     if not pedidos:
         return []
     ids = [p.id for p in pedidos]
     perfiles = await _perfiles(session, pedidos)
     cobros = await _cobros_de(session, ids)
-    vistas = await _vistas_previas_de(session, ids)
+    vistas, finales = await _entregables_de(session, ids)
     return [
         PedidoDetalle(
             pedido=p,
@@ -815,6 +889,7 @@ async def detallar(
             soy=dominio.rol_en_pedido(usuario.id, p.cliente_id, p.artista_id),
             cobros=cobros.get(p.id, []),
             vistas_previas=vistas.get(p.id, []),
+            finales=finales.get(p.id, []),
         )
         for p in pedidos
     ]

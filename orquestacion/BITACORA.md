@@ -32,6 +32,7 @@ Las decisiones se numeran D y las deudas técnicas DT.
 | D22 | Las notificaciones push quedan fuera del MVP. Los avisos dentro de la app salen del conteo de no leídos de D21. Si sobra tiempo después del lote 9, van en un lote aparte coordinado con Brian, porque exigen un build de desarrollo, credenciales de APNs y FCM, y tokens de Expo | 2026-10-08 |
 | D23 | Tokenización y 3DS, propuesta de Brian. La app tokeniza la tarjeta contra ONVO con la clave publicable (`EXPO_PUBLIC_ONVO_PUBLISHABLE_KEY`) y solo le manda a la API el `metodo_pago_id`. El backend crea la intención y la confirma con ese id y un `returnUrl`. Si queda en `requires_action`, la API devuelve la `url_autenticacion` (`nextAction.redirectToUrl.url`). La app la abre con `expo-web-browser`, y al volver le pide a la API el estado del cobro. La API consulta la intención en ONVO antes de registrar nada (regla de DT11). Se descartó el SDK web de ONVO dentro de un WebView. Cierra la pregunta 13 y DT13 pasa al lote 8 | 2026-10-08 |
 | D24 | El lote 8 se divide en tres, en serie. El 8 hace el contrato de pagos con 3DS (solo `src/payments/`). El 8b, los endpoints de pedidos y cobros: cotizar, contraoferta, rechazar, anticipo, vista previa, saldo, "La quiero", despacho, cancelación, apertura de disputa, consulta del estado de un cobro y listados. El 8c, los entregables en un bucket privado con descarga firmada y la resolución de disputas por moderación. La vista previa va en dos pasos: el artista la sube y el pedido sigue `en_proceso`; el cliente autoriza el saldo y recién ahí pasa a `vista_previa_entregada`. En el MVP el artista sube la vista previa ya marcada; la marca de agua automática queda para el worker del lote 11 | 2026-10-08 |
+| D25 | El 8c se divide otra vez, porque con la resolución de disputas y la deuda pasaba de 20 archivos. El 8c hace solo los entregables privados: descarga firmada de 10 minutos en el contrato de almacenamiento, bucket privado `entregables`, y el archivo final de un encargo pagado, que solo sube el artista y solo descargan las partes. El 8d hace la resolución de disputas por moderación y paga DT23, DT24 y DT26 | 2026-10-08 |
 
 ## Políticas de pedido vigentes (D5)
 
@@ -74,7 +75,8 @@ Las decisiones se numeran D y las deudas técnicas DT.
 | 7 | Consultas y chat | Cerrado | Aprobado | Ninguna |
 | 8 | Contrato de pagos con 3DS | Cerrado | Aprobado | Ninguna propia; se registró DT23 |
 | 8b | Endpoints de pedidos y cobros | Cerrado | Aprobado con deuda | DT24, DT25 |
-| 8c | Entregables privados y resolución de disputas | Pendiente | | |
+| 8c | Entregables privados | Cerrado | Aprobado con deuda | DT26, DT27 |
+| 8d | Resolución de disputas y deuda DT23, DT24 y DT26 | En curso | | |
 | 9 | Webhooks idempotentes y vigilancia de autorizaciones | Pendiente | | |
 | 10 | Métricas: post_views y panel | Pendiente | | |
 | 11 | Moderación, reportes y jobs del worker (miniaturas y clasificación) | Pendiente | | |
@@ -114,6 +116,8 @@ Las decisiones se numeran D y las deudas técnicas DT.
 | DT23 | Entorno, al validar el lote 8 | `pyproject.toml` pide `sqlalchemy>=2.0.25` sin tope, y un entorno nuevo instala la 2.1, que marca obsoletos `Result.tuples()` (en `services/comentarios.py`, `services/consultas.py`, `services/publicaciones.py` y una prueba de consultas) y `select().distinct(columna)` para `DISTINCT ON` (en `services/consultas.py`). Hoy son 216 avisos en `pytest`, sin fallas | Lote 8c: reemplazar las dos formas obsoletas y fijar el tope `<2.2` |
 | DT24 | Lote 8b | Un medio entregado como vista previa todavía se puede asignar a una obra o una publicación, porque `tomar_medios_sueltos` (`services/medios.py`) no mira los entregables. Además `test_cobros_api.py` importa las ayudas de `test_pedidos_api.py` | Lote 8c, que mueve los entregables a su bucket privado: excluir los medios con entregable y pasar las ayudas compartidas a `conftest.py` |
 | DT25 | Lote 8b | Tres casos que dependen del paso del tiempo o de la pasarela: un 3DS abandonado en "La quiero" deja la obra tomada por un pedido `cotizado`; si `consultar_cobro` no informa la URL, `verificar` responde `requiere_accion` con URL nula; y el saldo de un evento se puede pagar después de la fecha | Lote 9, con los vencimientos de D7 y la vigilancia de autorizaciones |
+| DT26 | Lote 8c | `MedioRespuesta` (`schemas/medios.py`) arma `url_publica` también para un medio del bucket privado: no da acceso, pero es una URL que no sirve. Un medio del bucket privado todavía no entregado se puede asignar a una obra o publicación, porque `tomar_medios_sueltos` no conoce el bucket público. Y `bucket_publico` es opcional en `pedidos.entregar_vista_previa` solo para no tocar pruebas fuera del alcance | Lote 8d |
+| DT27 | Lote 8c | `confirmar_subida` encola la miniatura también para un archivo final. Hoy el handler es relleno; cuando se implemente, no puede escribir la miniatura de un archivo privado en el bucket público | Lote 11, con las miniaturas |
 
 ## Errores del orquestador
 

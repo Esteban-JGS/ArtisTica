@@ -2,7 +2,7 @@
 
 import json
 from collections.abc import Callable
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 import httpx
 import pytest
@@ -14,6 +14,7 @@ from src.storage import supabase
 from src.storage.contrato import (
     AlmacenamientoNoDisponible,
     CredencialesAlmacenamiento,
+    DescargaFirmada,
     ErrorAlmacenamiento,
     InfoObjeto,
 )
@@ -235,3 +236,59 @@ async def test_07_fabrica(monkeypatch):
 
     with pytest.raises(ValueError, match="desconocido"):
         fabrica.construir_almacenamiento("disco_inventado")
+
+
+# Lote 8c: descarga firmada y bucket privado
+
+FIRMAR_DESCARGA = ("POST", f"{BASE}/object/sign/entregables/{RUTA}")
+
+
+async def test_8c_01_firmar_descarga():
+    relativa = f"/object/sign/entregables/{RUTA}?token=tok_descarga"
+    simulador = Simulador({FIRMAR_DESCARGA: responder(200, {"signedURL": relativa})})
+    descarga = await simulador.almacenamiento().firmar_descarga(
+        "entregables", RUTA, segundos=600
+    )
+
+    assert cuerpo(simulador.solicitudes[-1]) == {"expiresIn": 600}
+    assert descarga.url == f"{URL}{BASE}{relativa}"
+    assert descarga.expira_en == AHORA + timedelta(seconds=600)
+
+    for respuesta in ({}, {"signedURL": "https://otro.invalid/object/sign/x"}):
+        almacenamiento = Simulador(
+            {FIRMAR_DESCARGA: responder(200, respuesta)}
+        ).almacenamiento()
+        with pytest.raises(ErrorAlmacenamiento, match="sin url"):
+            await almacenamiento.firmar_descarga("entregables", RUTA, segundos=600)
+
+    with pytest.raises(ValueError, match="positivos"):
+        await simulador.almacenamiento().firmar_descarga(
+            "entregables", RUTA, segundos=0
+        )
+
+
+async def test_8c_02_preparar_bucket_privado():
+    bucket = ("GET", f"{BASE}/bucket/entregables")
+    rutas = {
+        bucket: responder(400, {"statusCode": "404", "error": "Bucket not found"}),
+        ("POST", f"{BASE}/bucket"): responder(200, {"name": "entregables"}),
+    }
+
+    simulador = Simulador(rutas)
+    await simulador.almacenamiento().preparar_bucket(
+        "entregables", tamano_maximo=5_000_000, tipos=TIPOS, publico=False
+    )
+    assert cuerpo(simulador.solicitudes[-1])["public"] is False
+
+    simulador = Simulador(rutas)
+    await simulador.almacenamiento().preparar_bucket(
+        "entregables", tamano_maximo=5_000_000, tipos=TIPOS
+    )
+    assert cuerpo(simulador.solicitudes[-1])["public"] is True
+
+
+def test_8c_03_repr_de_descarga_firmada_sin_url():
+    url = "https://proyecto.supabase.co/storage/v1/object/sign/x?token=secreto"
+    descarga = DescargaFirmada(url=url, expira_en=AHORA)
+    assert "secreto" not in repr(descarga)
+    assert url not in repr(descarga)
