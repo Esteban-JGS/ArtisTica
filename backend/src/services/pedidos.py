@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import ColumnElement, Select, and_, or_, select
+from sqlalchemy import ColumnElement, Select, and_, not_, or_, select, union
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -144,6 +144,16 @@ async def cobros_del_pedido(session: AsyncSession, pedido_id: uuid.UUID) -> list
 
 def cobro_de_tipo(cobros: Sequence[Cobro], tipo: TipoCobro) -> Cobro:
     return _cobro(cobros, tipo)
+
+
+async def cobro_por_referencia(session: AsyncSession, referencia: str) -> Cobro | None:
+    """Sin bloquear: quien lo cambia vuelve a leerlo con el pedido bloqueado."""
+    stmt = (
+        select(Cobro)
+        .where(Cobro.referencia_pasarela == referencia)
+        .execution_options(populate_existing=True)
+    )
+    return (await session.execute(stmt)).scalar_one_or_none()
 
 
 def esperando_autenticacion(cobro: Cobro) -> bool:
@@ -903,9 +913,12 @@ class CandidatosVencimiento:
     autorizaciones_vencidas: tuple[uuid.UUID, ...]
     reautorizaciones_vencidas: tuple[uuid.UUID, ...]
     eventos_impagos: tuple[uuid.UUID, ...]
+    # Referencias de cobro, no ids de pedido: intentos que esperan el 3DS hace
+    # mas de `abandono_3ds`, con o sin webhook
+    intentos_en_espera: tuple[str, ...]
 
 
-async def _ids(session: AsyncSession, stmt: Select) -> tuple[uuid.UUID, ...]:
+async def _ids[T](session: AsyncSession, stmt: Select[tuple[T]]) -> tuple[T, ...]:
     filas = await session.execute(stmt.limit(TOPE_CANDIDATOS))
     # Sin repetidos y en el orden de la consulta
     return tuple(dict.fromkeys(filas.scalars()))
@@ -959,11 +972,35 @@ async def candidatos_vencimiento(
         )
         .order_by(Pedido.fecha_evento)
     )
+    # Fuera los que tienen su propio caso, que concilia el intento antes de
+    # cerrar: La quiero cotizado, la reautorizacion vencida y el evento impago
+    con_caso_propio = union(
+        reautorizaciones.order_by(None), eventos.order_by(None)
+    ).subquery()
+    en_espera = (
+        select(Cobro.referencia_pasarela)
+        .join(Pedido, Pedido.id == Cobro.pedido_id)
+        .where(
+            Cobro.estado == EstadoCobro.PENDIENTE,
+            Cobro.referencia_pasarela.is_not(None),
+            Cobro.updated_at <= ahora - politicas.abandono_3ds,
+            Pedido.estado.not_in(dominio.ESTADOS_TERMINALES),
+            not_(
+                and_(
+                    Pedido.tipo == TipoPedido.OBRA_DISPONIBLE,
+                    Pedido.estado == EstadoPedido.COTIZADO,
+                )
+            ),
+            Pedido.id.not_in(select(con_caso_propio.c.id)),
+        )
+        .order_by(Cobro.updated_at)
+    )
     return CandidatosVencimiento(
         la_quiero_abandonados=await _ids(session, la_quiero),
         autorizaciones_vencidas=await _ids(session, autorizaciones),
         reautorizaciones_vencidas=await _ids(session, reautorizaciones),
         eventos_impagos=await _ids(session, eventos),
+        intentos_en_espera=await _ids(session, en_espera),
     )
 
 

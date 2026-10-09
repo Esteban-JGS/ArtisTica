@@ -15,7 +15,8 @@ Que el cliente vuelva del banco no prueba nada.
 
 Antes de ejecutar un plan de cierre consulta cada cobro que toca y toma como
 hecho lo que ya este hecho (DT28): un reintento con otro plan nunca mueve
-dinero dos veces.
+dinero dos veces. `conciliar_cobro` solo consulta: lo usan los webhooks y el
+barrido.
 
 Tambien controla quien sube y descarga el archivo final: recibe el
 almacenamiento, los buckets y la vigencia de la descarga.
@@ -71,6 +72,7 @@ from src.payments.errores import (
     AutorizacionVencida,
     OperacionNoSoportada,
     PagoRechazado,
+    SolicitudInvalida,
 )
 from src.services import medios, pedidos
 from src.services.pedidos import PedidoDetalle
@@ -1171,6 +1173,140 @@ async def verificar_cobro(
         await pedidos.rechazar_pedido(session, pedido_id=pedido.id)
     return await _resultado(
         ctx, pedido, cobro, Resultado.RECHAZADO, mensaje=MENSAJE_AUTENTICACION
+    )
+
+
+# Conciliacion. La llaman los webhooks y el barrido. Solo consulta la pasarela:
+# un webhook nunca mueve dinero ni registra nada por si solo. Lo que no cuadra
+# no se corrige, se marca como discrepancia para moderacion. Quien llama
+# confirma.
+
+
+class ResultadoConciliacion(enum.StrEnum):
+    REGISTRADO = "registrado"
+    SIN_CAMBIOS = "sin_cambios"
+    SIN_COBRO = "sin_cobro"
+    DISCREPANCIA = "discrepancia"
+
+
+@dataclass(frozen=True)
+class Conciliacion:
+    resultado: ResultadoConciliacion
+    # Para moderacion: ids internos, nunca la referencia de la pasarela
+    detalle: str | None = None
+
+
+# Pares de estado en la base y en la pasarela que cuadran
+_CUADRAN: Mapping[EstadoCobro, frozenset[EstadoCobroPasarela]] = {
+    EstadoCobro.AUTORIZADO: frozenset({EstadoCobroPasarela.AUTORIZADO}),
+    EstadoCobro.CAPTURADO: frozenset({EstadoCobroPasarela.CAPTURADO}),
+    EstadoCobro.REEMBOLSADO: frozenset({EstadoCobroPasarela.CAPTURADO}),
+    EstadoCobro.CANCELADO: _SIN_DINERO,
+    EstadoCobro.VENCIDO: _SIN_DINERO,
+}
+
+
+def _cuadra(cobro: Cobro, foto: ConsultaCobro, ahora: datetime) -> bool:
+    if foto.estado in _CUADRAN.get(cobro.estado, frozenset()):
+        return foto.estado is not EstadoCobroPasarela.CAPTURADO or (
+            foto.monto_reembolsado in (None, cobro.monto_reembolsado)
+        )
+    # La autorizacion vencida que la pasarela ya solto la resuelve el barrido
+    return (
+        cobro.estado is EstadoCobro.AUTORIZADO
+        and foto.estado is EstadoCobroPasarela.LIBERADO
+        and cobro.autorizado_hasta is not None
+        and cobro.autorizado_hasta <= ahora
+    )
+
+
+def _uuid(valor: str | None) -> uuid.UUID | None:
+    try:
+        return uuid.UUID(valor) if valor else None
+    except ValueError:
+        return None
+
+
+async def _conciliar_sin_cobro(ctx: _Entorno, referencia: str) -> Conciliacion:
+    """Ningun cobro tiene la referencia. Si la pasarela retiene dinero de un
+    cobro nuestro segun sus metadatos, es dinero sin registro."""
+    try:
+        foto = await ctx.pasarela.consultar_cobro(referencia)
+    except SolicitudInvalida:
+        return Conciliacion(
+            ResultadoConciliacion.SIN_COBRO, "La pasarela no conoce la referencia"
+        )
+    if foto.estado in (EstadoCobroPasarela.AUTORIZADO, EstadoCobroPasarela.CAPTURADO):
+        cobro_id = _uuid(foto.metadatos.get("cobro_id"))
+        if cobro_id is not None and await ctx.session.get(Cobro, cobro_id) is not None:
+            return Conciliacion(
+                ResultadoConciliacion.DISCREPANCIA,
+                f"La pasarela tiene {foto.estado} un pago del cobro {cobro_id} "
+                "que no esta registrado",
+            )
+    return Conciliacion(
+        ResultadoConciliacion.SIN_COBRO, "Ningun cobro tiene esta referencia"
+    )
+
+
+async def _conciliar_intento(
+    ctx: _Entorno, pedido: Pedido, cobro: Cobro
+) -> Conciliacion:
+    """El cobro espera el 3DS: se registra lo que la pasarela confirma, como en
+    `verificar_cobro`. Un monto o un estado que no cuadra no se registra."""
+    try:
+        async with ctx.session.begin_nested():
+            foto = await _resolver_intento(ctx, pedido, cobro)
+    except HechosInconsistentes:
+        return Conciliacion(
+            ResultadoConciliacion.DISCREPANCIA,
+            f"El cobro {cobro.id} espera el 3DS y la pasarela informa otro monto o "
+            "estado",
+        )
+    if foto.estado in _EN_ESPERA:
+        return Conciliacion(ResultadoConciliacion.SIN_CAMBIOS)
+    if (
+        foto.estado in _SIN_DINERO
+        and pedido.tipo is TipoPedido.OBRA_DISPONIBLE
+        and pedido.estado is EstadoPedido.COTIZADO
+    ):
+        # Como en verificar_cobro: la obra no queda tomada por un pago fallido
+        await pedidos.rechazar_pedido(ctx.session, pedido_id=pedido.id)
+    return Conciliacion(ResultadoConciliacion.REGISTRADO)
+
+
+async def conciliar_cobro(
+    session: AsyncSession,
+    pasarela: PasarelaDePagos,
+    referencia: str,
+    *,
+    ahora: datetime,
+    politicas: PoliticasPedido,
+) -> Conciliacion:
+    """Compara el cobro de la referencia con lo que dice la pasarela. Solo
+    llama a `consultar_cobro`."""
+    ctx = _Entorno(session, pasarela, ahora, politicas)
+    visto = await pedidos.cobro_por_referencia(session, referencia)
+    if visto is None:
+        return await _conciliar_sin_cobro(ctx, referencia)
+    _, pedido = await _bloquear(
+        ctx, await pedidos.pedido_existente(session, visto.pedido_id)
+    )
+    cobros = await pedidos.cobros_del_pedido(session, pedido.id)
+    cobro = next((c for c in cobros if c.id == visto.id), None)
+    # Cambio mientras se bloqueaba
+    if cobro is None or cobro.referencia_pasarela != referencia:
+        return await _conciliar_sin_cobro(ctx, referencia)
+
+    if pedidos.esperando_autenticacion(cobro):
+        return await _conciliar_intento(ctx, pedido, cobro)
+    foto = await pasarela.consultar_cobro(referencia)
+    if _cuadra(cobro, foto, ahora):
+        return Conciliacion(ResultadoConciliacion.SIN_CAMBIOS)
+    return Conciliacion(
+        ResultadoConciliacion.DISCREPANCIA,
+        f"El cobro {cobro.id} esta {cobro.estado} en la base y {foto.estado} en la "
+        "pasarela",
     )
 
 
