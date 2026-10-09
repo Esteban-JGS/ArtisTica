@@ -263,11 +263,15 @@ export default function PerfilArtistaScreen() {
       </Animated.ScrollView>
 
       <GlassHeader scrollY={scrollY}>
-        <Pressable onPress={() => router.back()} hitSlop={8} accessibilityLabel="Volver">
-          <Ionicons name="chevron-back" size={24} color={colors.ink.DEFAULT} />
-        </Pressable>
-        <Text className="text-base font-semibold text-ink">{displayName}</Text>
-        <View style={{ width: 24 }} />
+        {(color) => (
+          <>
+            <Pressable onPress={() => router.back()} hitSlop={8} accessibilityLabel="Volver">
+              <Ionicons name="chevron-back" size={24} color={color} />
+            </Pressable>
+            <Text className="text-base font-semibold" style={{ color }}>{displayName}</Text>
+            <View style={{ width: 24 }} />
+          </>
+        )}
       </GlassHeader>
     </View>
   );

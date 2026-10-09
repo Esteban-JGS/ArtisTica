@@ -337,13 +337,17 @@ export default function ComisionScreen() {
       </SafeAreaView>
 
       <GlassHeader scrollY={scrollY}>
-        <Pressable onPress={() => router.back()} hitSlop={8} accessibilityLabel="Volver">
-          <Ionicons name="chevron-back" size={24} color={colors.ink.DEFAULT} />
-        </Pressable>
-        <Text className="text-base font-semibold text-ink">{isClient ? 'Tu pedido' : 'Encargo recibido'}</Text>
-        <Pressable onPress={openChat} hitSlop={8} accessibilityLabel="Abrir chat">
-          <Ionicons name="chatbubble-ellipses-outline" size={22} color={colors.ink.DEFAULT} />
-        </Pressable>
+        {(color) => (
+          <>
+            <Pressable onPress={() => router.back()} hitSlop={8} accessibilityLabel="Volver">
+              <Ionicons name="chevron-back" size={24} color={color} />
+            </Pressable>
+            <Text className="text-base font-semibold" style={{ color }}>{isClient ? 'Tu pedido' : 'Encargo recibido'}</Text>
+            <Pressable onPress={openChat} hitSlop={8} accessibilityLabel="Abrir chat">
+              <Ionicons name="chatbubble-ellipses-outline" size={22} color={color} />
+            </Pressable>
+          </>
+        )}
       </GlassHeader>
     </View>
   );

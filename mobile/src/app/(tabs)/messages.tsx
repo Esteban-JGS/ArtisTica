@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
-import Animated from 'react-native-reanimated';
+import Animated, { interpolateColor, useAnimatedStyle } from 'react-native-reanimated';
 
 import { AppBackground, useCorkScroll } from '@/components/app-background';
 import { GlassBackdrop } from '@/components/glass-header';
@@ -53,6 +53,10 @@ export default function MensajesScreen() {
   const { scrollY, onScroll } = useCorkScroll();
   // Alto real del encabezado flotante: cambia al abrir la busqueda.
   const [headerHeight, setHeaderHeight] = useState(0);
+  // El titulo pasa a crema cuando aparece el vidrio oscuro.
+  const titleStyle = useAnimatedStyle(() => ({
+    color: interpolateColor(Math.min(Math.max(scrollY.value / 24, 0), 1), [0, 1], [colors.ink.DEFAULT, colors.sand[50]]),
+  }));
   const { tab: tabParam } = useLocalSearchParams<{ tab?: string }>();
   const tab: Tab = tabParam === 'chats' || tabParam === 'notificaciones' ? tabParam : 'comisiones';
   const setTab = (next: Tab) => router.setParams({ tab: next });
@@ -238,7 +242,9 @@ export default function MensajesScreen() {
         onLayout={(event) => setHeaderHeight(event.nativeEvent.layout.height)}>
         <GlassBackdrop scrollY={scrollY} />
         <View className="flex-row items-center justify-between px-5 pb-3 pt-14">
-          <Text className="font-serif text-3xl italic text-ink">Mensajes</Text>
+          <Animated.Text className="font-serif text-3xl italic" style={titleStyle}>
+            Mensajes
+          </Animated.Text>
           <Pressable
             onPress={toggleSearch}
             accessibilityRole="button"

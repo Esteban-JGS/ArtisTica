@@ -270,14 +270,18 @@ export default function PerfilScreen() {
       </Animated.ScrollView>
 
       <GlassHeader scrollY={scrollY}>
-        <Text className="text-base font-semibold text-ink">@{profile.handle}</Text>
-        <Pressable
-          onPress={openAccountMenu}
-          accessibilityRole="button"
-          accessibilityLabel="Ajustes de la cuenta"
-          hitSlop={8}>
-          <Ionicons name="settings-outline" size={22} color={colors.ink.DEFAULT} />
-        </Pressable>
+        {(color) => (
+          <>
+            <Text className="text-base font-semibold" style={{ color }}>@{profile.handle}</Text>
+            <Pressable
+              onPress={openAccountMenu}
+              accessibilityRole="button"
+              accessibilityLabel="Ajustes de la cuenta"
+              hitSlop={8}>
+              <Ionicons name="settings-outline" size={22} color={color} />
+            </Pressable>
+          </>
+        )}
       </GlassHeader>
     </View>
   );

@@ -402,8 +402,8 @@ export default function InicioScreen() {
           <View style={FLOAT_SHADOW}>
             <LiquidGlassView
               glassType="clear"
-              glassTintColor={colors.sand[50]}
-              glassOpacity={0.7}
+              glassTintColor={colors.ink.DEFAULT}
+              glassOpacity={0.92}
               isInteractive={false}
               style={{ borderRadius: 16, paddingHorizontal: 16, paddingVertical: 10 }}>
               <View className="flex-row items-center gap-2">
@@ -412,7 +412,7 @@ export default function InicioScreen() {
                   style={{ width: 22, height: 22 }}
                   resizeMode="contain"
                 />
-                <Text className="font-serif text-2xl italic text-ink">Artística</Text>
+                <Text className="font-serif text-2xl italic text-sand-50">Artística</Text>
               </View>
 
               <Animated.View
@@ -423,12 +423,12 @@ export default function InicioScreen() {
                   className={
                     tab === 'seguidos'
                       ? 'h-7 w-7 items-center justify-center rounded-full bg-accent/15'
-                      : 'h-7 w-7 items-center justify-center rounded-full bg-sand-200'
+                      : 'h-7 w-7 items-center justify-center rounded-full bg-sand-50/15'
                   }>
                   <Ionicons
                     name="people"
                     size={15}
-                    color={tab === 'seguidos' ? colors.accent.DEFAULT : colors.stone[700]}
+                    color={tab === 'seguidos' ? colors.accent.DEFAULT : colors.sand[200]}
                   />
                 </Pressable>
                 <Pressable
@@ -436,12 +436,12 @@ export default function InicioScreen() {
                   className={
                     tab === 'para-ti'
                       ? 'h-7 w-7 items-center justify-center rounded-full bg-accent/15'
-                      : 'h-7 w-7 items-center justify-center rounded-full bg-sand-200'
+                      : 'h-7 w-7 items-center justify-center rounded-full bg-sand-50/15'
                   }>
                   <Ionicons
                     name="sparkles"
                     size={15}
-                    color={tab === 'para-ti' ? colors.accent.DEFAULT : colors.stone[700]}
+                    color={tab === 'para-ti' ? colors.accent.DEFAULT : colors.sand[200]}
                   />
                 </Pressable>
               </Animated.View>
@@ -455,8 +455,8 @@ export default function InicioScreen() {
               accessibilityLabel="Notificaciones">
               <LiquidGlassView
                 glassType="clear"
-                glassTintColor={colors.sand[50]}
-                glassOpacity={0.7}
+                glassTintColor={colors.ink.DEFAULT}
+                glassOpacity={0.92}
                 isInteractive={false}
                 style={{
                   height: 44,
@@ -465,13 +465,13 @@ export default function InicioScreen() {
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}>
-                <Ionicons name="notifications-outline" size={20} color={colors.ink.DEFAULT} />
+                <Ionicons name="notifications-outline" size={20} color={colors.sand[50]} />
               </LiquidGlassView>
               {hasUnread && (
                 <View
                   pointerEvents="none"
                   className="absolute right-2.5 top-2.5 h-2.5 w-2.5 rounded-full bg-accent"
-                  style={{ borderWidth: 1.5, borderColor: colors.sand[50] }}
+                  style={{ borderWidth: 1.5, borderColor: colors.ink.DEFAULT }}
                 />
               )}
             </Pressable>
@@ -480,28 +480,28 @@ export default function InicioScreen() {
 
         <Animated.View
           pointerEvents={isCollapsed ? 'none' : 'auto'}
-          className="mx-5 flex-row rounded-full bg-ink p-1"
+          className="mx-5 flex-row rounded-full bg-sand-50 p-1"
           style={[FLOAT_SHADOW, pillStyle]}>
           <Pressable
             onPress={() => setTab('seguidos')}
-            className={tab === 'seguidos' ? 'flex-1 rounded-full bg-sand-50 py-2' : 'flex-1 py-2'}>
+            className={tab === 'seguidos' ? 'flex-1 rounded-full bg-ink py-2' : 'flex-1 py-2'}>
             <Text
               className={
                 tab === 'seguidos'
-                  ? 'text-center text-sm font-semibold text-ink'
-                  : 'text-center text-sm text-sand-200'
+                  ? 'text-center text-sm font-semibold text-sand-50'
+                  : 'text-center text-sm text-stone-800'
               }>
               Seguidos
             </Text>
           </Pressable>
           <Pressable
             onPress={() => setTab('para-ti')}
-            className={tab === 'para-ti' ? 'flex-1 rounded-full bg-sand-50 py-2' : 'flex-1 py-2'}>
+            className={tab === 'para-ti' ? 'flex-1 rounded-full bg-ink py-2' : 'flex-1 py-2'}>
             <Text
               className={
                 tab === 'para-ti'
-                  ? 'text-center text-sm font-semibold text-ink'
-                  : 'text-center text-sm text-sand-200'
+                  ? 'text-center text-sm font-semibold text-sand-50'
+                  : 'text-center text-sm text-stone-800'
               }>
               Para ti
             </Text>
