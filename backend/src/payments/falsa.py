@@ -53,6 +53,9 @@ ENCABEZADO_FIRMA = "X-Firma-Pasarela"
 # Un cobro con este medio de pago lo rechaza la pasarela, como una tarjeta sin
 # fondos. Sirve para la demo.
 MEDIO_PAGO_RECHAZADO = "medio_falso_rechazado"
+# Con este medio de pago el banco pide 3DS: el cobro queda en REQUIERE_ACCION
+# hasta `completar_autenticacion`.
+MEDIO_PAGO_3DS = "medio_falso_3ds"
 
 OPERACIONES = frozenset(
     {
@@ -104,6 +107,11 @@ class _Cobro:
     reembolsado: Decimal = Decimal("0")
     capturado_en: datetime | None = None
     metadatos: Mapping[str, str] = field(default_factory=dict)
+    # 3DS: si se autorizo para capturar despues, y si la autenticacion fallo.
+    # Un cobro fallido queda LIBERADO: no retiene dinero
+    diferido: bool = False
+    fallido: bool = False
+    url_autenticacion: str | None = field(default=None, repr=False)
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -115,6 +123,8 @@ class EstadoCobroFalso:
     monto_capturado: Decimal
     monto_reembolsado: Decimal
     autorizado_hasta: datetime | None
+    # La autenticacion 3DS fue rechazada
+    fallido: bool = False
 
 
 class PasarelaFalsa:
@@ -159,6 +169,29 @@ class PasarelaFalsa:
     def rechazar_onboarding(self, cuenta_id: str) -> None:
         self._cuenta(cuenta_id).estado = EstadoCuenta.RECHAZADA
 
+    def completar_autenticacion(self, referencia: str, *, aprobada: bool) -> None:
+        """Simula que el cliente termino el 3DS en el banco.
+
+        Aprobada deja el cobro como lo habria dejado `autorizar` o `cobrar`
+        en ese momento; rechazada lo deja fallido.
+        """
+        cobro = self._cobro(referencia)
+        if cobro.estado is not EstadoOperacion.REQUIERE_ACCION:
+            raise SolicitudInvalida("El cobro no espera una autenticacion")
+        cobro.url_autenticacion = None
+        if not aprobada:
+            cobro.estado = EstadoOperacion.LIBERADO
+            cobro.fallido = True
+            return
+        ahora = self._ahora()
+        if cobro.diferido:
+            cobro.estado = EstadoOperacion.AUTORIZADO
+            cobro.autorizado_hasta = self._vence_desde(ahora)
+        else:
+            cobro.estado = EstadoOperacion.CAPTURADO
+            cobro.capturado = cobro.autorizado
+            cobro.capturado_en = ahora
+
     def tarifa_de(self, cuenta_id: str) -> Decimal:
         return self._cuenta(cuenta_id).tarifa
 
@@ -170,6 +203,7 @@ class PasarelaFalsa:
             monto_capturado=cobro.capturado,
             monto_reembolsado=cobro.reembolsado,
             autorizado_hasta=cobro.autorizado_hasta,
+            fallido=cobro.fallido,
         )
 
     @property
@@ -309,9 +343,14 @@ class PasarelaFalsa:
             return previo
 
         cobro = self._cobro(referencia)
-        if cobro.estado is not EstadoOperacion.AUTORIZADO:
+        # Liberar un cobro que espera el 3DS anula la autenticacion abandonada
+        if cobro.estado not in (
+            EstadoOperacion.AUTORIZADO,
+            EstadoOperacion.REQUIERE_ACCION,
+        ):
             raise SolicitudInvalida(f"El cobro esta {cobro.estado}, no autorizado")
         cobro.estado = EstadoOperacion.LIBERADO
+        cobro.url_autenticacion = None
         resultado = ResultadoCobro(
             referencia=referencia,
             estado=EstadoOperacion.LIBERADO,
@@ -357,6 +396,7 @@ class PasarelaFalsa:
             monto_reembolsado=cobro.reembolsado,
             autorizado_hasta=cobro.autorizado_hasta,
             metadatos=dict(cobro.metadatos),
+            url_autenticacion=cobro.url_autenticacion,
         )
 
     # Webhooks
@@ -390,6 +430,9 @@ class PasarelaFalsa:
     def _cobrar_o_autorizar(
         self, solicitud: SolicitudCobro, *, operacion: str
     ) -> ResultadoCobro:
+        """Repetir con la misma clave devuelve el resultado guardado, tambien
+        un REQUIERE_ACCION cuya autenticacion ya se completo. El estado
+        vigente se lee con `consultar_cobro`."""
         diferida = operacion == "autorizar"
         validar_solicitud(solicitud, self._capacidades, diferida=diferida)
         self._fallar_si_programado(operacion)
@@ -405,9 +448,25 @@ class PasarelaFalsa:
 
         ahora = self._ahora()
         referencia = self._nuevo_id("cobro")
-        if diferida:
-            dias = self._capacidades.dias_vigencia_autorizacion
-            hasta = None if dias is None else ahora + timedelta(days=dias)
+        if solicitud.medio_pago_id == MEDIO_PAGO_3DS:
+            url = f"https://pasarela-falsa.invalid/3ds/{referencia}"
+            self._cobros[referencia] = _Cobro(
+                cuenta_id=solicitud.cuenta_conectada_id,
+                autorizado=solicitud.monto,
+                estado=EstadoOperacion.REQUIERE_ACCION,
+                autorizado_hasta=None,
+                metadatos=dict(solicitud.metadatos),
+                diferido=diferida,
+                url_autenticacion=url,
+            )
+            resultado = ResultadoCobro(
+                referencia=referencia,
+                estado=EstadoOperacion.REQUIERE_ACCION,
+                monto=solicitud.monto,
+                url_autenticacion=url,
+            )
+        elif diferida:
+            hasta = self._vence_desde(ahora)
             self._cobros[referencia] = _Cobro(
                 cuenta_id=solicitud.cuenta_conectada_id,
                 autorizado=solicitud.monto,
@@ -440,6 +499,10 @@ class PasarelaFalsa:
         return self._recordar(solicitud.clave_idempotencia, huella, resultado)
 
     def _foto_de(self, cobro: _Cobro) -> EstadoCobroPasarela:
+        if cobro.fallido:
+            return EstadoCobroPasarela.FALLIDO
+        if cobro.estado is EstadoOperacion.REQUIERE_ACCION:
+            return EstadoCobroPasarela.REQUIERE_ACCION
         if cobro.estado is EstadoOperacion.CAPTURADO:
             return EstadoCobroPasarela.CAPTURADO
         if cobro.estado is EstadoOperacion.LIBERADO:
@@ -450,6 +513,10 @@ class PasarelaFalsa:
         ):
             return EstadoCobroPasarela.LIBERADO
         return EstadoCobroPasarela.AUTORIZADO
+
+    def _vence_desde(self, ahora: datetime) -> datetime | None:
+        dias = self._capacidades.dias_vigencia_autorizacion
+        return None if dias is None else ahora + timedelta(days=dias)
 
     def _exigir_autorizado(self, cobro: _Cobro, ahora: datetime) -> None:
         if cobro.estado is not EstadoOperacion.AUTORIZADO:
@@ -513,6 +580,7 @@ def _huella_solicitud(solicitud: SolicitudCobro) -> Hashable:
         solicitud.tarifa_porcentaje,
         solicitud.descripcion,
         solicitud.medio_pago_id,
+        solicitud.url_retorno,
         tuple(sorted(solicitud.metadatos.items())),
     )
 
