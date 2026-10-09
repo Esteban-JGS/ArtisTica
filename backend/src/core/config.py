@@ -33,6 +33,10 @@ class Settings(BaseSettings):
 
     # Pasarela de pagos. Texto libre: la valida src.payments.fabrica
     PASARELA: str = "falsa"
+    # A donde vuelve la app despues del 3DS. Si ONVO no acepta el esquema
+    # propio (pregunta 19 de orquestacion/preguntas-onvo.md), se cambia por
+    # una pagina https
+    URL_RETORNO_PAGO: str = "artistica://pago"
 
     # Almacenamiento de medios. Texto libre: lo valida src.storage
     ALMACENAMIENTO: str = "falso"
