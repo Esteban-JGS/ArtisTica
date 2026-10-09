@@ -1,16 +1,19 @@
 """Aplica las reglas del dominio de pedidos sobre la base.
 
 No cierra la transaccion: hace flush, y la abre y la cierra quien llama.
-Bloquea el pedido con SELECT ... FOR UPDATE antes de cambiarlo.
+Bloquea el pedido con SELECT ... FOR UPDATE antes de cambiarlo, en el orden
+de todo el backend (D18, D21): perfil del artista, pedido, consulta, obra.
 No llama a la pasarela: recibe los hechos que la pasarela ya confirmo.
 """
 
 import uuid
+from collections import defaultdict
 from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import select
+from sqlalchemy import ColumnElement, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -46,8 +49,31 @@ from src.models import (
     TipoEntregable,
     TipoPedido,
 )
+from src.services.paginacion import ParametrosPagina, traer_pagina
+from src.services.perfiles import bloquear_perfil
 
 INDICE_OBRA_ACTIVA = "ux_pedidos_obra_activa"
+NO_ENCONTRADO = "Pedido no encontrado"
+
+
+# Lo que necesitan los esquemas de respuesta, sin volver a la base
+
+
+@dataclass(frozen=True)
+class VistaPrevia:
+    entregable: Entregable
+    medio: MediaAsset
+
+
+@dataclass(frozen=True)
+class PedidoDetalle:
+    pedido: Pedido
+    cliente: Profile
+    artista: Profile
+    # Quien mira
+    soy: Rol
+    cobros: list[Cobro]
+    vistas_previas: list[VistaPrevia]
 
 
 # Carga y bloqueo
@@ -92,6 +118,45 @@ def _cobro(cobros: Sequence[Cobro], tipo: TipoCobro) -> Cobro:
         if cobro.tipo is tipo:
             return cobro
     raise ResourceNotFound(f"El pedido no tiene cobro de {tipo}")
+
+
+async def bloquear_pedido(session: AsyncSession, pedido_id: uuid.UUID) -> Pedido:
+    return await _bloquear(session, Pedido, pedido_id)
+
+
+async def cobros_del_pedido(session: AsyncSession, pedido_id: uuid.UUID) -> list[Cobro]:
+    """Releidos de la base. Se cambian solo con el pedido bloqueado."""
+    return await _cobros(session, pedido_id)
+
+
+def cobro_de_tipo(cobros: Sequence[Cobro], tipo: TipoCobro) -> Cobro:
+    return _cobro(cobros, tipo)
+
+
+# Intentos de un cobro. Quien llama ya bloqueo el pedido.
+
+
+async def registrar_intento_en_espera(
+    session: AsyncSession, *, cobro: Cobro, referencia_pasarela: str
+) -> Cobro:
+    """El banco pidio 3DS: el cobro guarda la referencia y sigue pendiente."""
+    if cobro.estado is not EstadoCobro.PENDIENTE:
+        raise InvalidStateTransition("Solo un cobro pendiente espera la autenticacion")
+    _fijar_referencia(cobro, referencia_pasarela)
+    await session.flush()
+    return cobro
+
+
+async def descartar_intento(session: AsyncSession, *, cobro: Cobro) -> Cobro:
+    """El intento termino sin mover dinero. El siguiente usa otra clave."""
+    if cobro.estado is not EstadoCobro.PENDIENTE:
+        raise InvalidStateTransition(
+            "Solo se descarta el intento de un cobro pendiente"
+        )
+    cobro.referencia_pasarela = None
+    cobro.intentos += 1
+    await session.flush()
+    return cobro
 
 
 def _fijar_referencia(cobro: Cobro, referencia: str | None) -> None:
@@ -158,11 +223,14 @@ async def crear_pedido_desde_cotizacion(
 ) -> Pedido:
     if tipo is TipoPedido.OBRA_DISPONIBLE:
         raise CotizacionInvalida("La obra disponible no se cotiza")
+    # El perfil antes que la consulta: un cambio de plan no se cruza con la
+    # tarifa que se congela en el pedido (D8)
+    sin_bloqueo = await _obtener(session, Consulta, consulta_id)
+    artista = await bloquear_perfil(session, sin_bloqueo.artista_id)
     consulta = await _bloquear(session, Consulta, consulta_id)
     dominio.validar_transicion_consulta(consulta.estado, EstadoConsulta.COTIZADA)
     dominio.validar_fecha_evento(tipo, fecha_evento, ahora)
     cotizacion = dominio.cotizar(tipo, monto_total, anticipo_porcentaje, politicas)
-    artista = await _obtener(session, Profile, consulta.artista_id)
 
     pedido = Pedido(
         id=uuid.uuid4(),
@@ -213,6 +281,9 @@ async def actualizar_cotizacion(
     cobros = await _cobros(session, pedido.id)
     if any(c.estado is not EstadoCobro.PENDIENTE for c in cobros):
         raise InvalidStateTransition("Hay cobros que ya no estan pendientes")
+    # Un pago esperando el 3DS se hizo por el monto anterior
+    if any(c.referencia_pasarela is not None for c in cobros):
+        raise InvalidStateTransition("Hay un pago en curso: esperá a que termine")
 
     montos = dict(cotizacion.cobros)
     for cobro in cobros:
@@ -334,42 +405,94 @@ async def iniciar_trabajo(session: AsyncSession, *, pedido_id: uuid.UUID) -> Ped
     return pedido
 
 
-async def registrar_vista_previa(
+async def entregar_vista_previa(
     session: AsyncSession,
     *,
     pedido_id: uuid.UUID,
     media_asset_id: uuid.UUID,
+    nota: str | None = None,
+) -> Entregable:
+    """Primer paso (D24): el artista sube la vista previa y el pedido sigue en
+    en_proceso. Puede entregar varias, una por revision."""
+    pedido = await _bloquear(session, Pedido, pedido_id)
+    # Solo un encargo en proceso puede pasar a vista_previa_entregada
+    dominio.validar_transicion(
+        pedido.tipo, pedido.estado, EstadoPedido.VISTA_PREVIA_ENTREGADA
+    )
+    # Bloqueado: no se cruza con su borrado ni con otra entrega del mismo medio
+    stmt = (
+        select(MediaAsset)
+        .where(
+            MediaAsset.id == media_asset_id,
+            MediaAsset.propietario_id == pedido.artista_id,
+        )
+        .with_for_update()
+        .execution_options(populate_existing=True)
+    )
+    medio = (await session.execute(stmt)).scalar_one_or_none()
+    if medio is None:
+        raise ResourceNotFound("Medio no encontrado")
+    if medio.deleted_at is not None or medio.subido_en is None:
+        raise ReglaDeNegocioViolada("El medio tiene que estar subido y sin borrar")
+    if medio.obra_id is not None or medio.publicacion_id is not None:
+        raise ReglaDeNegocioViolada(
+            "El medio esta asociado a una obra o una publicacion"
+        )
+    usado = await session.execute(
+        select(Entregable.id).where(Entregable.media_asset_id == medio.id).limit(1)
+    )
+    if usado.first() is not None:
+        raise ReglaDeNegocioViolada("El medio ya es un entregable")
+
+    entregable = Entregable(
+        pedido_id=pedido.id,
+        media_asset_id=medio.id,
+        tipo=TipoEntregable.VISTA_PREVIA,
+        nota=nota,
+    )
+    session.add(entregable)
+    await session.flush()
+    return entregable
+
+
+async def exigir_vista_previa(session: AsyncSession, pedido_id: uuid.UUID) -> None:
+    stmt = (
+        select(Entregable.id)
+        .where(
+            Entregable.pedido_id == pedido_id,
+            Entregable.tipo == TipoEntregable.VISTA_PREVIA,
+        )
+        .limit(1)
+    )
+    if (await session.execute(stmt)).first() is None:
+        raise ReglaDeNegocioViolada("El artista todavia no entrego una vista previa")
+
+
+async def registrar_saldo_autorizado(
+    session: AsyncSession,
+    *,
+    pedido_id: uuid.UUID,
     referencia_pasarela: str,
     autorizado_hasta: datetime,
     ahora: datetime,
-    nota: str | None = None,
-) -> Entregable:
-    """Vista previa con marca de agua y saldo autorizado, en un solo paso."""
+) -> Pedido:
+    """Segundo paso (D24): el cliente vio la vista previa y autorizo el saldo."""
     pedido = await _bloquear(session, Pedido, pedido_id)
     dominio.validar_transicion(
         pedido.tipo, pedido.estado, EstadoPedido.VISTA_PREVIA_ENTREGADA
     )
     if autorizado_hasta <= ahora:
         raise ReglaDeNegocioViolada("La autorizacion del saldo ya vencio")
-    media = await _obtener(session, MediaAsset, media_asset_id)
-    if media.propietario_id != pedido.artista_id:
-        raise ActorNoAutorizado("La vista previa no es del artista del pedido")
+    await exigir_vista_previa(session, pedido.id)
     saldo = _cobro(await _cobros(session, pedido.id), TipoCobro.SALDO)
     dominio.validar_transicion_cobro(saldo.estado, EstadoCobro.AUTORIZADO)
 
-    entregable = Entregable(
-        pedido_id=pedido.id,
-        media_asset_id=media.id,
-        tipo=TipoEntregable.VISTA_PREVIA,
-        nota=nota,
-    )
-    session.add(entregable)
     _fijar_referencia(saldo, referencia_pasarela)
     saldo.estado = EstadoCobro.AUTORIZADO
     saldo.autorizado_hasta = autorizado_hasta
     pedido.estado = EstadoPedido.VISTA_PREVIA_ENTREGADA
     await session.flush()
-    return entregable
+    return pedido
 
 
 async def registrar_saldo_capturado(
@@ -622,3 +745,117 @@ async def completar_vencidos(session: AsyncSession, *, ahora: datetime) -> int:
         pedido.estado = EstadoPedido.COMPLETADO
     await session.flush()
     return len(pedidos)
+
+
+# Lectura. Un pedido en el que no participa quien pide da 404.
+
+
+def participa(usuario_id: uuid.UUID) -> ColumnElement[bool]:
+    return or_(Pedido.cliente_id == usuario_id, Pedido.artista_id == usuario_id)
+
+
+async def _perfiles(
+    session: AsyncSession, pedidos: Sequence[Pedido]
+) -> dict[uuid.UUID, Profile]:
+    ids = {p.cliente_id for p in pedidos} | {p.artista_id for p in pedidos}
+    filas = await session.execute(select(Profile).where(Profile.id.in_(ids)))
+    return {p.id: p for p in filas.scalars()}
+
+
+async def _cobros_de(
+    session: AsyncSession, ids: list[uuid.UUID]
+) -> dict[uuid.UUID, list[Cobro]]:
+    stmt = select(Cobro).where(Cobro.pedido_id.in_(ids)).order_by(Cobro.tipo)
+    por_pedido: dict[uuid.UUID, list[Cobro]] = defaultdict(list)
+    for cobro in (await session.execute(stmt)).scalars():
+        por_pedido[cobro.pedido_id].append(cobro)
+    return por_pedido
+
+
+async def _vistas_previas_de(
+    session: AsyncSession, ids: list[uuid.UUID]
+) -> dict[uuid.UUID, list[VistaPrevia]]:
+    stmt = (
+        select(Entregable, MediaAsset)
+        .join(MediaAsset, MediaAsset.id == Entregable.media_asset_id)
+        .where(
+            Entregable.pedido_id.in_(ids),
+            Entregable.tipo == TipoEntregable.VISTA_PREVIA,
+        )
+        .order_by(Entregable.created_at, Entregable.id)
+    )
+    por_pedido: dict[uuid.UUID, list[VistaPrevia]] = defaultdict(list)
+    for entregable, medio in await session.execute(stmt):
+        por_pedido[entregable.pedido_id].append(VistaPrevia(entregable, medio))
+    return por_pedido
+
+
+async def detallar(
+    session: AsyncSession, pedidos: Sequence[Pedido], usuario: Profile
+) -> list[PedidoDetalle]:
+    """Perfiles, cobros y vistas previas de una pagina entera, sin N+1."""
+    if not pedidos:
+        return []
+    ids = [p.id for p in pedidos]
+    perfiles = await _perfiles(session, pedidos)
+    cobros = await _cobros_de(session, ids)
+    vistas = await _vistas_previas_de(session, ids)
+    return [
+        PedidoDetalle(
+            pedido=p,
+            cliente=perfiles[p.cliente_id],
+            artista=perfiles[p.artista_id],
+            soy=dominio.rol_en_pedido(usuario.id, p.cliente_id, p.artista_id),
+            cobros=cobros.get(p.id, []),
+            vistas_previas=vistas.get(p.id, []),
+        )
+        for p in pedidos
+    ]
+
+
+async def detallar_uno(
+    session: AsyncSession, pedido: Pedido, usuario: Profile
+) -> PedidoDetalle:
+    return (await detallar(session, [pedido], usuario))[0]
+
+
+async def pedido_visible(
+    session: AsyncSession, usuario: Profile, pedido_id: uuid.UUID
+) -> Pedido:
+    """Sin bloquear. Si quien pide no participa, 404 para no revelar que existe."""
+    stmt = select(Pedido).where(Pedido.id == pedido_id, participa(usuario.id))
+    pedido = (await session.execute(stmt)).scalar_one_or_none()
+    if pedido is None:
+        raise ResourceNotFound(NO_ENCONTRADO)
+    return pedido
+
+
+async def detalle(
+    session: AsyncSession, usuario: Profile, pedido_id: uuid.UUID
+) -> PedidoDetalle:
+    pedido = await pedido_visible(session, usuario, pedido_id)
+    return await detallar_uno(session, pedido, usuario)
+
+
+async def listar(
+    session: AsyncSession,
+    usuario: Profile,
+    como: Rol | None,
+    estado: EstadoPedido | None,
+    consulta_id: uuid.UUID | None,
+    parametros: ParametrosPagina,
+) -> tuple[list[PedidoDetalle], str | None]:
+    """Los pedidos de quien mira, del mas nuevo al mas viejo."""
+    if como is Rol.CLIENTE:
+        filtro = Pedido.cliente_id == usuario.id
+    elif como is Rol.ARTISTA:
+        filtro = Pedido.artista_id == usuario.id
+    else:
+        filtro = participa(usuario.id)
+    stmt = select(Pedido).where(filtro)
+    if estado is not None:
+        stmt = stmt.where(Pedido.estado == estado)
+    if consulta_id is not None:
+        stmt = stmt.where(Pedido.consulta_id == consulta_id)
+    pedidos, siguiente = await traer_pagina(session, stmt, Pedido, parametros)
+    return await detallar(session, pedidos, usuario), siguiente

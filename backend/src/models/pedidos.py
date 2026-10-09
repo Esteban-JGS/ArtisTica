@@ -99,6 +99,7 @@ class Cobro(Base, IdMixin, TimestampMixin):
             "monto_reembolsado >= 0 AND monto_reembolsado <= monto",
             name="monto_reembolsado_en_rango",
         ),
+        CheckConstraint("intentos >= 0", name="intentos_no_negativos"),
     )
 
     pedido_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("pedidos.id"), index=True)
@@ -123,6 +124,9 @@ class Cobro(Base, IdMixin, TimestampMixin):
     capturado_en: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    # Intentos rechazados o fallidos. No es un saldo: arma la clave de
+    # idempotencia, igual al repetir un intento y distinta en uno nuevo
+    intentos: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
 
 
 class Resena(Base, IdMixin, TimestampMixin):
