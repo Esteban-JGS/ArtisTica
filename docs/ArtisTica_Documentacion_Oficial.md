@@ -333,6 +333,22 @@ Con un pedido promedio de US$150, una tarifa promedio de 7% y 300 suscriptores d
 
 **Resolución.** La aplicación consulta cada pocos segundos los mensajes nuevos. Cada mensaje se guarda con la conversación bloqueada y una marca de tiempo que nunca retrocede, de modo que ninguno se pierde entre una consulta y la siguiente. Las notificaciones push pasan a la Etapa 2.
 
+#### Feed de Seguidos en la aplicación
+
+**Situación.** El prototipo del feed de Seguidos mostraba publicaciones de cuentas que la persona no seguía, en el mismo orden que Para ti.
+
+**Impacto.** Contradecía el principio de feed auténtico, que exige un orden cronológico limitado a quienes la persona sigue.
+
+**Resolución.** Seguidos muestra solo las cuentas seguidas y las publicaciones propias, de la más reciente a la más antigua. Para ti conserva su propio orden.
+
+#### Identidad visual del tablero
+
+**Situación.** La textura de corcho del fondo se había teñido con el terracota de la marca y, aclarada, quedaba en un tono salmón.
+
+**Impacto.** El color de marca se confundía con el fondo, con un contraste cercano a 2 a 1 entre ambos, y la interfaz se percibía plana.
+
+**Resolución.** El corcho recuperó un tono natural con el grano visible, la navegación y los selectores pasaron a tinta oscura y el texto se apoya siempre sobre papel o vidrio, nunca directo sobre el corcho.
+
 ---
 
 ## 5. Avance de desarrollo
@@ -341,7 +357,7 @@ Con un pedido promedio de US$150, una tarifa promedio de 7% y 300 suscriptores d
 
 | Componente | Estado |
 |---|---|
-| Aplicación: pantallas y diseño | Avanzado, con datos de ejemplo |
+| Aplicación: pantallas y diseño | Avanzado: el flujo completo de un encargo se puede recorrer con datos de ejemplo |
 | Backend: base ejecutable e integración continua | Completo |
 | Backend: esquema de base de datos | Completo para el MVP |
 | Backend: reglas de pedidos y cobros | Completo y probado |
@@ -379,16 +395,30 @@ Indicadores al cierre del avance:
 
 ### 5.3 Aplicación móvil
 
-Pantallas implementadas con el rediseño visual Liquid Glass: Inicio (feed con estética de tablero de corcho y selector entre Seguidos y Para ti), Explorar, Mensajes, Perfil, Crear, Comentarios, Compartir e Inicio de sesión. La navegación es flotante y el fondo es personalizable. Las pantallas usan datos de ejemplo hasta conectarse con la API.
+La aplicación usa la estética de un tablero de corcho: publicaciones y fichas son notas de papel sujetas con una chinche, el portafolio se muestra como fotos instantáneas pegadas con cinta, y la navegación y los encabezados son paneles de vidrio flotantes.
+
+| Área | Pantallas |
+|---|---|
+| Acceso | Bienvenida, registro e inicio de sesión |
+| Social | Inicio con Seguidos y Para ti, Explorar con filtros, publicar, comentar y compartir |
+| Perfiles | Perfil propio con edición y activación del perfil de artista, perfil de otros artistas y visor de obras. El portafolio se ve en una, dos o tres columnas |
+| Contratación | Solicitud de un encargo desde una publicación, cotización del artista, pago del anticipo, entrega y aprobación de la vista previa, y reseña |
+| Mensajes | Chats, seguimiento de pedidos y notificaciones |
+
+Todo el recorrido funciona con datos de ejemplo; las pantallas todavía no se conectan con la API.
 
 ### 5.4 Pendiente para la entrega final
 
-| Etapa | Contenido |
+| Área | Pendiente |
 |---|---|
+| Contratación | Pedidos y cobros en la API, recepción de avisos de pago y seguimiento de las autorizaciones que vencen |
+| Pago desde la aplicación | Formulario de tarjeta que envía los datos directo a la pasarela y solo comparte con la API el identificador que esta devuelve, más la verificación adicional del banco (3D Secure) cuando la tarjeta la pida |
+| Pasarela real | Enviar las consultas técnicas a ONVO, obtener acceso a su entorno de pruebas y probar el adaptador contra ese entorno |
+| Inteligencia artificial | Elegir el proveedor. Lo requieren la detección de contenido sospechoso de ser generado por IA, la clasificación de estilos y la búsqueda por similitud, que hoy solo tienen su estructura |
+| Métricas y moderación | Panel del artista y reportes |
 | Contenido | Miniaturas de imágenes |
-| Contratación | Pedidos, cobros y recepción de avisos de pago |
-| Métricas y moderación | Panel del artista, reportes y clasificación para revisión humana |
-| Integración | Conexión de la aplicación con la API |
+| Entorno | Proyecto de Supabase configurado para la base de datos, la autenticación y el almacenamiento |
+| Integración | Conectar la aplicación con la API: sesiones, feed, perfiles, chat, imágenes reales y pedidos |
 
 La demostración de noviembre usa la pasarela simulada, que reproduce autorizaciones que vencen, rechazos y avisos de pago.
 
@@ -398,6 +428,7 @@ La demostración de noviembre usa la pasarela simulada, que reproduce autorizaci
 |---|---|
 | Plazo: quedan cuatro etapas de backend y la integración | Las promociones ya salieron del MVP; si hace falta, Explorar queda solo por categorías |
 | ONVO no responde a tiempo | La demostración no depende de ONVO |
+| El proveedor de IA no se define a tiempo | La moderación funciona con reportes y revisión humana; el clasificador solo marca contenido para esa revisión, así que su ausencia no bloquea la demostración |
 | La integración llega tarde | Los endpoints se construyen en el orden en que la aplicación los necesita |
 
 ## 6. Anexo: glosario

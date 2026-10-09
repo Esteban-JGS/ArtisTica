@@ -1,8 +1,8 @@
 /* eslint-disable react-hooks/immutability -- Reanimated shared values (.value) are mutable refs by design, not React-compiler-managed state; this screen mutates several of them from gesture/timing callbacks. */
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect } from 'react';
-import { Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Pressable, ScrollView, Share, Text, useWindowDimensions, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   Easing,
@@ -30,14 +30,14 @@ const QUICK_CONTACTS: {
 ];
 
 const SHARE_ACTIONS: { id: string; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
-  { id: 'copy', label: 'Copiar enlace', icon: 'link-outline' },
-  { id: 'story', label: 'Compartir en tu historia', icon: 'sparkles-outline' },
   { id: 'tag', label: 'Etiquetar a un amigo', icon: 'pricetag-outline' },
   { id: 'external', label: 'Compartir afuera de Artística', icon: 'arrow-redo-outline' },
 ];
 
 export default function CompartirScreen() {
-  const { authorName } = useLocalSearchParams<{ authorName?: string }>();
+  const { authorName, mode } = useLocalSearchParams<{ authorName?: string; mode?: 'tag' }>();
+  const isTagging = mode === 'tag';
+  const [sentTo, setSentTo] = useState<string[]>([]);
   const { height: windowHeight } = useWindowDimensions();
   const sheetHeight = Math.round(windowHeight * 0.6);
 
@@ -59,6 +59,22 @@ export default function CompartirScreen() {
         if (finished) runOnJS(router.back)();
       },
     );
+  };
+
+  const handleContact = (id: string) =>
+    setSentTo((current) => (current.includes(id) ? current : [...current, id]));
+
+  const handleAction = async (id: string) => {
+    if (id === 'tag') {
+      router.setParams({ mode: 'tag' });
+      return;
+    }
+    if (id === 'external') {
+      await Share.share({
+        message: authorName ? `Mirá esta obra de ${authorName} en Artística` : 'Mirá esta obra en Artística',
+      });
+    }
+    handleClose();
   };
 
   const backdropStyle = useAnimatedStyle(() => ({ opacity: backdropOpacity.value }));
@@ -102,7 +118,11 @@ export default function CompartirScreen() {
 
           <View className="flex-row items-center justify-between border-b border-sand-300 px-5 py-3">
             <Text className="text-base font-semibold text-ink">
-              {authorName ? `Compartir obra de ${authorName}` : 'Compartir'}
+              {isTagging
+                ? 'Etiquetar a un amigo'
+                : authorName
+                  ? `Compartir obra de ${authorName}`
+                  : 'Compartir'}
             </Text>
             <Pressable onPress={handleClose}>
               <Ionicons name="close" size={22} color={colors.ink.DEFAULT} />
@@ -110,30 +130,51 @@ export default function CompartirScreen() {
           </View>
 
           <View className="gap-3 py-4">
-            <Text className="px-5 text-xs font-semibold uppercase text-stone-700">Enviar a</Text>
+            <Text className="px-5 text-xs font-semibold uppercase text-stone-700">
+              {isTagging ? 'Etiquetar a' : 'Enviar a'}
+            </Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-4 px-5">
-              {QUICK_CONTACTS.map((contact) => (
-                <Pressable key={contact.id} className="items-center gap-1.5">
-                  <Avatar initial={contact.initial} color={contact.color} size={52} />
-                  <Text className="text-xs text-ink">{contact.name}</Text>
-                </Pressable>
-              ))}
+              {QUICK_CONTACTS.map((contact) => {
+                const sent = sentTo.includes(contact.id);
+                return (
+                  <Pressable
+                    key={contact.id}
+                    onPress={() => handleContact(contact.id)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${isTagging ? 'Etiquetar' : 'Enviar'} a ${contact.name}`}
+                    className="items-center gap-1.5">
+                    <View>
+                      <Avatar initial={contact.initial} color={contact.color} size={52} />
+                      {sent && (
+                        <View className="absolute -bottom-0.5 -right-0.5 h-5 w-5 items-center justify-center rounded-full bg-accent">
+                          <Ionicons name="checkmark" size={12} color={colors.sand[50]} />
+                        </View>
+                      )}
+                    </View>
+                    <Text className="text-xs text-ink">
+                      {sent ? (isTagging ? 'Etiquetado' : 'Enviado') : contact.name}
+                    </Text>
+                  </Pressable>
+                );
+              })}
             </ScrollView>
           </View>
 
-          <View className="border-t border-sand-300 py-2">
-            {SHARE_ACTIONS.map((action) => (
-              <Pressable
-                key={action.id}
-                onPress={handleClose}
-                className="flex-row items-center gap-4 px-5 py-3.5">
-                <View className="h-9 w-9 items-center justify-center rounded-full bg-sand-100">
-                  <Ionicons name={action.icon} size={18} color={colors.ink[700]} />
-                </View>
-                <Text className="text-sm font-medium text-ink">{action.label}</Text>
-              </Pressable>
-            ))}
-          </View>
+          {!isTagging && (
+            <View className="border-t border-sand-300 py-2">
+              {SHARE_ACTIONS.map((action) => (
+                <Pressable
+                  key={action.id}
+                  onPress={() => handleAction(action.id)}
+                  className="flex-row items-center gap-4 px-5 py-3.5">
+                  <View className="h-9 w-9 items-center justify-center rounded-full bg-sand-100">
+                    <Ionicons name={action.icon} size={18} color={colors.ink[700]} />
+                  </View>
+                  <Text className="text-sm font-medium text-ink">{action.label}</Text>
+                </Pressable>
+              ))}
+            </View>
+          )}
         </SafeAreaView>
       </Animated.View>
     </View>

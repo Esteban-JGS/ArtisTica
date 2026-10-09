@@ -29,6 +29,9 @@ export default function RootLayout() {
           <Stack.Screen name="index" />
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="create" options={{ presentation: 'modal' }} />
+          <Stack.Screen name="editar-perfil" options={{ presentation: 'modal' }} />
+          <Stack.Screen name="cotizar" options={{ presentation: 'modal' }} />
+          <Stack.Screen name="pagar" options={{ presentation: 'modal' }} />
           <Stack.Screen
             name="comments"
             options={{
@@ -45,6 +48,23 @@ export default function RootLayout() {
               contentStyle: { backgroundColor: 'transparent' },
             }}
           />
+          <Stack.Screen
+            name="solicitar-comision"
+            options={{
+              presentation: 'transparentModal',
+              animation: 'none',
+              contentStyle: { backgroundColor: 'transparent' },
+            }}
+          />
+          <Stack.Screen
+            name="opciones-publicacion"
+            options={{
+              presentation: 'transparentModal',
+              animation: 'none',
+              contentStyle: { backgroundColor: 'transparent' },
+            }}
+          />
+          <Stack.Screen name="ver-obra" options={{ presentation: 'fullScreenModal' }} />
         </Stack>
       </QueryClientProvider>
     </GestureHandlerRootView>

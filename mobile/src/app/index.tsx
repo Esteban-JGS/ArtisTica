@@ -7,6 +7,8 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { GlassButton } from '@/components/glass-button';
 import { LoginGallery } from '@/components/login-gallery';
+import { useCommissionsStore } from '@/stores/commissions-store';
+import { useProfileStore } from '@/stores/profile-store';
 import { colors } from '@/theme';
 
 function getGreeting(hour: number) {
@@ -23,7 +25,12 @@ function getTimeTint(hour: number) {
 
 export default function AuthScreen() {
   const insets = useSafeAreaInsets();
-  const enterApp = () => router.replace('/home');
+  // Google y Apple todavia no estan conectados: entran con la cuenta de la demo
+  const enterWithProvider = () => {
+    useProfileStore.getState().signIn();
+    useCommissionsStore.getState().loadDemo();
+    router.replace('/home');
+  };
   const hour = useMemo(() => new Date().getHours(), []);
   const greeting = useMemo(() => getGreeting(hour), [hour]);
   const timeTint = useMemo(() => getTimeTint(hour), [hour]);
@@ -83,27 +90,27 @@ export default function AuthScreen() {
             variant="primary"
             icon={<Ionicons name="mail-outline" size={19} color="#ffffff" />}
             label="Crear mi cuenta"
-            onPress={enterApp}
+            onPress={() => router.push('/registro')}
           />
           <View style={{ flexDirection: 'row', gap: 9 }}>
             <GlassButton
               variant="glass"
               icon={<Ionicons name="logo-google" size={17} color="#ffffff" />}
               label="Google"
-              onPress={enterApp}
+              onPress={enterWithProvider}
             />
             <GlassButton
               variant="glass"
               icon={<Ionicons name="logo-apple" size={17} color="#ffffff" />}
               label="Apple"
-              onPress={enterApp}
+              onPress={enterWithProvider}
             />
           </View>
           <GlassButton
             variant="ghost"
             icon={<Ionicons name="arrow-forward-outline" size={14} color="rgba(255,255,255,0.82)" />}
-            label="Mirar sin cuenta"
-            onPress={enterApp}
+            label="Ya tengo cuenta"
+            onPress={() => router.push('/ingresar')}
             style={{ alignSelf: 'center' }}
           />
         </View>

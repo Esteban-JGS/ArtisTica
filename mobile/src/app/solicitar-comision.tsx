@@ -1,0 +1,214 @@
+/* eslint-disable react-hooks/immutability -- Reanimated shared values (.value) are mutable refs by design, not React-compiler-managed state; this screen mutates several of them from gesture/timing callbacks. */
+import { Ionicons } from '@expo/vector-icons';
+import { router, useLocalSearchParams } from 'expo-router';
+import { useEffect, useState } from 'react';
+import {
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  Text,
+  TextInput,
+  useWindowDimensions,
+  View,
+} from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, {
+  Easing,
+  interpolate,
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+import { type Party, useCommissionsStore } from '@/stores/commissions-store';
+import { usePostsStore } from '@/stores/posts-store';
+import { colors } from '@/theme';
+
+export default function SolicitarComisionScreen() {
+  const { artistName, postImage, postCaption } = useLocalSearchParams<{
+    artistName?: string;
+    postImage?: string;
+    postCaption?: string;
+  }>();
+  const { height: windowHeight } = useWindowDimensions();
+  const sheetHeight = Math.round(windowHeight * 0.65);
+
+  const backdropOpacity = useSharedValue(0);
+  const sheetTranslateY = useSharedValue(sheetHeight);
+
+  useEffect(() => {
+    backdropOpacity.value = withTiming(1, { duration: 220 });
+    sheetTranslateY.value = withTiming(0, { duration: 300, easing: Easing.out(Easing.cubic) });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- shared values are stable refs, not reactive deps
+  }, []);
+
+  const handleClose = () => {
+    backdropOpacity.value = withTiming(0, { duration: 160 });
+    sheetTranslateY.value = withTiming(
+      sheetHeight,
+      { duration: 220, easing: Easing.in(Easing.cubic) },
+      (finished) => {
+        if (finished) runOnJS(router.back)();
+      },
+    );
+  };
+
+  const backdropStyle = useAnimatedStyle(() => ({ opacity: backdropOpacity.value }));
+  const sheetStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: sheetTranslateY.value }],
+  }));
+
+  const dragGesture = Gesture.Pan()
+    .onUpdate((event) => {
+      const nextY = Math.max(0, event.translationY);
+      sheetTranslateY.value = nextY;
+      backdropOpacity.value = interpolate(nextY, [0, sheetHeight], [1, 0], 'clamp');
+    })
+    .onEnd((event) => {
+      const shouldDismiss = event.translationY > 36 || event.velocityY > 700;
+      if (shouldDismiss) {
+        runOnJS(handleClose)();
+      } else {
+        sheetTranslateY.value = withTiming(0, { duration: 200, easing: Easing.out(Easing.cubic) });
+        backdropOpacity.value = withTiming(1, { duration: 200 });
+      }
+    });
+
+  const [idea, setIdea] = useState('');
+  const [consultaId, setConsultaId] = useState<string | null>(null);
+  const [referenceAttached, setReferenceAttached] = useState(Boolean(postImage));
+  const createConsulta = useCommissionsStore((state) => state.createConsulta);
+  const artistPost = usePostsStore((state) => state.posts.find((post) => post.name === artistName));
+  const sent = consultaId !== null;
+
+  const handleSend = () => {
+    if (!idea.trim()) return;
+    // Crea el pedido en estado "consulta" con la idea y el post de
+    // referencia, si quedo adjunto. El presupuesto lo propone el artista
+    // en la cotizacion, no el cliente aca: evita anclar el precio a la baja.
+    const name = artistName ?? 'Artista';
+    const artist: Party = {
+      name,
+      initial: artistPost?.initial ?? name.charAt(0).toUpperCase(),
+      color: artistPost?.color ?? 'terracota',
+    };
+    setConsultaId(
+      createConsulta({
+        artist,
+        idea: idea.trim(),
+        referenceImage: referenceAttached ? postImage : undefined,
+      }),
+    );
+  };
+
+  const viewConsulta = () => {
+    if (consultaId) router.replace({ pathname: '/comision/[id]', params: { id: consultaId } });
+  };
+
+  return (
+    <View style={{ flex: 1, justifyContent: 'flex-end' }}>
+      <Animated.View
+        pointerEvents="box-none"
+        style={[{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }, backdropStyle]}>
+        <Pressable className="flex-1 bg-ink/40" onPress={handleClose} />
+      </Animated.View>
+
+      <Animated.View
+        className="rounded-t-3xl bg-sand-50"
+        style={[{ height: sheetHeight }, sheetStyle]}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={{ flex: 1 }}>
+          <SafeAreaView edges={['bottom']} className="flex-1">
+            <GestureDetector gesture={dragGesture}>
+              <View className="items-center py-3">
+                <View className="h-1 w-10 rounded-full bg-sand-300" />
+              </View>
+            </GestureDetector>
+
+            <View className="flex-row items-center justify-between border-b border-sand-300 px-5 py-3">
+              <Text className="text-base font-semibold text-ink">
+                {artistName ? `Solicitar comisión a ${artistName}` : 'Solicitar comisión'}
+              </Text>
+              <Pressable onPress={handleClose}>
+                <Ionicons name="close" size={22} color={colors.ink.DEFAULT} />
+              </Pressable>
+            </View>
+
+            {sent ? (
+              <View className="flex-1 items-center justify-center gap-3 px-8">
+                <Ionicons name="checkmark-circle" size={48} color={colors.accent.DEFAULT} />
+                <Text className="text-center text-base font-semibold text-ink">
+                  Listo, le avisamos a {artistName ?? 'el artista'}
+                </Text>
+                <Text className="text-center text-sm text-stone-700">
+                  Te va a responder con una cotización por el chat de esta consulta. La seguís en Mensajes.
+                </Text>
+                <Pressable onPress={viewConsulta} className="mt-2 rounded-full bg-accent px-6 py-3">
+                  <Text className="text-sm font-semibold text-sand-50">Ver mi consulta</Text>
+                </Pressable>
+                <Pressable onPress={handleClose} className="py-2">
+                  <Text className="text-sm font-semibold text-stone-800">Seguir explorando</Text>
+                </Pressable>
+              </View>
+            ) : (
+              <View className="flex-1 gap-5 px-5 py-4">
+                {postImage && referenceAttached ? (
+                  <View className="flex-row items-center gap-3 rounded-2xl bg-sand-100 p-2.5">
+                    <Image source={{ uri: postImage }} className="h-14 w-14 rounded-xl" />
+                    <View className="flex-1 gap-0.5">
+                      <Text className="text-xs font-semibold uppercase text-stone-700">
+                        Quiero algo así
+                      </Text>
+                      {postCaption && (
+                        <Text className="text-xs text-stone-700" numberOfLines={2}>
+                          {postCaption}
+                        </Text>
+                      )}
+                    </View>
+                    <Pressable onPress={() => setReferenceAttached(false)} hitSlop={8}>
+                      <Ionicons name="close-circle" size={20} color={colors.stone[700]} />
+                    </Pressable>
+                  </View>
+                ) : (
+                  postImage && (
+                    <Pressable
+                      onPress={() => setReferenceAttached(true)}
+                      className="flex-row items-center gap-2 self-start rounded-full bg-sand-100 px-3 py-2">
+                      <Ionicons name="image-outline" size={16} color={colors.accent.DEFAULT} />
+                      <Text className="text-xs font-medium text-ink">Adjuntar la publicación que viste</Text>
+                    </Pressable>
+                  )
+                )}
+
+                <View className="gap-2">
+                  <Text className="text-xs font-semibold uppercase text-stone-700">Contame tu idea</Text>
+                  <TextInput
+                    value={idea}
+                    onChangeText={setIdea}
+                    placeholder="Describí lo que tenés en mente, referencias, tamaño…"
+                    placeholderTextColor={colors.stone[700]}
+                    multiline
+                    numberOfLines={4}
+                    className="rounded-2xl bg-sand-100 px-4 py-3 text-sm text-ink"
+                    style={{ minHeight: 100, textAlignVertical: 'top' }}
+                  />
+                </View>
+
+                <Pressable
+                  onPress={handleSend}
+                  disabled={!idea.trim()}
+                  className={idea.trim() ? 'items-center rounded-full bg-accent py-3' : 'items-center rounded-full bg-accent/40 py-3'}>
+                  <Text className="text-sm font-semibold text-sand-50">Enviar consulta</Text>
+                </Pressable>
+              </View>
+            )}
+          </SafeAreaView>
+        </KeyboardAvoidingView>
+      </Animated.View>
+    </View>
+  );
+}

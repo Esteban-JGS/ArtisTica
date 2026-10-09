@@ -1,8 +1,18 @@
 import { Image } from 'expo-image';
 import { useWindowDimensions, View } from 'react-native';
-import Animated, { type SharedValue, useAnimatedStyle } from 'react-native-reanimated';
+import Animated, {
+  type SharedValue,
+  useAnimatedScrollHandler,
+  useAnimatedStyle,
+  useSharedValue,
+} from 'react-native-reanimated';
 
-import { backgroundSource, useBackgroundStore } from '@/stores/background-store';
+// Textura CC0 de ambientCG (ambientcg.com/a/Cork001), recoloreada a un
+// tono de corcho natural a partir de su luminancia, con el grano
+// acentuado. No se tine con el color de marca: el terracota tiene que
+// resaltar sobre el tablero, no confundirse con el.
+// Es local porque tiene que repetirse sin costura.
+const CORK_TEXTURE = require('@/assets/images/texture-cork.avif');
 
 // Alto de cada copia apilada de la textura de corcho. Entre mas grande,
 // mas realista se ve el grano (menos "estampado de papel tapiz").
@@ -13,12 +23,11 @@ function wrap(value: number, max: number) {
   return ((value % max) + max) % max;
 }
 
-// El corcho es la unica textura pensada para repetirse sin costura (ver
-// background-store.ts), asi que es la unica que se anima: apila copias
+// La textura se repite sin costura, asi que se anima: apila copias
 // identicas y las corre con el scroll, envolviendo cada CORK_TILE_HEIGHT
 // px. Como las copias son identicas, el salto del envolvido es invisible
-// y el loop queda infinito. Con scrollY se mueve 1:1 con los posts; sin
-// el (otras pantallas sin scroll propio) queda fija.
+// y el loop queda infinito. Con scrollY se mueve 1:1 con el contenido;
+// sin el (pantallas sin scroll propio) queda fija.
 function ScrollingCorkBackground({ scrollY }: { scrollY?: SharedValue<number> }) {
   const { height: screenHeight } = useWindowDimensions();
   const tileCount = Math.ceil(screenHeight / CORK_TILE_HEIGHT) + 2;
@@ -33,7 +42,7 @@ function ScrollingCorkBackground({ scrollY }: { scrollY?: SharedValue<number> })
         {Array.from({ length: tileCount }).map((_, index) => (
           <Image
             key={index}
-            source={backgroundSource('corcho', 0)}
+            source={CORK_TEXTURE}
             style={{ width: '100%', height: CORK_TILE_HEIGHT }}
             contentFit="cover"
           />
@@ -46,37 +55,26 @@ function ScrollingCorkBackground({ scrollY }: { scrollY?: SharedValue<number> })
           left: 0,
           right: 0,
           bottom: 0,
-          backgroundColor: 'rgba(247,245,241,0.45)',
+          backgroundColor: 'rgba(247,245,241,0.08)',
         }}
       />
     </View>
   );
 }
 
-// Una textura detras del palette sand, haciendo de fondo de mural/taller
-// (se elige en Perfil > Personalizacion). Con tinte suave del tono sand
-// para que las tarjetas flotantes y el texto sigan legibles sin aplanar
-// la textura en un lavado blanco.
+// El tablero de corcho detras de toda la app, apenas aclarado. El texto
+// nunca va directo sobre el: siempre sobre papel o vidrio.
 export function AppBackground({ scrollY }: { scrollY?: SharedValue<number> }) {
-  const backgroundId = useBackgroundStore((state) => state.backgroundId);
+  return <ScrollingCorkBackground scrollY={scrollY} />;
+}
 
-  if (backgroundId === 'corcho') {
-    return <ScrollingCorkBackground scrollY={scrollY} />;
-  }
-
-  return (
-    <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
-      <Image source={backgroundSource(backgroundId, 1200)} style={{ flex: 1 }} contentFit="cover" />
-      <View
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(247,245,241,0.45)',
-        }}
-      />
-    </View>
-  );
+// Conecta el scroll de una pantalla con el corcho: onScroll va a un
+// Animated.ScrollView (con scrollEventThrottle={16}) y scrollY a
+// AppBackground. Corre en el hilo de UI, asi que el fondo no se atrasa.
+export function useCorkScroll() {
+  const scrollY = useSharedValue(0);
+  const onScroll = useAnimatedScrollHandler((event) => {
+    scrollY.value = event.contentOffset.y;
+  });
+  return { scrollY, onScroll };
 }

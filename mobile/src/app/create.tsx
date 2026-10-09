@@ -5,15 +5,38 @@ import { useState } from 'react';
 import { Image, Pressable, ScrollView, Switch, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { usePostsStore } from '@/stores/posts-store';
+import { useProfileStore } from '@/stores/profile-store';
 import { colors } from '@/theme';
 
 const CATEGORIES = ['Dibujantes', 'Músicos', 'Pintores', 'Artesanos', 'Escultores'];
 
 export default function CrearScreen() {
+  const addPost = usePostsStore((state) => state.addPost);
+  const profile = useProfileStore((state) => state.profile);
   const [image, setImage] = useState<string | null>(null);
   const [caption, setCaption] = useState('');
   const [category, setCategory] = useState('Dibujantes');
   const [openToCommissions, setOpenToCommissions] = useState(true);
+
+  const canPublish = image !== null;
+
+  const publish = () => {
+    if (!canPublish || !image) return;
+    addPost({
+      name: profile.name,
+      initial: profile.initial,
+      color: profile.color,
+      role: profile.role,
+      place: profile.place,
+      time: 'ahora',
+      image,
+      caption: caption.trim(),
+      tags: [category.toLowerCase()],
+      acceptsCommissions: openToCommissions,
+    });
+    router.back();
+  };
 
   const pickFromLibrary = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -37,7 +60,10 @@ export default function CrearScreen() {
             <Text className="text-base text-stone-800">Cancelar</Text>
           </Pressable>
           <Text className="text-base font-semibold text-ink">Nueva obra</Text>
-          <Pressable className="rounded-full bg-accent px-4 py-2">
+          <Pressable
+            onPress={publish}
+            disabled={!canPublish}
+            className={canPublish ? 'rounded-full bg-accent px-4 py-2' : 'rounded-full bg-accent/40 px-4 py-2'}>
             <Text className="text-sm font-semibold text-sand-50">Publicar</Text>
           </Pressable>
         </View>
@@ -51,16 +77,13 @@ export default function CrearScreen() {
             <View className="items-center gap-3 rounded-2xl border border-dashed border-stone-500 bg-sand-50 px-6 py-10">
               <Ionicons name="image-outline" size={28} color={colors.stone[700]} />
               <Text className="text-base font-semibold text-ink">Muestra tu creatividad</Text>
-              <Text className="text-sm text-stone-700">Imagen, audio o video</Text>
+              <Text className="text-sm text-stone-700">Subí una foto de tu obra</Text>
               <View className="flex-row gap-2">
                 <Pressable onPress={pickFromLibrary} className="rounded-full bg-sand-200 px-4 py-2">
                   <Text className="text-sm font-medium text-ink">Galería</Text>
                 </Pressable>
                 <Pressable onPress={pickFromCamera} className="rounded-full bg-sand-200 px-4 py-2">
                   <Text className="text-sm font-medium text-ink">Cámara</Text>
-                </Pressable>
-                <Pressable className="rounded-full bg-sand-200 px-4 py-2">
-                  <Text className="text-sm font-medium text-ink">Audio</Text>
                 </Pressable>
               </View>
             </View>
