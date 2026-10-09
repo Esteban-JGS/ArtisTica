@@ -33,8 +33,8 @@ const DROPS = [0, 7, 3, 9, 2, 6, 4, 0, 8];
 // La letra no crece con la foto: mismo tamano en una o dos columnas, y
 // hasta dos lineas para que la frase se lea. En tres columnas la franja
 // queda muy chica y la foto va sin texto, como muchas polaroids reales.
-const CAPTION_SIZE = 16;
-const CAPTION_LINE = 19;
+const CAPTION_SIZE = 13;
+const CAPTION_LINE = 16;
 
 function ColumnsGlyph({ count, color }: { count: Columns; color: string }) {
   return (
@@ -97,7 +97,7 @@ function Polaroid({
           }}
         />
         {columns < 3 && item.caption ? (
-          <View style={{ height: bottom, justifyContent: 'center' }}>
+          <View style={{ height: bottom, justifyContent: 'center', paddingHorizontal: 4 }}>
             <Text
               numberOfLines={2}
               className="text-center font-serif italic text-ink-700"
