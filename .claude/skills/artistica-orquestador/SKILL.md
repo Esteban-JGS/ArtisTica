@@ -81,7 +81,7 @@ El stack no se cambia. Estas reglas son invariantes; ningún prompt puede pedir 
 | Custodia | La pasarela custodia el dinero. ArtísTica **no** administra fondos de terceros. No existe saldo propio, retención propia ni payouts desde fondos nuestros |
 | Ledger | Registro y conciliación de pedidos, cobros y liquidaciones. **Nunca** una columna de saldo mutable |
 | Atomicidad | El estado del pedido y el estado del cobro cambian en la misma transacción de base de datos |
-| Orden de bloqueos | El perfil se bloquea antes que la obra, el servicio, la consulta o el pedido, y la consulta antes que el pedido (D18, D21). Al revés, dos transacciones se traban |
+| Orden de bloqueos | Perfil, después pedido, después consulta, después obra o servicio (D18, D21). Al revés, dos transacciones se traban |
 | Capas | `src/domain/` no importa SQLAlchemy ni FastAPI; `src/services/` no importa `src/api/` |
 | Idempotencia | Todo webhook de pago se procesa una sola vez aunque llegue repetido |
 | Chat | Toda conversación cliente-artista pertenece a una consulta. Entre artistas, mensajes libres. Público con público, no existe |
@@ -142,11 +142,11 @@ Consecuencia: las respuestas pendientes de la pasarela cambian configuración o,
 
 ---
 
-## 4. Estado real del repositorio (8 de octubre de 2026)
+## 4. Estado real del repositorio (8 de octubre de 2026, lote 8)
 
 El detalle vive en `orquestacion/BITACORA.md` (estado de lotes, deuda, pendientes) y en la sección 5 de `docs/ArtisTica_Documentacion_Oficial.md`. Esta es la foto para orientarse.
 
-**Backend:** unos 80 módulos y 10,400 líneas en `backend/src`, 366 pruebas contra un Postgres real, 8 migraciones encadenadas (cabeza `c2d3e4f5a6b7`), lint con 29 familias de reglas de Ruff. El CI corre además `.github/scripts/reglas-del-repositorio.sh` (commits sin coautores ni menciones, archivos sin guiones largos ni medios) y sube y baja la última migración con `alembic check`.
+**Backend:** unos 80 módulos y 10,400 líneas en `backend/src`, 389 pruebas contra un Postgres real, 8 migraciones encadenadas (cabeza `c2d3e4f5a6b7`), lint con 29 familias de reglas de Ruff. El CI corre además `.github/scripts/reglas-del-repositorio.sh` (commits sin coautores ni menciones, archivos sin guiones largos ni medios) y sube y baja la última migración con `alembic check`.
 
 | Capa | Qué hay |
 |---|---|
@@ -183,7 +183,9 @@ El detalle vive en `orquestacion/BITACORA.md` (estado de lotes, deuda, pendiente
 | 6c | Comentarios con respuestas, me gusta en comentarios y búsqueda | 6b | No | Medio |
 | 6d | Mejoras chicas: índices, Sentry y controles en el CI (DT22, P10) | 6c | No | Bajo |
 | 7 | Consultas y chat | 6d | No | Medio |
-| 8 | Endpoints de pedidos y cobros | 2, 3, 7 | No | Medio alto |
+| 8 | Contrato de pagos con 3DS (D23, D24) | 3, 7 | No | Alto |
+| 8b | Endpoints de pedidos y cobros | 2, 8 | No | Alto |
+| 8c | Entregables privados y resolución de disputas | 8b | No | Medio |
 | 9 | Webhooks idempotentes y vigilancia de autorizaciones | 3, 8 | No | Alto |
 | 10 | Métricas: `post_views` y panel | 1, 6 | Sí, con 11 | Medio |
 | 11 | Moderación, reportes y jobs del worker (miniaturas y clasificación) | 1, 5 | Sí, con 10 | Medio |
