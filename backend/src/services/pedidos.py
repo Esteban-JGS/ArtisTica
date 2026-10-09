@@ -133,6 +133,13 @@ def cobro_de_tipo(cobros: Sequence[Cobro], tipo: TipoCobro) -> Cobro:
     return _cobro(cobros, tipo)
 
 
+def esperando_autenticacion(cobro: Cobro) -> bool:
+    """Un intento del cobro espera que el cliente se autentique en el banco."""
+    return (
+        cobro.estado is EstadoCobro.PENDIENTE and cobro.referencia_pasarela is not None
+    )
+
+
 # Intentos de un cobro. Quien llama ya bloqueo el pedido.
 
 

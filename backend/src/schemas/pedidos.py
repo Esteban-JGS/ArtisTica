@@ -18,7 +18,7 @@ from src.schemas.catalogo import Monto
 from src.schemas.medios import ImagenPublica
 from src.schemas.social import PerfilResumido
 from src.services.contratacion import Resultado, ResultadoPago
-from src.services.pedidos import PedidoDetalle, VistaPrevia
+from src.services.pedidos import PedidoDetalle, VistaPrevia, esperando_autenticacion
 from src.storage import Almacenamiento
 
 Texto2000 = Annotated[
@@ -111,8 +111,7 @@ class CobroRespuesta(BaseModel):
             monto_reembolsado=cobro.monto_reembolsado,
             autorizado_hasta=cobro.autorizado_hasta,
             capturado_en=cobro.capturado_en,
-            esperando_autenticacion=cobro.estado is EstadoCobro.PENDIENTE
-            and cobro.referencia_pasarela is not None,
+            esperando_autenticacion=esperando_autenticacion(cobro),
         )
 
 
