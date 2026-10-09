@@ -5,7 +5,12 @@ import uuid
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import (
+    AsyncConnection,
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
 
 from src.api.deps import (
     get_almacenamiento,
@@ -53,28 +58,50 @@ async def async_client():
 
 
 @pytest_asyncio.fixture
-async def sesion_api(test_db) -> AsyncSession:
-    """Sesion que comparten la prueba y los handlers. Los commit de los handlers
-    liberan savepoints: al final todo se deshace con el rollback externo."""
+async def conexion_prueba(test_db) -> AsyncConnection:
+    """Una conexion con una transaccion externa que se deshace al final. La
+    comparten `sesion_api` y `sesiones_prueba`."""
     async with test_db.connect() as conexion:
         transaccion = await conexion.begin()
-        session = AsyncSession(
-            bind=conexion,
-            expire_on_commit=False,
-            autoflush=False,
-            join_transaction_mode="create_savepoint",
-        )
-
-        async def _get_db():
-            yield session
-
-        app.dependency_overrides[get_db] = _get_db
         try:
-            yield session
+            yield conexion
         finally:
-            app.dependency_overrides.pop(get_db, None)
-            await session.close()
             await transaccion.rollback()
+
+
+@pytest_asyncio.fixture
+async def sesion_api(conexion_prueba) -> AsyncSession:
+    """Sesion que comparten la prueba y los handlers. Los commit de los handlers
+    liberan savepoints: al final todo se deshace con el rollback externo."""
+    session = AsyncSession(
+        bind=conexion_prueba,
+        expire_on_commit=False,
+        autoflush=False,
+        join_transaction_mode="create_savepoint",
+    )
+
+    async def _get_db():
+        yield session
+
+    app.dependency_overrides[get_db] = _get_db
+    try:
+        yield session
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+        await session.close()
+
+
+@pytest.fixture
+def sesiones_prueba(conexion_prueba) -> async_sessionmaker[AsyncSession]:
+    """Fabrica de sesiones para el barrido y el worker, sobre la misma conexion
+    que `sesion_api`: ven lo que creo la API y sus commit liberan savepoints."""
+    return async_sessionmaker(
+        bind=conexion_prueba,
+        class_=AsyncSession,
+        expire_on_commit=False,
+        autoflush=False,
+        join_transaction_mode="create_savepoint",
+    )
 
 
 @pytest.fixture

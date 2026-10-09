@@ -43,6 +43,8 @@ POLITICAS = PoliticasPedido(
     tarifa_taller_porcentaje=Decimal("8"),
     tarifa_estudio_porcentaje=Decimal("5"),
     vigencia_autorizacion_supuesta=timedelta(days=5),
+    plazo_reautorizacion_saldo=timedelta(days=7),
+    abandono_3ds=timedelta(minutes=30),
 )
 
 
@@ -416,3 +418,118 @@ def test_transiciones_de_cobro():
         d.validar_transicion_cobro(EstadoCobro.PENDIENTE, EstadoCobro.REEMBOLSADO)
     with pytest.raises(InvalidStateTransition):
         d.validar_transicion_cobro(EstadoCobro.REEMBOLSADO, EstadoCobro.CAPTURADO)
+
+
+# Lote 9. Vencimientos
+
+LIMITE = AHORA + timedelta(days=7)
+
+
+def test_9_cobro_vencido_solo_vuelve_a_pendiente():
+    d.validar_transicion_cobro(EstadoCobro.VENCIDO, EstadoCobro.PENDIENTE)
+    for hacia in (EstadoCobro.AUTORIZADO, EstadoCobro.CAPTURADO, EstadoCobro.CANCELADO):
+        with pytest.raises(InvalidStateTransition):
+            d.validar_transicion_cobro(EstadoCobro.VENCIDO, hacia)
+
+
+def test_9_limite_de_reautorizacion_desde_el_vencimiento():
+    assert d.limite_reautorizacion(AHORA, POLITICAS) == LIMITE
+
+
+@pytest.mark.parametrize("estado_saldo", [EstadoCobro.VENCIDO, EstadoCobro.PENDIENTE])
+def test_9_reautorizacion_admitida_hasta_el_limite(estado_saldo):
+    antes = LIMITE - timedelta(microseconds=1)
+    d.validar_reautorizacion(
+        E.VISTA_PREVIA_ENTREGADA, estado_saldo, AHORA, antes, POLITICAS
+    )
+    with pytest.raises(FueraDePlazo):
+        d.validar_reautorizacion(
+            E.VISTA_PREVIA_ENTREGADA, estado_saldo, AHORA, LIMITE, POLITICAS
+        )
+
+
+@pytest.mark.parametrize(
+    ("estado_pedido", "estado_saldo", "autorizado_hasta"),
+    [
+        (E.VISTA_PREVIA_ENTREGADA, EstadoCobro.AUTORIZADO, AHORA),
+        (E.VISTA_PREVIA_ENTREGADA, EstadoCobro.CAPTURADO, AHORA),
+        (E.VISTA_PREVIA_ENTREGADA, EstadoCobro.CANCELADO, AHORA),
+        (E.VISTA_PREVIA_ENTREGADA, EstadoCobro.PENDIENTE, None),
+        (E.EN_PROCESO, EstadoCobro.VENCIDO, AHORA),
+        (E.SALDO_PAGADO, EstadoCobro.VENCIDO, AHORA),
+    ],
+)
+def test_9_reautorizacion_rechaza_otros_casos(
+    estado_pedido, estado_saldo, autorizado_hasta
+):
+    with pytest.raises(InvalidStateTransition):
+        d.validar_reautorizacion(
+            estado_pedido, estado_saldo, autorizado_hasta, AHORA, POLITICAS
+        )
+
+
+def test_9_saldo_de_evento_solo_antes_de_su_fecha():
+    d.validar_saldo_evento_a_tiempo(AHORA + timedelta(microseconds=1), AHORA)
+    for fecha in (AHORA, AHORA - timedelta(days=1), None):
+        with pytest.raises(FueraDePlazo):
+            d.validar_saldo_evento_a_tiempo(fecha, AHORA)
+
+
+@pytest.mark.parametrize("estado_saldo", [EstadoCobro.VENCIDO, EstadoCobro.PENDIENTE])
+def test_9_vencimiento_de_encargo_conserva_el_anticipo(estado_saldo):
+    anticipo, saldo = _encargo_con_anticipo(estado_saldo)
+    plan = d.planear_vencimiento(T.ENCARGO, E.VISTA_PREVIA_ENTREGADA, [anticipo, saldo])
+    assert plan.de(anticipo.id).accion is Accion.CONSERVAR
+    if estado_saldo is EstadoCobro.VENCIDO:
+        assert plan.de(saldo.id) is None
+    else:
+        assert plan.de(saldo.id).accion is Accion.CANCELAR
+    assert plan.reembolsos == {}
+    assert plan.liberaciones == frozenset()
+
+
+def test_9_vencimiento_de_evento_conserva_el_anticipo_y_anula_el_saldo():
+    anticipo, saldo = _encargo_con_anticipo(EstadoCobro.PENDIENTE)
+    plan = d.planear_vencimiento(T.EVENTO, E.ANTICIPO_PAGADO, [anticipo, saldo])
+    assert plan.de(anticipo.id).accion is Accion.CONSERVAR
+    assert plan.de(saldo.id).accion is Accion.CANCELAR
+    assert plan.reembolsos == {}
+
+
+def test_9_vencimiento_de_obra_con_el_total_vencido_no_mueve_dinero():
+    total = CobroFalso(TipoCobro.TOTAL, EstadoCobro.VENCIDO, Decimal("15000.00"))
+    plan = d.planear_vencimiento(T.OBRA_DISPONIBLE, E.EN_PROCESO, [total])
+    assert plan.acciones == ()
+
+
+@pytest.mark.parametrize(
+    ("tipo", "estado"),
+    [
+        (T.ENCARGO, E.EN_PROCESO),
+        (T.ENCARGO, E.ANTICIPO_PAGADO),
+        (T.ENCARGO, E.COTIZADO),
+        (T.EVENTO, E.SALDO_PAGADO),
+        (T.OBRA_DISPONIBLE, E.COTIZADO),
+        (T.ENCARGO, E.CANCELADO),
+    ],
+)
+def test_9_vencimiento_rechaza_estados_no_admitidos(tipo, estado):
+    anticipo, saldo = _encargo_con_anticipo(EstadoCobro.VENCIDO)
+    with pytest.raises(InvalidStateTransition):
+        d.planear_vencimiento(tipo, estado, [anticipo, saldo])
+
+
+def test_9_politicas_de_vencimiento_desde_config_y_positivas():
+    config = Settings(
+        DATABASE_URL="postgresql+psycopg://u:p@h:5432/d",
+        ALEMBIC_DATABASE_URL="postgresql+psycopg://u:p@h:5432/d",
+        SUPABASE_URL="https://x.supabase.co",
+        DIAS_REAUTORIZACION_SALDO=3,
+        MINUTOS_ABANDONO_3DS=45,
+    )
+    politicas = PoliticasPedido.desde_config(config)
+    assert politicas.plazo_reautorizacion_saldo == timedelta(days=3)
+    assert politicas.abandono_3ds == timedelta(minutes=45)
+    for campo in ("plazo_reautorizacion_saldo", "abandono_3ds"):
+        with pytest.raises(ValueError, match="positivo"):
+            replace(POLITICAS, **{campo: timedelta(0)})

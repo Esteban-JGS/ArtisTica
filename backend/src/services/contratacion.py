@@ -18,6 +18,7 @@ almacenamiento, los buckets y la vigencia de la descarga.
 """
 
 import enum
+import logging
 import uuid
 from collections.abc import Mapping
 from dataclasses import dataclass, field
@@ -62,11 +63,17 @@ from src.payments.contrato import (
     PasarelaDePagos,
     SolicitudCobro,
 )
-from src.payments.errores import AutorizacionVencida, PagoRechazado
+from src.payments.errores import (
+    AutorizacionVencida,
+    OperacionNoSoportada,
+    PagoRechazado,
+)
 from src.services import medios, pedidos
 from src.services.pedidos import PedidoDetalle
 from src.services.perfiles import bloquear_perfil, exigir_cobro_habilitado
 from src.storage.contrato import Almacenamiento, DescargaFirmada, SubidaFirmada
+
+logger = logging.getLogger(__name__)
 
 MENSAJE_RECHAZO = "La pasarela rechazo el pago. Proba con otra tarjeta"
 MENSAJE_AUTENTICACION = (
@@ -125,15 +132,28 @@ _EN_CURSO = frozenset(
     }
 )
 _SIN_DINERO = frozenset({EstadoCobroPasarela.FALLIDO, EstadoCobroPasarela.LIBERADO})
+# El cliente todavia no termino el 3DS
+_EN_ESPERA = frozenset(
+    {EstadoCobroPasarela.REQUIERE_ACCION, EstadoCobroPasarela.PENDIENTE}
+)
 
 
 @dataclass(frozen=True)
-class _Contexto:
+class _Entorno:
+    """Lo necesario para mover dinero y registrarlo. Lo usa tambien el barrido,
+    que no actua por ningun usuario."""
+
     session: AsyncSession
     pasarela: PasarelaDePagos
-    usuario: Profile
     ahora: datetime
     politicas: PoliticasPedido
+
+
+@dataclass(frozen=True)
+class _Contexto(_Entorno):
+    """Una operacion de la API: el usuario arma la respuesta que ve."""
+
+    usuario: Profile
 
 
 # Claves de idempotencia
@@ -172,7 +192,7 @@ async def _visible(ctx: _Contexto, pedido_id: uuid.UUID, *roles: Rol) -> Pedido:
     return pedido
 
 
-async def _bloquear(ctx: _Contexto, pedido: Pedido) -> tuple[Profile, Pedido]:
+async def _bloquear(ctx: _Entorno, pedido: Pedido) -> tuple[Profile, Pedido]:
     artista = await bloquear_perfil(ctx.session, pedido.artista_id)
     return artista, await pedidos.bloquear_pedido(ctx.session, pedido.id)
 
@@ -240,7 +260,7 @@ def _operacion(pedido: Pedido, cobro: Cobro) -> Operacion:
 
 
 async def _registrar(
-    ctx: _Contexto,
+    ctx: _Entorno,
     pedido: Pedido,
     cobro: Cobro,
     *,
@@ -290,22 +310,24 @@ def _exigir_coherencia(cobro: Cobro, monto: Decimal, *, estado_esperado: bool) -
 # Intentos de cobro
 
 
-async def _seguir_intento(
-    ctx: _Contexto, pedido: Pedido, cobro: Cobro
-) -> ResultadoPago | None:
-    """El intento que espera el 3DS, segun `consultar_cobro`. None si termino
-    sin dinero: el cobro queda listo para un intento nuevo."""
+async def _resolver_intento(
+    ctx: _Entorno, pedido: Pedido, cobro: Cobro
+) -> ConsultaCobro:
+    """Consulta el intento que espera el 3DS y registra lo que la pasarela
+    confirma. Devuelve la foto de la pasarela:
+
+    - requiere_accion o pendiente: sigue en espera, no se toca nada;
+    - fallido o liberado: termino sin dinero y el cobro queda listo para otro
+      intento;
+    - cualquier otro: se registro como lo habria hecho el pago directo.
+    """
     operacion = _operacion(pedido, cobro)
     foto = await ctx.pasarela.consultar_cobro(cobro.referencia_pasarela)
-    if foto.estado is EstadoCobroPasarela.REQUIERE_ACCION:
-        return await _resultado(
-            ctx, pedido, cobro, Resultado.REQUIERE_ACCION, url=foto.url_autenticacion
-        )
-    if foto.estado is EstadoCobroPasarela.PENDIENTE:
-        return await _resultado(ctx, pedido, cobro, Resultado.PENDIENTE)
+    if foto.estado in _EN_ESPERA:
+        return foto
     if foto.estado in _SIN_DINERO:
         await pedidos.descartar_intento(ctx.session, cobro=cobro)
-        return None
+        return foto
     _exigir_coherencia(
         cobro,
         foto.monto,
@@ -318,6 +340,30 @@ async def _seguir_intento(
         referencia=foto.referencia,
         autorizado_hasta=foto.autorizado_hasta,
     )
+    return foto
+
+
+async def _en_espera(
+    ctx: _Contexto, pedido: Pedido, cobro: Cobro, url: str | None
+) -> ResultadoPago:
+    """Sin url no hay nada que abrir: la app solo puede volver a verificar."""
+    if url is None:
+        return await _resultado(ctx, pedido, cobro, Resultado.PENDIENTE)
+    return await _resultado(ctx, pedido, cobro, Resultado.REQUIERE_ACCION, url=url)
+
+
+async def _seguir_intento(
+    ctx: _Contexto, pedido: Pedido, cobro: Cobro
+) -> ResultadoPago | None:
+    """El intento que espera el 3DS, segun `consultar_cobro`. None si termino
+    sin dinero: el cobro queda listo para un intento nuevo."""
+    foto = await _resolver_intento(ctx, pedido, cobro)
+    if foto.estado in _SIN_DINERO:
+        return None
+    if foto.estado is EstadoCobroPasarela.REQUIERE_ACCION:
+        return await _en_espera(ctx, pedido, cobro, foto.url_autenticacion)
+    if foto.estado is EstadoCobroPasarela.PENDIENTE:
+        return await _resultado(ctx, pedido, cobro, Resultado.PENDIENTE)
     return await _resultado(ctx, pedido, cobro, Resultado.COMPLETADO)
 
 
@@ -367,13 +413,7 @@ async def _iniciar_cobro(
         await pedidos.registrar_intento_en_espera(
             ctx.session, cobro=cobro, referencia_pasarela=resultado.referencia
         )
-        return await _resultado(
-            ctx,
-            pedido,
-            cobro,
-            Resultado.REQUIERE_ACCION,
-            url=resultado.url_autenticacion,
-        )
+        return await _en_espera(ctx, pedido, cobro, resultado.url_autenticacion)
     _exigir_coherencia(
         cobro,
         resultado.monto,
@@ -390,7 +430,7 @@ async def _iniciar_cobro(
 
 
 async def _capturar(
-    ctx: _Contexto, artista: Profile, pedido: Pedido, cobro: Cobro, vencida: str
+    ctx: _Entorno, artista: Profile, pedido: Pedido, cobro: Cobro, vencida: str
 ) -> str:
     """Captura lo autorizado. Devuelve la referencia para registrar."""
     referencia = cobro.referencia_pasarela
@@ -402,7 +442,7 @@ async def _capturar(
             referencia, clave_idempotencia=_clave_captura(cobro)
         )
     except AutorizacionVencida as exc:
-        # Reautorizar es el lote 9
+        # El barrido la marca vencida y el cliente puede volver a autorizarla
         raise FueraDePlazo(vencida) from exc
     _exigir_coherencia(
         cobro,
@@ -412,7 +452,7 @@ async def _capturar(
     return referencia
 
 
-async def _soltar_intentos_en_espera(ctx: _Contexto, cobros: list[Cobro]) -> None:
+async def _soltar_intentos_en_espera(ctx: _Entorno, cobros: list[Cobro]) -> None:
     """Libera en la pasarela los intentos pendientes de 3DS de un pedido que se
     cierra. Si alguno ya cobro, falla antes de liberar nada."""
     en_espera = [
@@ -517,7 +557,7 @@ async def rechazar(
     politicas: PoliticasPedido,
 ) -> PedidoDetalle:
     """El cliente rechaza o el artista retira la cotizacion."""
-    ctx = _Contexto(session, pasarela, usuario, ahora, politicas)
+    ctx = _Contexto(session, pasarela, ahora, politicas, usuario)
     visto = await _visible(ctx, pedido_id, Rol.CLIENTE, Rol.ARTISTA)
     _, pedido = await _bloquear(ctx, visto)
     dominio.validar_transicion(pedido.tipo, pedido.estado, EstadoPedido.RECHAZADO)
@@ -544,7 +584,7 @@ async def pagar_anticipo(
     politicas: PoliticasPedido,
     url_retorno: str,
 ) -> ResultadoPago:
-    ctx = _Contexto(session, pasarela, usuario, ahora, politicas)
+    ctx = _Contexto(session, pasarela, ahora, politicas, usuario)
     visto = await _visible(ctx, pedido_id, Rol.CLIENTE)
     artista, pedido = await _bloquear(ctx, visto)
     dominio.validar_transicion(pedido.tipo, pedido.estado, EstadoPedido.ANTICIPO_PAGADO)
@@ -671,25 +711,34 @@ async def pagar_saldo(
     politicas: PoliticasPedido,
     url_retorno: str,
 ) -> ResultadoPago:
-    """Encargo: autoriza el saldo al ver la vista previa. Evento: lo cobra."""
-    ctx = _Contexto(session, pasarela, usuario, ahora, politicas)
+    """Encargo: autoriza el saldo al ver la vista previa, o lo vuelve a
+    autorizar si vencio. Evento: lo cobra antes de su fecha."""
+    ctx = _Contexto(session, pasarela, ahora, politicas, usuario)
     visto = await _visible(ctx, pedido_id, Rol.CLIENTE)
     artista, pedido = await _bloquear(ctx, visto)
-    if pedido.tipo is TipoPedido.ENCARGO:
+    if pedido.tipo is TipoPedido.OBRA_DISPONIBLE:
+        raise InvalidStateTransition("Una obra disponible no tiene saldo")
+    cobros = await pedidos.cobros_del_pedido(session, pedido.id)
+    saldo = pedidos.cobro_de_tipo(cobros, TipoCobro.SALDO)
+    if pedido.tipo is TipoPedido.EVENTO:
+        dominio.validar_transicion(
+            pedido.tipo, pedido.estado, EstadoPedido.SALDO_PAGADO
+        )
+        dominio.validar_saldo_evento_a_tiempo(pedido.fecha_evento, ahora)
+        hacia = EstadoCobro.CAPTURADO
+    elif pedido.estado is EstadoPedido.VISTA_PREVIA_ENTREGADA:
+        dominio.validar_reautorizacion(
+            pedido.estado, saldo.estado, saldo.autorizado_hasta, ahora, politicas
+        )
+        if saldo.estado is EstadoCobro.VENCIDO:
+            await pedidos.reabrir_saldo_vencido(session, cobro=saldo)
+        hacia = EstadoCobro.AUTORIZADO
+    else:
         dominio.validar_transicion(
             pedido.tipo, pedido.estado, EstadoPedido.VISTA_PREVIA_ENTREGADA
         )
         await pedidos.exigir_vista_previa(session, pedido.id)
         hacia = EstadoCobro.AUTORIZADO
-    elif pedido.tipo is TipoPedido.EVENTO:
-        dominio.validar_transicion(
-            pedido.tipo, pedido.estado, EstadoPedido.SALDO_PAGADO
-        )
-        hacia = EstadoCobro.CAPTURADO
-    else:
-        raise InvalidStateTransition("Una obra disponible no tiene saldo")
-    cobros = await pedidos.cobros_del_pedido(session, pedido.id)
-    saldo = pedidos.cobro_de_tipo(cobros, TipoCobro.SALDO)
     dominio.validar_transicion_cobro(saldo.estado, hacia)
     return await _iniciar_cobro(
         ctx, artista, pedido, saldo, metodo_pago_id, url_retorno
@@ -706,7 +755,7 @@ async def aprobar(
     politicas: PoliticasPedido,
 ) -> PedidoDetalle:
     """El cliente aprueba la vista previa: se captura el saldo autorizado."""
-    ctx = _Contexto(session, pasarela, usuario, ahora, politicas)
+    ctx = _Contexto(session, pasarela, ahora, politicas, usuario)
     visto = await _visible(ctx, pedido_id, Rol.CLIENTE)
     artista, pedido = await _bloquear(ctx, visto)
     if pedido.tipo is not TipoPedido.ENCARGO:
@@ -748,7 +797,7 @@ async def la_quiero(
     Si la pasarela rechaza, el resultado no trae pedido y quien llama no
     confirma: no queda nada y la obra sigue libre.
     """
-    ctx = _Contexto(session, pasarela, usuario, ahora, politicas)
+    ctx = _Contexto(session, pasarela, ahora, politicas, usuario)
     stmt = select(Obra).where(Obra.id == obra_id, Obra.deleted_at.is_(None))
     obra = (await session.execute(stmt)).scalar_one_or_none()
     if obra is None:
@@ -784,7 +833,7 @@ async def despachar(
     politicas: PoliticasPedido,
 ) -> PedidoDetalle:
     """El artista despacha con numero de guia: se captura el total."""
-    ctx = _Contexto(session, pasarela, usuario, ahora, politicas)
+    ctx = _Contexto(session, pasarela, ahora, politicas, usuario)
     visto = await _visible(ctx, pedido_id, Rol.ARTISTA)
     artista, pedido = await _bloquear(ctx, visto)
     if pedido.tipo is not TipoPedido.OBRA_DISPONIBLE:
@@ -827,7 +876,7 @@ async def cancelar(
     nada. Las claves fijas hacen que el reintento no libere ni reembolse dos
     veces.
     """
-    ctx = _Contexto(session, pasarela, usuario, ahora, politicas)
+    ctx = _Contexto(session, pasarela, ahora, politicas, usuario)
     visto = await _visible(ctx, pedido_id, Rol.CLIENTE, Rol.ARTISTA)
     _, pedido = await _bloquear(ctx, visto)
     rol = _exigir_rol(pedido, usuario, Rol.CLIENTE, Rol.ARTISTA)
@@ -843,32 +892,40 @@ async def cancelar(
 
     # Fuera del plan, que trata al pendiente como CANCELAR sin pasarela
     await _soltar_intentos_en_espera(ctx, cobros)
+    hechos = await _ejecutar_cancelacion(ctx, plan, cobros)
+    await pedidos.cancelar_pedido(
+        session,
+        pedido_id=pedido.id,
+        actor_id=usuario.id,
+        hechos=hechos,
+        ahora=ahora,
+        politicas=politicas,
+    )
+    return await pedidos.detallar_uno(session, pedido, usuario)
+
+
+async def _ejecutar_cancelacion(
+    ctx: _Entorno, plan: dominio.PlanCobros, cobros: list[Cobro]
+) -> HechosPasarela:
+    """Libera y reembolsa en la pasarela lo que pide el plan de cancelacion."""
+    por_id = {c.id: c for c in cobros}
     liberados: set[uuid.UUID] = set()
     reembolsos: dict[uuid.UUID, Decimal] = {}
     for accion in plan.acciones:
         cobro = por_id[accion.cobro_id]
         if accion.accion is Accion.LIBERAR_AUTORIZACION:
-            await pasarela.liberar_autorizacion(
+            await ctx.pasarela.liberar_autorizacion(
                 cobro.referencia_pasarela, clave_idempotencia=_clave_liberacion(cobro)
             )
             liberados.add(cobro.id)
         elif accion.accion is Accion.REEMBOLSAR and accion.monto is not None:
-            await pasarela.reembolsar(
+            await ctx.pasarela.reembolsar(
                 cobro.referencia_pasarela,
                 monto=accion.monto,
                 clave_idempotencia=_clave_reembolso(cobro, accion.monto),
             )
             reembolsos[cobro.id] = accion.monto
-
-    await pedidos.cancelar_pedido(
-        session,
-        pedido_id=pedido.id,
-        actor_id=usuario.id,
-        hechos=HechosPasarela(liberados=frozenset(liberados), reembolsos=reembolsos),
-        ahora=ahora,
-        politicas=politicas,
-    )
-    return await pedidos.detallar_uno(session, pedido, usuario)
+    return HechosPasarela(liberados=frozenset(liberados), reembolsos=reembolsos)
 
 
 async def abrir_disputa(
@@ -922,7 +979,7 @@ async def resolver_disputa(
         raise ReglaDeNegocioViolada("Una disputa se resuelve completada o cancelada")
     if admin.rol is not RolPerfil.ADMIN:
         raise ActorNoAutorizado("Solo moderacion resuelve una disputa")
-    ctx = _Contexto(session, pasarela, admin, ahora, politicas)
+    ctx = _Contexto(session, pasarela, ahora, politicas, admin)
     visto = await pedidos.pedido_existente(session, pedido_id)
     artista, pedido = await _bloquear(ctx, visto)
     disputa = await pedidos.disputa_del_pedido(session, pedido.id)
@@ -996,7 +1053,7 @@ async def verificar_cobro(
     politicas: PoliticasPedido,
 ) -> ResultadoPago:
     """Lo que la app llama al volver del banco. El estado sale de la pasarela."""
-    ctx = _Contexto(session, pasarela, usuario, ahora, politicas)
+    ctx = _Contexto(session, pasarela, ahora, politicas, usuario)
     stmt = (
         select(Pedido)
         .join(Cobro, Cobro.pedido_id == Pedido.id)
@@ -1022,3 +1079,183 @@ async def verificar_cobro(
     return await _resultado(
         ctx, pedido, cobro, Resultado.RECHAZADO, mensaje=MENSAJE_AUTENTICACION
     )
+
+
+# Vencimientos. Las llama el barrido, que no actua por ningun usuario. Cada una
+# bloquea perfil y pedido y vuelve a comprobar su condicion: si ya no aplica,
+# devuelve False sin tocar nada. Asi dos barridos a la vez no hacen nada dos
+# veces. Quien llama confirma.
+
+# Donde un cobro autorizado espera captura
+_CON_AUTORIZACION = frozenset(
+    {
+        (TipoPedido.ENCARGO, EstadoPedido.VISTA_PREVIA_ENTREGADA),
+        (TipoPedido.OBRA_DISPONIBLE, EstadoPedido.EN_PROCESO),
+    }
+)
+
+
+async def _bloquear_para_vencer(
+    ctx: _Entorno, pedido_id: uuid.UUID
+) -> tuple[Pedido, list[Cobro]]:
+    visto = await pedidos.pedido_existente(ctx.session, pedido_id)
+    _, pedido = await _bloquear(ctx, visto)
+    return pedido, await pedidos.cobros_del_pedido(ctx.session, pedido.id)
+
+
+async def _anular_intento(ctx: _Entorno, cobro: Cobro) -> None:
+    """Anula en la pasarela un 3DS que nadie termino. Si no lo permite
+    (pregunta 20 a ONVO), sigue: una autorizacion que nadie captura vence sola."""
+    try:
+        await ctx.pasarela.liberar_autorizacion(
+            cobro.referencia_pasarela, clave_idempotencia=_clave_liberacion(cobro)
+        )
+    except OperacionNoSoportada:
+        logger.warning("La pasarela no anula el 3DS del cobro %s", cobro.id)
+    await pedidos.descartar_intento(ctx.session, cobro=cobro)
+
+
+async def _cerrar_intento(ctx: _Entorno, pedido: Pedido, cobro: Cobro) -> bool:
+    """Antes de vencer o cancelar, el intento que espera el 3DS. True si ya
+    movio dinero: se registro y el pedido no se cancela. Si sigue en curso, se
+    anula."""
+    if not pedidos.esperando_autenticacion(cobro):
+        return False
+    foto = await _resolver_intento(ctx, pedido, cobro)
+    if foto.estado in _EN_ESPERA:
+        await _anular_intento(ctx, cobro)
+        return False
+    return foto.estado not in _SIN_DINERO
+
+
+async def _cancelar_vencido(ctx: _Entorno, pedido: Pedido) -> None:
+    cobros = await pedidos.cobros_del_pedido(ctx.session, pedido.id)
+    plan = dominio.planear_vencimiento(pedido.tipo, pedido.estado, cobros)
+    hechos = await _ejecutar_cancelacion(ctx, plan, cobros)
+    await pedidos.cancelar_por_vencimiento(
+        ctx.session, pedido_id=pedido.id, hechos=hechos, ahora=ctx.ahora
+    )
+
+
+async def soltar_la_quiero_abandonado(
+    session: AsyncSession,
+    pasarela: PasarelaDePagos,
+    pedido_id: uuid.UUID,
+    *,
+    ahora: datetime,
+    politicas: PoliticasPedido,
+) -> bool:
+    """DT25: el 3DS de La quiero quedo sin terminar y la obra sigue tomada."""
+    ctx = _Entorno(session, pasarela, ahora, politicas)
+    pedido, cobros = await _bloquear_para_vencer(ctx, pedido_id)
+    if (
+        pedido.tipo is not TipoPedido.OBRA_DISPONIBLE
+        or pedido.estado is not EstadoPedido.COTIZADO
+        or pedido.created_at > ahora - politicas.abandono_3ds
+    ):
+        return False
+    total = pedidos.cobro_de_tipo(cobros, TipoCobro.TOTAL)
+    if not pedidos.esperando_autenticacion(total):
+        return False
+    if await _cerrar_intento(ctx, pedido, total):
+        return True
+    await pedidos.rechazar_pedido(session, pedido_id=pedido.id)
+    return True
+
+
+async def vencer_autorizacion(
+    session: AsyncSession,
+    pasarela: PasarelaDePagos,
+    pedido_id: uuid.UUID,
+    *,
+    ahora: datetime,
+    politicas: PoliticasPedido,
+) -> bool:
+    """La autorizacion vencida se libera si la pasarela todavia la retiene, asi
+    el cliente no queda con dos retenciones al volver a autorizar. La obra
+    disponible se cancela: no hay nada capturado que devolver."""
+    ctx = _Entorno(session, pasarela, ahora, politicas)
+    pedido, cobros = await _bloquear_para_vencer(ctx, pedido_id)
+    if (pedido.tipo, pedido.estado) not in _CON_AUTORIZACION:
+        return False
+    vencidos = [
+        c
+        for c in cobros
+        if c.estado is EstadoCobro.AUTORIZADO
+        and c.autorizado_hasta is not None
+        and c.autorizado_hasta <= ahora
+    ]
+    if not vencidos:
+        return False
+    fotos = [
+        (c, await pasarela.consultar_cobro(c.referencia_pasarela)) for c in vencidos
+    ]
+    if any(f.estado is EstadoCobroPasarela.CAPTURADO for _, f in fotos):
+        raise HechosInconsistentes("La pasarela capturo una autorizacion vencida")
+    for cobro, foto in fotos:
+        if foto.estado in _EN_CURSO:
+            await pasarela.liberar_autorizacion(
+                cobro.referencia_pasarela, clave_idempotencia=_clave_liberacion(cobro)
+            )
+    for cobro in vencidos:
+        await pedidos.registrar_autorizacion_vencida(
+            session, pedido_id=pedido.id, cobro_id=cobro.id, ahora=ahora
+        )
+    if pedido.tipo is TipoPedido.OBRA_DISPONIBLE:
+        await _cancelar_vencido(ctx, pedido)
+    return True
+
+
+async def cerrar_reautorizacion_vencida(
+    session: AsyncSession,
+    pasarela: PasarelaDePagos,
+    pedido_id: uuid.UUID,
+    *,
+    ahora: datetime,
+    politicas: PoliticasPedido,
+) -> bool:
+    """Paso el plazo para volver a autorizar el saldo: se cancela como una
+    cancelacion del cliente despues del anticipo, que queda para el artista."""
+    ctx = _Entorno(session, pasarela, ahora, politicas)
+    pedido, cobros = await _bloquear_para_vencer(ctx, pedido_id)
+    if (
+        pedido.tipo is not TipoPedido.ENCARGO
+        or pedido.estado is not EstadoPedido.VISTA_PREVIA_ENTREGADA
+    ):
+        return False
+    saldo = pedidos.cobro_de_tipo(cobros, TipoCobro.SALDO)
+    if (
+        saldo.estado not in (EstadoCobro.VENCIDO, EstadoCobro.PENDIENTE)
+        or saldo.autorizado_hasta is None
+        or ahora < dominio.limite_reautorizacion(saldo.autorizado_hasta, politicas)
+    ):
+        return False
+    if await _cerrar_intento(ctx, pedido, saldo):
+        return True
+    await _cancelar_vencido(ctx, pedido)
+    return True
+
+
+async def cancelar_evento_impago(
+    session: AsyncSession,
+    pasarela: PasarelaDePagos,
+    pedido_id: uuid.UUID,
+    *,
+    ahora: datetime,
+    politicas: PoliticasPedido,
+) -> bool:
+    """Llego la fecha del evento sin el saldo. El anticipo no se devuelve."""
+    ctx = _Entorno(session, pasarela, ahora, politicas)
+    pedido, cobros = await _bloquear_para_vencer(ctx, pedido_id)
+    if (
+        pedido.tipo is not TipoPedido.EVENTO
+        or pedido.estado is not EstadoPedido.ANTICIPO_PAGADO
+        or pedido.fecha_evento is None
+        or pedido.fecha_evento > ahora
+    ):
+        return False
+    saldo = pedidos.cobro_de_tipo(cobros, TipoCobro.SALDO)
+    if await _cerrar_intento(ctx, pedido, saldo):
+        return True
+    await _cancelar_vencido(ctx, pedido)
+    return True

@@ -27,6 +27,10 @@ class PoliticasPedido:
     tarifa_taller_porcentaje: Decimal
     tarifa_estudio_porcentaje: Decimal
     vigencia_autorizacion_supuesta: timedelta
+    # Desde el vencimiento de la autorizacion del saldo
+    plazo_reautorizacion_saldo: timedelta
+    # Desde la creacion del pedido de La quiero
+    abandono_3ds: timedelta
 
     def __post_init__(self) -> None:
         minimo = self.anticipo_porcentaje_minimo
@@ -52,6 +56,10 @@ class PoliticasPedido:
             raise ValueError(
                 "La vigencia supuesta de la autorizacion debe ser positiva"
             )
+        if self.plazo_reautorizacion_saldo <= timedelta(0):
+            raise ValueError("El plazo de reautorizacion del saldo debe ser positivo")
+        if self.abandono_3ds <= timedelta(0):
+            raise ValueError("El plazo de abandono del 3DS debe ser positivo")
 
     def vencimiento_autorizacion(
         self, informado: datetime | None, ahora: datetime
@@ -85,4 +93,6 @@ class PoliticasPedido:
             vigencia_autorizacion_supuesta=timedelta(
                 days=config.DIAS_VIGENCIA_AUTORIZACION_SUPUESTA
             ),
+            plazo_reautorizacion_saldo=timedelta(days=config.DIAS_REAUTORIZACION_SALDO),
+            abandono_3ds=timedelta(minutes=config.MINUTOS_ABANDONO_3DS),
         )

@@ -110,3 +110,34 @@ def test_6d_03_muestreo_de_trazas_fuera_de_rango_no_carga():
     for valor in (-0.1, 1.5):
         assert "SENTRY_TRACES_SAMPLE_RATE" in _falla(SENTRY_TRACES_SAMPLE_RATE=valor)
     assert _settings().SENTRY_TRACES_SAMPLE_RATE == 0.1
+
+
+# Lote 9. Vencimientos, barrido y worker
+
+
+def test_9_defectos_de_vencimientos():
+    s = _settings()
+    assert s.DIAS_REAUTORIZACION_SALDO == 7
+    assert s.MINUTOS_ABANDONO_3DS == 30
+    assert s.BARRIDO_ACTIVO is True
+    assert s.BARRIDO_INTERVALO_SEGUNDOS == 60
+    assert s.JOB_TIEMPO_MAXIMO_MINUTOS == 15
+
+
+@pytest.mark.parametrize(
+    ("variable", "fuera", "minimo"),
+    [
+        ("DIAS_REAUTORIZACION_SALDO", 0, 1),
+        ("MINUTOS_ABANDONO_3DS", 4, 5),
+        ("BARRIDO_INTERVALO_SEGUNDOS", 9, 10),
+        ("JOB_TIEMPO_MAXIMO_MINUTOS", 0, 1),
+    ],
+)
+def test_9_vencimientos_fuera_de_rango_no_cargan(variable, fuera, minimo):
+    assert variable in _falla(**{variable: fuera})
+    assert getattr(_settings(**{variable: minimo}), variable) == minimo
+
+
+def test_9_el_barrido_se_puede_apagar():
+    assert _settings(BARRIDO_ACTIVO=False).BARRIDO_ACTIVO is False
+    assert "BARRIDO_ACTIVO" in _falla(BARRIDO_ACTIVO="talvez")
