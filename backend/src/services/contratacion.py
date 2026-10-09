@@ -13,6 +13,11 @@ pasarela devuelve el mismo resultado. Nunca se cobra dos veces.
 Un pago con 3DS (D23) se registra solo cuando `consultar_cobro` lo confirma.
 Que el cliente vuelva del banco no prueba nada.
 
+Antes de ejecutar un plan de cierre consulta cada cobro que toca y toma como
+hecho lo que ya este hecho (DT28): un reintento con otro plan nunca mueve
+dinero dos veces. `conciliar_cobro` solo consulta: lo usan los webhooks y el
+barrido.
+
 Tambien controla quien sube y descarga el archivo final: recibe el
 almacenamiento, los buckets y la vigencia de la descarga.
 """
@@ -20,8 +25,8 @@ almacenamiento, los buckets y la vigencia de la descarga.
 import enum
 import logging
 import uuid
-from collections.abc import Mapping
-from dataclasses import dataclass, field
+from collections.abc import Mapping, Sequence
+from dataclasses import dataclass, field, replace
 from datetime import datetime
 from decimal import Decimal
 
@@ -38,7 +43,7 @@ from src.core.exceptions import (
     ResourceNotFound,
 )
 from src.domain import pedidos as dominio
-from src.domain.pedidos import Accion, HechosPasarela, Rol
+from src.domain.pedidos import Accion, AccionCobro, HechosPasarela, Rol
 from src.domain.politicas import PoliticasPedido
 from src.models import (
     Cobro,
@@ -67,6 +72,7 @@ from src.payments.errores import (
     AutorizacionVencida,
     OperacionNoSoportada,
     PagoRechazado,
+    SolicitudInvalida,
 )
 from src.services import medios, pedidos
 from src.services.pedidos import PedidoDetalle
@@ -171,8 +177,11 @@ def _clave_liberacion(cobro: Cobro) -> str:
     return f"liberar-{cobro.id}-{cobro.intentos}"
 
 
-def _clave_reembolso(cobro: Cobro, monto: Decimal) -> str:
-    return f"reembolsar-{cobro.id}-{monto}"
+def _clave_reembolso(cobro: Cobro, hasta: Decimal) -> str:
+    """`hasta` es el total reembolsado en la pasarela al terminar la llamada.
+    Repetir la misma operacion da la misma clave; un plan distinto despues de
+    un reembolso parcial da otra."""
+    return f"reembolsar-{cobro.id}-{dominio.cuantizar(hasta)}"
 
 
 # Permisos y bloqueos
@@ -473,6 +482,137 @@ async def _soltar_intentos_en_espera(ctx: _Entorno, cobros: list[Cobro]) -> None
             await ctx.pasarela.liberar_autorizacion(
                 cobro.referencia_pasarela, clave_idempotencia=_clave_liberacion(cobro)
             )
+
+
+# Planes de cierre (DT28). Primero se consultan todos los cobros que el plan
+# toca y recien despues se mueve dinero: un 409 de aca no deja nada a medias.
+
+_DE_PASARELA = frozenset(
+    {Accion.CAPTURAR, Accion.LIBERAR_AUTORIZACION, Accion.REEMBOLSAR}
+)
+_VENCIDA_EN_DISPUTA = (
+    "La autorizacion vencio: no se puede completar capturando; resolver como "
+    "cancelado o con reembolso"
+)
+_YA_CAPTURADO = (
+    "El {tipo} ya se cobro en la pasarela: resolver como completado o con reembolso"
+)
+
+
+@dataclass(frozen=True)
+class _Paso:
+    """Una accion del plan segun la foto de la pasarela."""
+
+    accion: AccionCobro
+    cobro: Cobro
+    # False: un intento anterior ya lo hizo y no se vuelve a llamar
+    llamar: bool
+    # Solo en un reembolso: lo que se devuelve ahora y el total al terminar
+    monto: Decimal | None = None
+    hasta: Decimal | None = None
+
+
+def _otro_estado(cobro: Cobro) -> HechosInconsistentes:
+    return HechosInconsistentes(f"La pasarela informa otro estado para el {cobro.tipo}")
+
+
+def _paso_reembolso(accion: AccionCobro, cobro: Cobro, foto: ConsultaCobro) -> _Paso:
+    """Lo devuelto en la pasarela y no registrado viene de un intento anterior:
+    se descuenta de lo ordenado."""
+    ordenado = accion.monto
+    informado = foto.monto_reembolsado
+    if informado is None:
+        logger.warning(
+            "No se pudo verificar lo ya reembolsado del cobro %s: la pasarela no "
+            "informa el acumulado",
+            cobro.id,
+        )
+        return _Paso(
+            accion,
+            cobro,
+            llamar=True,
+            monto=ordenado,
+            hasta=cobro.monto_reembolsado + ordenado,
+        )
+    previo = informado - cobro.monto_reembolsado
+    if previo == ordenado:
+        return _Paso(accion, cobro, llamar=False)
+    if previo > ordenado:
+        raise HechosInconsistentes(
+            f"La pasarela ya devolvio del {cobro.tipo} mas de lo ordenado"
+        )
+    if previo < 0:
+        raise _otro_estado(cobro)
+    falta = ordenado - previo
+    return _Paso(accion, cobro, llamar=True, monto=falta, hasta=informado + falta)
+
+
+def _paso(accion: AccionCobro, cobro: Cobro, foto: ConsultaCobro) -> _Paso:
+    estado = foto.estado
+    if accion.accion is Accion.CAPTURAR:
+        if estado is EstadoCobroPasarela.AUTORIZADO:
+            return _Paso(accion, cobro, llamar=True)
+        if (
+            estado is EstadoCobroPasarela.CAPTURADO
+            and foto.monto == cobro.monto
+            and foto.monto_capturado in (None, cobro.monto)
+        ):
+            return _Paso(accion, cobro, llamar=False)
+        if estado in _SIN_DINERO:
+            raise FueraDePlazo(_VENCIDA_EN_DISPUTA)
+    elif accion.accion is Accion.LIBERAR_AUTORIZACION:
+        if estado in _EN_CURSO:
+            return _Paso(accion, cobro, llamar=True)
+        if estado in _SIN_DINERO:
+            return _Paso(accion, cobro, llamar=False)
+        if estado is EstadoCobroPasarela.CAPTURADO:
+            raise InvalidStateTransition(_YA_CAPTURADO.format(tipo=cobro.tipo))
+    elif accion.monto is not None and estado is EstadoCobroPasarela.CAPTURADO:
+        return _paso_reembolso(accion, cobro, foto)
+    raise _otro_estado(cobro)
+
+
+async def _consultar_plan(
+    ctx: _Entorno, acciones: Sequence[AccionCobro], por_id: Mapping[uuid.UUID, Cobro]
+) -> list[_Paso]:
+    """Los pasos de pasarela del plan, en el orden recibido. Solo consulta."""
+    pasos: list[_Paso] = []
+    for accion in acciones:
+        if accion.accion not in _DE_PASARELA:
+            continue
+        cobro = por_id[accion.cobro_id]
+        if cobro.referencia_pasarela is None:
+            raise HechosInconsistentes(f"El {cobro.tipo} no tiene referencia de pago")
+        foto = await ctx.pasarela.consultar_cobro(cobro.referencia_pasarela)
+        pasos.append(_paso(accion, cobro, foto))
+    return pasos
+
+
+async def _liberar_y_reembolsar(
+    ctx: _Entorno, pasos: Sequence[_Paso]
+) -> HechosPasarela:
+    """Ejecuta las liberaciones y los reembolsos. Los hechos son los del plan
+    completo: lo que ya estaba hecho cuenta como hecho."""
+    liberados: set[uuid.UUID] = set()
+    reembolsos: dict[uuid.UUID, Decimal] = {}
+    for paso in pasos:
+        cobro, accion = paso.cobro, paso.accion
+        if accion.accion is Accion.LIBERAR_AUTORIZACION:
+            if paso.llamar:
+                await ctx.pasarela.liberar_autorizacion(
+                    cobro.referencia_pasarela,
+                    clave_idempotencia=_clave_liberacion(cobro),
+                )
+            liberados.add(cobro.id)
+        elif accion.accion is Accion.REEMBOLSAR:
+            if paso.llamar:
+                await ctx.pasarela.reembolsar(
+                    cobro.referencia_pasarela,
+                    monto=paso.monto,
+                    clave_idempotencia=_clave_reembolso(cobro, paso.hasta),
+                )
+            reembolsos[cobro.id] = accion.monto
+    return HechosPasarela(liberados=frozenset(liberados), reembolsos=reembolsos)
 
 
 # Cotizacion
@@ -873,8 +1013,8 @@ async def cancelar(
     """Ejecuta el plan de cancelacion en la pasarela y despues lo registra.
 
     Si una llamada falla a mitad de camino, la excepcion sube y no se registra
-    nada. Las claves fijas hacen que el reintento no libere ni reembolse dos
-    veces.
+    nada. El reintento consulta antes cada cobro (DT28): no libera ni
+    reembolsa dos veces.
     """
     ctx = _Contexto(session, pasarela, ahora, politicas, usuario)
     visto = await _visible(ctx, pedido_id, Rol.CLIENTE, Rol.ARTISTA)
@@ -890,9 +1030,10 @@ async def cancelar(
         if hacia is not None:
             dominio.validar_transicion_cobro(por_id[accion.cobro_id].estado, hacia)
 
+    pasos = await _consultar_plan(ctx, plan.acciones, por_id)
     # Fuera del plan, que trata al pendiente como CANCELAR sin pasarela
     await _soltar_intentos_en_espera(ctx, cobros)
-    hechos = await _ejecutar_cancelacion(ctx, plan, cobros)
+    hechos = await _liberar_y_reembolsar(ctx, pasos)
     await pedidos.cancelar_pedido(
         session,
         pedido_id=pedido.id,
@@ -902,30 +1043,6 @@ async def cancelar(
         politicas=politicas,
     )
     return await pedidos.detallar_uno(session, pedido, usuario)
-
-
-async def _ejecutar_cancelacion(
-    ctx: _Entorno, plan: dominio.PlanCobros, cobros: list[Cobro]
-) -> HechosPasarela:
-    """Libera y reembolsa en la pasarela lo que pide el plan de cancelacion."""
-    por_id = {c.id: c for c in cobros}
-    liberados: set[uuid.UUID] = set()
-    reembolsos: dict[uuid.UUID, Decimal] = {}
-    for accion in plan.acciones:
-        cobro = por_id[accion.cobro_id]
-        if accion.accion is Accion.LIBERAR_AUTORIZACION:
-            await ctx.pasarela.liberar_autorizacion(
-                cobro.referencia_pasarela, clave_idempotencia=_clave_liberacion(cobro)
-            )
-            liberados.add(cobro.id)
-        elif accion.accion is Accion.REEMBOLSAR and accion.monto is not None:
-            await ctx.pasarela.reembolsar(
-                cobro.referencia_pasarela,
-                monto=accion.monto,
-                clave_idempotencia=_clave_reembolso(cobro, accion.monto),
-            )
-            reembolsos[cobro.id] = accion.monto
-    return HechosPasarela(liberados=frozenset(liberados), reembolsos=reembolsos)
 
 
 async def abrir_disputa(
@@ -950,10 +1067,6 @@ _ORDEN_RESOLUCION = (
     Accion.LIBERAR_AUTORIZACION,
     Accion.REEMBOLSAR,
 )
-_VENCIDA_EN_DISPUTA = (
-    "La autorizacion vencio: no se puede completar capturando; resolver como "
-    "cancelado o con reembolso"
-)
 
 
 async def resolver_disputa(
@@ -972,8 +1085,8 @@ async def resolver_disputa(
     lo registra.
 
     Si una llamada falla a mitad de camino, la excepcion sube y no se registra
-    nada. Las claves fijas hacen que el reintento no capture, libere ni
-    reembolse dos veces.
+    nada. El reintento consulta antes cada cobro (DT28): no captura, libera ni
+    reembolsa dos veces, aunque moderacion cambie el plan.
     """
     if destino not in (EstadoPedido.COMPLETADO, EstadoPedido.CANCELADO):
         raise ReglaDeNegocioViolada("Una disputa se resuelve completada o cancelada")
@@ -991,39 +1104,25 @@ async def resolver_disputa(
     )
     por_id = {c.id: c for c in cobros}
     for accion in plan.acciones:
-        cobro = por_id[accion.cobro_id]
         hacia = dominio.ESTADO_TRAS_ACCION[accion.accion]
         if hacia is not None:
-            dominio.validar_transicion_cobro(cobro.estado, hacia)
-        if accion.accion in _ORDEN_RESOLUCION and cobro.referencia_pasarela is None:
-            raise HechosInconsistentes(f"El {cobro.tipo} no tiene referencia de pago")
+            dominio.validar_transicion_cobro(por_id[accion.cobro_id].estado, hacia)
 
-    # Fuera del plan, que trata al pendiente como CANCELAR sin pasarela
-    await _soltar_intentos_en_espera(ctx, cobros)
-    capturados: set[uuid.UUID] = set()
-    liberados: set[uuid.UUID] = set()
-    hechos_reembolsos: dict[uuid.UUID, Decimal] = {}
     acciones = sorted(
         (a for a in plan.acciones if a.accion in _ORDEN_RESOLUCION),
         key=lambda a: _ORDEN_RESOLUCION.index(a.accion),
     )
-    for accion in acciones:
-        cobro = por_id[accion.cobro_id]
-        if accion.accion is Accion.CAPTURAR:
-            await _capturar(ctx, artista, pedido, cobro, _VENCIDA_EN_DISPUTA)
-            capturados.add(cobro.id)
-        elif accion.accion is Accion.LIBERAR_AUTORIZACION:
-            await pasarela.liberar_autorizacion(
-                cobro.referencia_pasarela, clave_idempotencia=_clave_liberacion(cobro)
-            )
-            liberados.add(cobro.id)
-        elif accion.monto is not None:
-            await pasarela.reembolsar(
-                cobro.referencia_pasarela,
-                monto=accion.monto,
-                clave_idempotencia=_clave_reembolso(cobro, accion.monto),
-            )
-            hechos_reembolsos[cobro.id] = accion.monto
+    pasos = await _consultar_plan(ctx, acciones, por_id)
+    # Fuera del plan, que trata al pendiente como CANCELAR sin pasarela
+    await _soltar_intentos_en_espera(ctx, cobros)
+    capturados: set[uuid.UUID] = set()
+    for paso in pasos:
+        if paso.accion.accion is not Accion.CAPTURAR:
+            continue
+        if paso.llamar:
+            await _capturar(ctx, artista, pedido, paso.cobro, _VENCIDA_EN_DISPUTA)
+        capturados.add(paso.cobro.id)
+    hechos = await _liberar_y_reembolsar(ctx, pasos)
 
     await pedidos.resolver_disputa(
         session,
@@ -1031,11 +1130,7 @@ async def resolver_disputa(
         destino=destino,
         resolucion=resolucion,
         admin_id=admin.id,
-        hechos=HechosPasarela(
-            liberados=frozenset(liberados),
-            capturados=frozenset(capturados),
-            reembolsos=hechos_reembolsos,
-        ),
+        hechos=replace(hechos, capturados=frozenset(capturados)),
         ahora=ahora,
     )
     return await pedidos.detalle_para_moderacion(session, pedido.id)
@@ -1078,6 +1173,142 @@ async def verificar_cobro(
         await pedidos.rechazar_pedido(session, pedido_id=pedido.id)
     return await _resultado(
         ctx, pedido, cobro, Resultado.RECHAZADO, mensaje=MENSAJE_AUTENTICACION
+    )
+
+
+# Conciliacion. La llaman los webhooks y el barrido. Solo consulta la pasarela:
+# un webhook nunca mueve dinero ni registra nada por si solo. Lo que no cuadra
+# no se corrige, se marca como discrepancia para moderacion. Quien llama
+# confirma.
+
+
+class ResultadoConciliacion(enum.StrEnum):
+    REGISTRADO = "registrado"
+    SIN_CAMBIOS = "sin_cambios"
+    SIN_COBRO = "sin_cobro"
+    DISCREPANCIA = "discrepancia"
+
+
+@dataclass(frozen=True)
+class Conciliacion:
+    resultado: ResultadoConciliacion
+    # Para moderacion: ids internos, nunca la referencia de la pasarela
+    detalle: str | None = None
+
+
+# Pares de estado en la base y en la pasarela que cuadran
+_CUADRAN: Mapping[EstadoCobro, frozenset[EstadoCobroPasarela]] = {
+    EstadoCobro.AUTORIZADO: frozenset({EstadoCobroPasarela.AUTORIZADO}),
+    EstadoCobro.CAPTURADO: frozenset({EstadoCobroPasarela.CAPTURADO}),
+    EstadoCobro.REEMBOLSADO: frozenset({EstadoCobroPasarela.CAPTURADO}),
+    EstadoCobro.CANCELADO: _SIN_DINERO,
+    EstadoCobro.VENCIDO: _SIN_DINERO,
+}
+
+
+def _cuadra(cobro: Cobro, foto: ConsultaCobro, ahora: datetime) -> bool:
+    if foto.estado in _CUADRAN.get(cobro.estado, frozenset()):
+        return foto.estado is not EstadoCobroPasarela.CAPTURADO or (
+            foto.monto_reembolsado in (None, cobro.monto_reembolsado)
+        )
+    # La autorizacion vencida que la pasarela ya solto la resuelve el barrido
+    return (
+        cobro.estado is EstadoCobro.AUTORIZADO
+        and foto.estado is EstadoCobroPasarela.LIBERADO
+        and cobro.autorizado_hasta is not None
+        and cobro.autorizado_hasta <= ahora
+    )
+
+
+def _uuid(valor: str | None) -> uuid.UUID | None:
+    try:
+        return uuid.UUID(valor) if valor else None
+    except ValueError:
+        return None
+
+
+async def _conciliar_sin_cobro(ctx: _Entorno, referencia: str) -> Conciliacion:
+    """Ningun cobro tiene la referencia. Si la pasarela retiene dinero de un
+    cobro nuestro segun sus metadatos, es dinero sin registro."""
+    try:
+        foto = await ctx.pasarela.consultar_cobro(referencia)
+    except SolicitudInvalida:
+        return Conciliacion(
+            ResultadoConciliacion.SIN_COBRO, "La pasarela no conoce la referencia"
+        )
+    if foto.estado in (EstadoCobroPasarela.AUTORIZADO, EstadoCobroPasarela.CAPTURADO):
+        cobro_id = _uuid(foto.metadatos.get("cobro_id"))
+        if cobro_id is not None and await ctx.session.get(Cobro, cobro_id) is not None:
+            return Conciliacion(
+                ResultadoConciliacion.DISCREPANCIA,
+                f"La pasarela tiene {foto.estado} un pago del cobro {cobro_id} "
+                "que no esta registrado",
+            )
+    return Conciliacion(
+        ResultadoConciliacion.SIN_COBRO, "Ningun cobro tiene esta referencia"
+    )
+
+
+async def _conciliar_intento(
+    ctx: _Entorno, pedido: Pedido, cobro: Cobro
+) -> Conciliacion:
+    """El cobro espera el 3DS: se registra lo que la pasarela confirma, como en
+    `verificar_cobro`. Un monto o un estado que no cuadra no se registra. Si
+    sigue en espera, la proxima consulta del barrido se pospone `abandono_3ds`."""
+    try:
+        async with ctx.session.begin_nested():
+            foto = await _resolver_intento(ctx, pedido, cobro)
+    except HechosInconsistentes:
+        return Conciliacion(
+            ResultadoConciliacion.DISCREPANCIA,
+            f"El cobro {cobro.id} espera el 3DS y la pasarela informa otro monto o "
+            "estado",
+        )
+    if foto.estado in _EN_ESPERA:
+        await pedidos.posponer_intento(ctx.session, cobro=cobro, ahora=ctx.ahora)
+        return Conciliacion(ResultadoConciliacion.SIN_CAMBIOS)
+    if (
+        foto.estado in _SIN_DINERO
+        and pedido.tipo is TipoPedido.OBRA_DISPONIBLE
+        and pedido.estado is EstadoPedido.COTIZADO
+    ):
+        # Como en verificar_cobro: la obra no queda tomada por un pago fallido
+        await pedidos.rechazar_pedido(ctx.session, pedido_id=pedido.id)
+    return Conciliacion(ResultadoConciliacion.REGISTRADO)
+
+
+async def conciliar_cobro(
+    session: AsyncSession,
+    pasarela: PasarelaDePagos,
+    referencia: str,
+    *,
+    ahora: datetime,
+    politicas: PoliticasPedido,
+) -> Conciliacion:
+    """Compara el cobro de la referencia con lo que dice la pasarela. Solo
+    llama a `consultar_cobro`."""
+    ctx = _Entorno(session, pasarela, ahora, politicas)
+    visto = await pedidos.cobro_por_referencia(session, referencia)
+    if visto is None:
+        return await _conciliar_sin_cobro(ctx, referencia)
+    _, pedido = await _bloquear(
+        ctx, await pedidos.pedido_existente(session, visto.pedido_id)
+    )
+    cobros = await pedidos.cobros_del_pedido(session, pedido.id)
+    cobro = next((c for c in cobros if c.id == visto.id), None)
+    # Cambio mientras se bloqueaba
+    if cobro is None or cobro.referencia_pasarela != referencia:
+        return await _conciliar_sin_cobro(ctx, referencia)
+
+    if pedidos.esperando_autenticacion(cobro):
+        return await _conciliar_intento(ctx, pedido, cobro)
+    foto = await pasarela.consultar_cobro(referencia)
+    if _cuadra(cobro, foto, ahora):
+        return Conciliacion(ResultadoConciliacion.SIN_CAMBIOS)
+    return Conciliacion(
+        ResultadoConciliacion.DISCREPANCIA,
+        f"El cobro {cobro.id} esta {cobro.estado} en la base y {foto.estado} en la "
+        "pasarela",
     )
 
 
@@ -1131,7 +1362,8 @@ async def _cerrar_intento(ctx: _Entorno, pedido: Pedido, cobro: Cobro) -> bool:
 async def _cancelar_vencido(ctx: _Entorno, pedido: Pedido) -> None:
     cobros = await pedidos.cobros_del_pedido(ctx.session, pedido.id)
     plan = dominio.planear_vencimiento(pedido.tipo, pedido.estado, cobros)
-    hechos = await _ejecutar_cancelacion(ctx, plan, cobros)
+    pasos = await _consultar_plan(ctx, plan.acciones, {c.id: c for c in cobros})
+    hechos = await _liberar_y_reembolsar(ctx, pasos)
     await pedidos.cancelar_por_vencimiento(
         ctx.session, pedido_id=pedido.id, hechos=hechos, ahora=ctx.ahora
     )

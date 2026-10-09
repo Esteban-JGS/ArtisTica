@@ -142,11 +142,11 @@ Consecuencia: las respuestas pendientes de la pasarela cambian configuración o,
 
 ---
 
-## 4. Estado real del repositorio (9 de octubre de 2026, lote 9 completo)
+## 4. Estado real del repositorio (9 de octubre de 2026, lote 9b completo)
 
 El detalle vive en `orquestacion/BITACORA.md` (estado de lotes, deuda, pendientes) y en la sección 5 de `docs/ArtisTica_Documentacion_Oficial.md`. Esta es la foto para orientarse.
 
-**Backend:** unos 83 módulos y 13,000 líneas en `backend/src`, 503 pruebas contra un Postgres real, 9 migraciones encadenadas (cabeza `d3e4f5a6b7c8`), lint con 29 familias de reglas de Ruff. El CI corre además `.github/scripts/reglas-del-repositorio.sh` (commits sin coautores ni menciones, archivos sin guiones largos ni medios) y sube y baja la última migración con `alembic check`.
+**Backend:** unos 83 módulos y 13,000 líneas en `backend/src`, 535 pruebas contra un Postgres real, 10 migraciones encadenadas (cabeza `e4f5a6b7c8d9`), lint con 29 familias de reglas de Ruff. El CI corre además `.github/scripts/reglas-del-repositorio.sh` (commits sin coautores ni menciones, archivos sin guiones largos ni medios) y sube y baja la última migración con `alembic check`.
 
 | Capa | Qué hay |
 |---|---|
@@ -156,11 +156,11 @@ El detalle vive en `orquestacion/BITACORA.md` (estado de lotes, deuda, pendiente
 | `src/storage/` | Contrato, almacenamiento falso y adaptador de Supabase probado solo con transporte simulado |
 | `src/api/v1/` | perfiles, medios, catálogo, publicaciones y feed, social, comentarios, búsqueda, consultas, pedidos, moderación |
 | `src/workers/` | El worker toma cada job en una transacción corta, lo ejecuta sin bloqueo y recupera los colgados. **Los cuatro handlers son relleno** (miniaturas, embeddings, estilos, moderación) |
-| `src/tareas/` | El barrido de vencimientos, que corre cada minuto dentro del proceso de la API (D26) |
+| `src/tareas/` | El barrido, que corre cada minuto dentro del proceso de la API (D26): vencimientos, reintento de webhooks y conciliación de los 3DS en espera (D29) |
 
-**Hecho:** toda la parte social (perfiles, planes, onboarding de la pasarela, imágenes, obras, servicios, publicaciones, Seguidos, Explorar con nuevos talentos, seguidores, me gusta, comentarios y búsqueda), las consultas con su chat, los pedidos con sus cobros y 3DS, el archivo final en un bucket privado, la resolución de disputas por moderación y los vencimientos con la reautorización del saldo (D27, D28). Deuda abierta: DT27 a DT31, con lote asignado en la bitácora.
+**Hecho:** toda la parte social (perfiles, planes, onboarding de la pasarela, imágenes, obras, servicios, publicaciones, Seguidos, Explorar con nuevos talentos, seguidores, me gusta, comentarios y búsqueda), las consultas con su chat, los pedidos con sus cobros y 3DS, el archivo final en un bucket privado, la resolución de disputas por moderación y los vencimientos con la reautorización del saldo (D27, D28), los webhooks idempotentes con conciliación (D29), el ledger de capturas y reembolsos (D30) y DT28 (D31). Deuda abierta: DT27 y DT29 a DT33, con lote asignado en la bitácora. DT32 (reembolso doble con ONVO) bloquea producción, no la demo.
 
-**Falta:** webhooks, conciliación y DT28 (9b), métricas (10), moderación y trabajos reales del worker con IA (11). Además, los pendientes P1 a P15 de la bitácora: nada corre todavía contra Supabase ni ONVO reales, no hay backend desplegado y la app usa datos de ejemplo.
+**Falta:** métricas (10), moderación y trabajos reales del worker con IA (11). Además, los pendientes P1 a P15 de la bitácora: nada corre todavía contra Supabase ni ONVO reales, no hay backend desplegado y la app usa datos de ejemplo.
 
 ---
 

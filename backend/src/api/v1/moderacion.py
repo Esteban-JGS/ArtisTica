@@ -1,4 +1,5 @@
-"""Endpoints de moderacion: disputas abiertas, su evidencia y su resolucion.
+"""Endpoints de moderacion: disputas abiertas, su evidencia y su resolucion, y
+los eventos de la pasarela que necesitan revision.
 
 Todos exigen un perfil admin: un cliente, un artista o un tercero reciben 403.
 Ninguna respuesta lleva la referencia de la pasarela ni una url de
@@ -14,8 +15,9 @@ from src.api.deps import Admin, AlmacenamientoDeMedios, Pasarela, Sesion
 from src.api.paginacion import Pagina, Paginacion
 from src.core.config import settings
 from src.domain.politicas import PoliticasPedido
+from src.schemas.pagos import EventoPasarelaRespuesta
 from src.schemas.pedidos import MensajeModeracion, PedidoRespuesta, ResolucionDisputa
-from src.services import consultas, contratacion
+from src.services import consultas, contratacion, webhooks
 from src.services import pedidos as servicio
 
 router = APIRouter(prefix="/moderacion", tags=["moderacion"])
@@ -87,3 +89,16 @@ async def resolver_disputa(
     )
     await session.commit()
     return PedidoRespuesta.desde(detalle_, almacenamiento)
+
+
+@router.get("/pagos/eventos")
+async def eventos_con_error(
+    _admin: Admin, session: Sesion, paginacion: Paginacion
+) -> Pagina[EventoPasarelaRespuesta]:
+    """Discrepancias, eventos sin cobro y los que no se pudieron procesar, del
+    mas nuevo al mas viejo."""
+    eventos, siguiente = await webhooks.con_error(session, paginacion)
+    return Pagina(
+        items=[EventoPasarelaRespuesta.desde(e) for e in eventos],
+        siguiente_cursor=siguiente,
+    )

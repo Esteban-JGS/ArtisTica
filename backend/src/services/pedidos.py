@@ -4,6 +4,8 @@ No cierra la transaccion: hace flush, y la abre y la cierra quien llama.
 Bloquea el pedido con SELECT ... FOR UPDATE antes de cambiarlo, en el orden
 de todo el backend (D18, D21): perfil del artista, pedido, consulta, obra.
 No llama a la pasarela: recibe los hechos que la pasarela ya confirmo.
+Cada captura y cada reembolso que registra se asientan en el ledger, en la
+misma transaccion.
 """
 
 import uuid
@@ -13,7 +15,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import ColumnElement, Select, and_, or_, select
+from sqlalchemy import ColumnElement, Select, and_, not_, or_, select, union
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -49,6 +51,7 @@ from src.models import (
     TipoEntregable,
     TipoPedido,
 )
+from src.services import ledger
 from src.services.paginacion import ParametrosPagina, traer_pagina
 from src.services.perfiles import bloquear_perfil
 
@@ -143,6 +146,16 @@ def cobro_de_tipo(cobros: Sequence[Cobro], tipo: TipoCobro) -> Cobro:
     return _cobro(cobros, tipo)
 
 
+async def cobro_por_referencia(session: AsyncSession, referencia: str) -> Cobro | None:
+    """Sin bloquear: quien lo cambia vuelve a leerlo con el pedido bloqueado."""
+    stmt = (
+        select(Cobro)
+        .where(Cobro.referencia_pasarela == referencia)
+        .execution_options(populate_existing=True)
+    )
+    return (await session.execute(stmt)).scalar_one_or_none()
+
+
 def esperando_autenticacion(cobro: Cobro) -> bool:
     """Un intento del cobro espera que el cliente se autentique en el banco."""
     return (
@@ -172,6 +185,19 @@ async def descartar_intento(session: AsyncSession, *, cobro: Cobro) -> Cobro:
         )
     cobro.referencia_pasarela = None
     cobro.intentos += 1
+    await session.flush()
+    return cobro
+
+
+async def posponer_intento(
+    session: AsyncSession, *, cobro: Cobro, ahora: datetime
+) -> Cobro:
+    """El intento sigue esperando el 3DS: el barrido vuelve a consultarlo
+    recien `abandono_3ds` despues de `ahora`, y no en cada vuelta."""
+    if not esperando_autenticacion(cobro):
+        raise InvalidStateTransition("Solo se pospone un intento que espera el 3DS")
+    # Explicito: asignarlo evita que onupdate ponga la hora del reloj
+    cobro.updated_at = ahora
     await session.flush()
     return cobro
 
@@ -213,7 +239,14 @@ def _nuevos_cobros(
     ]
 
 
-def _aplicar_plan(plan: PlanCobros, cobros: Sequence[Cobro], ahora: datetime) -> None:
+async def _aplicar_plan(
+    session: AsyncSession,
+    pedido: Pedido,
+    plan: PlanCobros,
+    cobros: Sequence[Cobro],
+    ahora: datetime,
+) -> None:
+    """Cada captura y cada reembolso se asientan en el ledger."""
     cambios: list[tuple[Cobro, dominio.AccionCobro, EstadoCobro]] = []
     for cobro in cobros:
         accion = plan.de(cobro.id)
@@ -227,8 +260,14 @@ def _aplicar_plan(plan: PlanCobros, cobros: Sequence[Cobro], ahora: datetime) ->
         cobro.estado = hacia
         if hacia is EstadoCobro.CAPTURADO:
             cobro.capturado_en = ahora
+            await ledger.asentar_captura(
+                session, pedido=pedido, cobro=cobro, ahora=ahora
+            )
         if accion.accion is dominio.Accion.REEMBOLSAR:
             cobro.monto_reembolsado += accion.monto
+            await ledger.asentar_reembolso(
+                session, pedido=pedido, cobro=cobro, monto=accion.monto, ahora=ahora
+            )
 
 
 # Cotizacion
@@ -421,7 +460,7 @@ async def registrar_anticipo_capturado(
     anticipo.capturado_en = ahora
     consulta.estado = EstadoConsulta.CONVERTIDA
     pedido.estado = EstadoPedido.ANTICIPO_PAGADO
-    await session.flush()
+    await ledger.asentar_captura(session, pedido=pedido, cobro=anticipo, ahora=ahora)
     return pedido
 
 
@@ -611,7 +650,7 @@ async def registrar_saldo_capturado(
     saldo.capturado_en = ahora
     pedido.estado = EstadoPedido.SALDO_PAGADO
     pedido.disputable_hasta = disputable_hasta
-    await session.flush()
+    await ledger.asentar_captura(session, pedido=pedido, cobro=saldo, ahora=ahora)
     return pedido
 
 
@@ -675,7 +714,7 @@ async def registrar_despacho(
     pedido.guia_envio = guia_envio
     pedido.estado = EstadoPedido.SALDO_PAGADO
     pedido.disputable_hasta = disputable_hasta
-    await session.flush()
+    await ledger.asentar_captura(session, pedido=pedido, cobro=total, ahora=ahora)
     return pedido
 
 
@@ -722,7 +761,7 @@ async def cancelar_pedido(
     )
     dominio.verificar_hechos(plan, hechos)
 
-    _aplicar_plan(plan, cobros, ahora)
+    await _aplicar_plan(session, pedido, plan, cobros, ahora)
     pedido.estado = EstadoPedido.CANCELADO
     await session.flush()
     return plan
@@ -807,7 +846,7 @@ async def resolver_disputa(
     )
     dominio.verificar_hechos(plan, hechos)
 
-    _aplicar_plan(plan, cobros, ahora)
+    await _aplicar_plan(session, pedido, plan, cobros, ahora)
     disputa.estado = EstadoDisputa.RESUELTA
     disputa.resolucion = resolucion
     disputa.resuelta_por_id = admin.id
@@ -869,7 +908,7 @@ async def cancelar_por_vencimiento(
     plan = dominio.planear_vencimiento(pedido.tipo, pedido.estado, cobros)
     dominio.verificar_hechos(plan, hechos)
 
-    _aplicar_plan(plan, cobros, ahora)
+    await _aplicar_plan(session, pedido, plan, cobros, ahora)
     pedido.estado = EstadoPedido.CANCELADO
     await session.flush()
     return plan
@@ -887,9 +926,12 @@ class CandidatosVencimiento:
     autorizaciones_vencidas: tuple[uuid.UUID, ...]
     reautorizaciones_vencidas: tuple[uuid.UUID, ...]
     eventos_impagos: tuple[uuid.UUID, ...]
+    # Referencias de cobro, no ids de pedido: intentos que esperan el 3DS hace
+    # mas de `abandono_3ds`, con o sin webhook
+    intentos_en_espera: tuple[str, ...]
 
 
-async def _ids(session: AsyncSession, stmt: Select) -> tuple[uuid.UUID, ...]:
+async def _ids[T](session: AsyncSession, stmt: Select[tuple[T]]) -> tuple[T, ...]:
     filas = await session.execute(stmt.limit(TOPE_CANDIDATOS))
     # Sin repetidos y en el orden de la consulta
     return tuple(dict.fromkeys(filas.scalars()))
@@ -943,11 +985,35 @@ async def candidatos_vencimiento(
         )
         .order_by(Pedido.fecha_evento)
     )
+    # Fuera los que tienen su propio caso, que concilia el intento antes de
+    # cerrar: La quiero cotizado, la reautorizacion vencida y el evento impago
+    con_caso_propio = union(
+        reautorizaciones.order_by(None), eventos.order_by(None)
+    ).subquery()
+    en_espera = (
+        select(Cobro.referencia_pasarela)
+        .join(Pedido, Pedido.id == Cobro.pedido_id)
+        .where(
+            Cobro.estado == EstadoCobro.PENDIENTE,
+            Cobro.referencia_pasarela.is_not(None),
+            Cobro.updated_at <= ahora - politicas.abandono_3ds,
+            Pedido.estado.not_in(dominio.ESTADOS_TERMINALES),
+            not_(
+                and_(
+                    Pedido.tipo == TipoPedido.OBRA_DISPONIBLE,
+                    Pedido.estado == EstadoPedido.COTIZADO,
+                )
+            ),
+            Pedido.id.not_in(select(con_caso_propio.c.id)),
+        )
+        .order_by(Cobro.updated_at)
+    )
     return CandidatosVencimiento(
         la_quiero_abandonados=await _ids(session, la_quiero),
         autorizaciones_vencidas=await _ids(session, autorizaciones),
         reautorizaciones_vencidas=await _ids(session, reautorizaciones),
         eventos_impagos=await _ids(session, eventos),
+        intentos_en_espera=await _ids(session, en_espera),
     )
 
 

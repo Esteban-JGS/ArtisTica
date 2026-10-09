@@ -299,6 +299,16 @@ Los vencimientos se revisan con una tarea que corre cada minuto. El lugar natura
 
 En la misma etapa se corrigió la cola de trabajos, que ejecutaba cada trabajo mientras mantenía bloqueada su fila en la base de datos. Un trabajo lento retenía una conexión todo ese tiempo, y si el proceso se detenía a mitad de camino el trabajo volvía a la cola sin contar el intento. Ahora el trabajo se marca como tomado, se ejecuta sin bloqueo, y uno que queda tomado más de quince minutos cuenta como un intento fallido.
 
+#### Avisos de pago que la pasarela no envía
+
+La pasarela avisa a ArtísTica cuando un pago se cobra o falla, pero su documentación no incluye ningún aviso para una autorización aprobada, que es como se reserva el saldo de un encargo y la compra de una obra. Si el cliente completaba la verificación del banco y cerraba la aplicación sin volver, el pago quedaba autorizado en la pasarela y sin registrar, y el artista esperaba una aprobación que ya estaba pagada.
+
+Por eso los avisos se tratan como un atajo y no como la única vía. Ningún aviso se da por cierto: cada uno se guarda una sola vez, aunque llegue repetido, y se confirma consultando el cobro en la pasarela. Además, la tarea periódica consulta cada media hora los pagos que siguen esperando la verificación del banco, llegue o no el aviso. Lo que no coincide entre la base de datos y la pasarela no se corrige de forma automática, sino que queda a la vista de moderación.
+
+#### Reintentos de una cancelación con otro plan
+
+Cancelar un pedido o resolver una disputa puede requerir varias operaciones en la pasarela. Si una fallaba a mitad de camino y moderación reintentaba con otro monto de devolución, el reintento se trataba como una operación nueva, y el cliente podía recibir dos devoluciones parciales. Ahora, antes de mover dinero, se consulta cada cobro en la pasarela, lo que ya se devolvió se descuenta y, si ya se devolvió más de lo que se ordena, la operación se rechaza. Con ONVO esta verificación depende de que la pasarela informe el total devuelto de cada pago, algo que su documentación no aclara, por lo que quedó entre las consultas técnicas pendientes.
+
 #### Feed de Seguidos en la aplicación
 
 El prototipo del feed de Seguidos mostraba publicaciones de cuentas que la persona no seguía, en el mismo orden que Para ti, lo que contradecía el principio de un feed cronológico limitado a las cuentas seguidas. Ahora Seguidos muestra solo esas cuentas y las publicaciones propias, de la más reciente a la más antigua, mientras que Para ti conserva su propio orden.
@@ -319,7 +329,7 @@ La textura de corcho del fondo estaba teñida con el color terracota de la marca
 | Backend, base de datos e integración continua | Completo. El proyecto se ejecuta, el esquema cubre el MVP y cada cambio se valida automáticamente |
 | Backend, parte social | Completo. Incluye perfiles y planes, imágenes, obras y servicios, publicaciones, feed, seguidores, me gusta, comentarios y búsqueda |
 | Backend, contratación y pagos | Completo. Incluye consultas y chat, los tres tipos de pedido, cobros con verificación 3D Secure, archivo final privado y resolución de disputas por moderación |
-| Backend, avisos de pago y vencimientos | En curso. Los vencimientos están completos; faltan la recepción de los avisos de pago y la conciliación de los cobros |
+| Backend, avisos de pago y vencimientos | Completo. Incluye los vencimientos, la recepción de los avisos de pago, la conciliación de los cobros con la pasarela y el registro de cada cobro y devolución |
 | Backend, métricas, moderación de contenido y procesos con IA | Pendiente |
 | Integración de la aplicación con la API | Pendiente. La aplicación todavía usa datos de ejemplo |
 
@@ -344,8 +354,9 @@ El backend se construyó por etapas. La siguiente tabla resume lo que quedó lis
 | Archivo final | Una vez pagado el encargo, el artista sube el archivo final a un almacenamiento privado, y solo las dos partes pueden descargarlo con un enlace que vence a los diez minutos |
 | Disputas | Moderación ve las disputas abiertas, de la más antigua a la más reciente, con el pedido y el chat de la consulta como evidencia. Al resolver, la API ejecuta en la pasarela lo que se decidió (cobrar lo autorizado, liberarlo o devolver lo cobrado) y después registra la resolución |
 | Vencimientos | Una tarea revisa cada minuto los pedidos con plazos cumplidos: completa los que pasaron el plazo de disputa, marca las autorizaciones vencidas, cancela los pedidos según las reglas de la sección 3.5 y libera las obras cuya compra quedó a medias. Antes de cancelar, consulta con la pasarela si el cliente llegó a pagar. La cola de trabajos ejecuta cada trabajo sin mantener bloqueada su fila |
+| Avisos de pago y conciliación | Los avisos de la pasarela se reciben una sola vez aunque lleguen repetidos y se confirman consultando el cobro. Cada cobro y cada devolución quedan asentados en un registro que no se modifica. Moderación ve las diferencias entre la base de datos y la pasarela. Una cancelación que se reintenta con otro plan no devuelve dinero dos veces |
 
-El backend cuenta con 503 pruebas automatizadas. La base de datos no almacena ningún saldo, porque ArtísTica no custodia dinero, y todos los montos se calculan con aritmética decimal exacta.
+El backend cuenta con 535 pruebas automatizadas. La base de datos no almacena ningún saldo, porque ArtísTica no custodia dinero, y todos los montos se calculan con aritmética decimal exacta.
 
 ### 5.3 Aplicación móvil
 
@@ -365,9 +376,8 @@ Todo el recorrido funciona con datos de ejemplo, porque las pantallas todavía n
 
 | Área | Pendiente |
 |---|---|
-| Contratación | Recepción de los avisos de pago y conciliación de los cobros |
 | Pago desde la aplicación | Formulario de tarjeta que envía los datos directamente a la pasarela y solo comparte con la API el identificador que esta devuelve, además de la verificación 3D Secure cuando el banco la pida |
-| Pasarela real | Enviar las consultas técnicas a ONVO, obtener acceso a su entorno de pruebas y probar el adaptador en ese entorno |
+| Pasarela real | Enviar las consultas técnicas a ONVO, obtener acceso a su entorno de pruebas y probar el adaptador en ese entorno, con especial atención a los avisos que envía y a cómo informa las devoluciones |
 | Inteligencia artificial | Elegir el proveedor. Lo necesitan la detección de contenido sospechoso de haber sido generado por IA, la clasificación de estilos y la búsqueda por similitud, que hoy solo tienen su estructura |
 | Métricas y moderación | Panel del artista y reportes |
 | Contenido | Miniaturas de las imágenes |
@@ -380,7 +390,7 @@ La demostración de noviembre usará la pasarela simulada, que reproduce autoriz
 
 | Riesgo | Mitigación |
 |---|---|
-| Plazo: quedan tres etapas de backend y la integración | Las promociones ya salieron del MVP y, si hace falta, Explorar puede quedar solo con el filtro por categorías |
+| Plazo: quedan dos etapas de backend y la integración | Las promociones ya salieron del MVP y, si hace falta, Explorar puede quedar solo con el filtro por categorías |
 | ONVO no responde a tiempo | La demostración no depende de ONVO |
 | El proveedor de IA no se define a tiempo | La moderación funciona con reportes y revisión humana. El clasificador solo marca contenido para esa revisión, así que su ausencia no bloquea la demostración |
 | La integración llega tarde | Los endpoints se construyen en el orden en que la aplicación los necesita |

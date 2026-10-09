@@ -1,8 +1,12 @@
-"""Barrido de vencimientos.
+"""Barrido de vencimientos y de conciliacion.
 
 Corre dentro del proceso de la API porque usa la misma instancia de pasarela
 que ella: la falsa guarda su estado por proceso. Nunca llama a la pasarela
-directo, todo pasa por `src.services.contratacion`.
+directo, todo pasa por `src.services.contratacion` y `src.services.webhooks`.
+
+Ademas de vencer, reintenta los webhooks que fallaron y concilia los intentos
+que esperan el 3DS hace mas de `abandono_3ds`, llegue o no un webhook: ONVO no
+avisa cuando se aprueba una autorizacion.
 
 Cada pedido va en su propia sesion y transaccion: una falla se registra y no
 frena a los demas. Dos procesos pueden barrer a la vez sin bloqueo global:
@@ -22,7 +26,8 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from src.domain.politicas import PoliticasPedido
 from src.payments.contrato import PasarelaDePagos
-from src.services import contratacion, pedidos
+from src.services import contratacion, pedidos, webhooks
+from src.services.contratacion import ResultadoConciliacion
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +48,8 @@ class ResumenBarrido:
     reautorizaciones_vencidas: Conteo
     eventos_impagos: Conteo
     completados: Conteo
+    eventos_pendientes: Conteo = Conteo()
+    intentos_en_espera: Conteo = Conteo()
 
     @property
     def vacio(self) -> bool:
@@ -73,7 +80,7 @@ async def _aplicar(
         # Sin el mensaje: puede traer datos de la pasarela
         except Exception as exc:  # noqa: BLE001  un pedido no frena a los demas
             fallidos += 1
-            logger.warning(
+            logger.error(  # noqa: TRY400  sin traza: puede traer datos de la pasarela
                 "Barrido de %s: fallo el pedido %s (%s)",
                 caso,
                 pedido_id,
@@ -90,9 +97,83 @@ async def _completar(sesiones: Sesiones, ahora: datetime) -> Conteo:
         async with sesiones.begin() as session:
             completados = await pedidos.completar_vencidos(session, ahora=ahora)
     except Exception as exc:  # noqa: BLE001  el barrido sigue en la proxima vuelta
-        logger.warning("Barrido: fallo completar_vencidos (%s)", type(exc).__name__)
+        logger.error(  # noqa: TRY400  sin traza: puede traer datos de la pasarela
+            "Barrido: fallo completar_vencidos (%s)", type(exc).__name__
+        )
         return Conteo(fallidos=1)
     return Conteo(hechos=completados)
+
+
+async def _procesar_eventos(
+    sesiones: Sesiones,
+    pasarela: PasarelaDePagos,
+    *,
+    ahora: datetime,
+    politicas: PoliticasPedido,
+) -> Conteo:
+    """Cada webhook pendiente en su transaccion. Si falla, el intento se anota
+    en otra."""
+    async with sesiones() as session:
+        ids = await webhooks.pendientes(session, ahora=ahora)
+    hechos = fallidos = 0
+    for evento_id in ids:
+        try:
+            async with sesiones.begin() as session:
+                hecho = await webhooks.procesar(
+                    session, pasarela, evento_id, ahora=ahora, politicas=politicas
+                )
+        except Exception as exc:  # noqa: BLE001  un evento no frena a los demas
+            fallidos += 1
+            logger.error(  # noqa: TRY400  sin traza: puede traer datos de la pasarela
+                "Barrido de webhooks: fallo el evento %s (%s)",
+                evento_id,
+                type(exc).__name__,
+            )
+            try:
+                async with sesiones.begin() as session:
+                    await webhooks.registrar_fallo(
+                        session, evento_id, type(exc).__name__
+                    )
+            except Exception as otra:  # noqa: BLE001  se reintenta en la proxima vuelta
+                logger.error(  # noqa: TRY400  sin traza: puede traer datos de la pasarela
+                    "Barrido de webhooks: no se anoto el fallo del evento %s (%s)",
+                    evento_id,
+                    type(otra).__name__,
+                )
+            continue
+        hechos += hecho
+    return Conteo(hechos, fallidos)
+
+
+async def _conciliar_intentos(
+    sesiones: Sesiones,
+    pasarela: PasarelaDePagos,
+    referencias: Iterable[str],
+    *,
+    ahora: datetime,
+    politicas: PoliticasPedido,
+) -> Conteo:
+    """Cada intento en espera en su transaccion. Los logs no llevan la
+    referencia de la pasarela."""
+    hechos = fallidos = 0
+    for referencia in referencias:
+        try:
+            async with sesiones.begin() as session:
+                conciliacion = await contratacion.conciliar_cobro(
+                    session, pasarela, referencia, ahora=ahora, politicas=politicas
+                )
+        except Exception as exc:  # noqa: BLE001  un intento no frena a los demas
+            fallidos += 1
+            logger.error(  # noqa: TRY400  sin traza: puede traer datos de la pasarela
+                "Barrido de intentos en espera: fallo una conciliacion (%s)",
+                type(exc).__name__,
+            )
+            continue
+        if conciliacion.resultado is ResultadoConciliacion.REGISTRADO:
+            hechos += 1
+        elif conciliacion.resultado is ResultadoConciliacion.DISCREPANCIA:
+            logger.error("Barrido de intentos en espera: %s", conciliacion.detalle)
+    return Conteo(hechos, fallidos)
 
 
 async def barrer(
@@ -102,6 +183,10 @@ async def barrer(
     ahora: datetime,
     politicas: PoliticasPedido,
 ) -> ResumenBarrido:
+    # Primero los webhooks: lo que registran ya no es candidato a vencer
+    eventos_pendientes = await _procesar_eventos(
+        sesiones, pasarela, ahora=ahora, politicas=politicas
+    )
     async with sesiones() as session:
         candidatos = await pedidos.candidatos_vencimiento(
             session, ahora=ahora, politicas=politicas
@@ -120,6 +205,14 @@ async def barrer(
             politicas=politicas,
         )
 
+    # Antes que los vencimientos: un pago que ya se hizo no se cancela
+    intentos = await _conciliar_intentos(
+        sesiones,
+        pasarela,
+        candidatos.intentos_en_espera,
+        ahora=ahora,
+        politicas=politicas,
+    )
     la_quiero, _ = await aplicar(
         contratacion.soltar_la_quiero_abandonado,
         candidatos.la_quiero_abandonados,
@@ -148,6 +241,8 @@ async def barrer(
         reautorizaciones_vencidas=reautorizaciones,
         eventos_impagos=eventos,
         completados=await _completar(sesiones, ahora),
+        eventos_pendientes=eventos_pendientes,
+        intentos_en_espera=intentos,
     )
 
 
