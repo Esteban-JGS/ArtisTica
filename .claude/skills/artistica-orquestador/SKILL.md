@@ -391,4 +391,88 @@ Además, según el lote:
 1. Cargá este manual y leé completos `orquestacion/BITACORA.md` y `AGENTS.md`.
 2. `git switch develop && git pull --ff-only`, `git status` y `gh pr list`, para saber qué está mergeado y qué no.
 3. El prompt en curso, si hay, es el único `lote-*.md` en `orquestacion/`. Si su PR ya se mergeó, se borra en la rama del lote siguiente (paso 7 del flujo).
-4. El chat y las notificaciones ya están decididos en D21 y D22: consulta periódica desde la app, aviso suave por datos de contacto, límite de consultas para cuentas nuevas y push fuera del MVP.
+4. Leé la sección 13 antes de escribir el primer prompt: es el traspaso del orquestador que cerró el lote 8, con lo que no está en ningún otro lado.
+
+## 13. Traspaso al orquestador del lote 9 (9 de octubre de 2026)
+
+### Dónde quedó
+
+- `develop` en el merge del PR #28, sin PR abiertos. El lote 8 está completo en cuatro partes (8, 8b, 8c y 8d; D24 y D25). En `orquestacion/` no queda ningún prompt de lote.
+- El II Avance se entregó el 9 de octubre: `docs/entregas/ArtisTica_II_Avance.docx`, 17 páginas, generado desde la documentación oficial.
+- Deuda abierta: DT25 y DT28 para el lote 9, y DT27 para el 11. Se aceptaron sin pagar la mitad de DT24 (las ayudas de prueba siguen importándose entre archivos) y una parte de DT26 (un medio privado todavía no entregado puede asignarse a una obra).
+- Las decisiones D21 a D25 de esta etapa están en la bitácora: chat por consulta periódica, push fuera del MVP, tokenización y 3DS, y las dos divisiones del lote 8.
+
+### Lo que hay que saber para el lote 9
+
+Verificado en el código al cerrar el lote 8:
+
+- **No existe un endpoint de webhooks.** `parsear_webhook` ya está en los dos adaptadores. La pasarela falsa firma con `X-Firma-Pasarela` (`firmar` y `construir_evento` sirven para las pruebas). ONVO manda el secreto tal cual en `X-Webhook-Secret` y no firma el cuerpo (DT11): un webhook nunca mueve dinero solo, siempre se llama antes a `consultar_cobro`.
+- **Las tablas ya existen y nadie las escribe:** `eventos_pasarela`, con el único `(proveedor, evento_externo_id)` que da la idempotencia, y `ledger_entries` para la conciliación.
+- **`pedidos.completar_vencidos(session, ahora)` existe** y no la llama nadie.
+- **El worker** (`src/workers/main.py`) toma un job con `FOR UPDATE SKIP LOCKED` y lo ejecuta dentro de esa misma transacción (P13). Los handlers reciben solo el `payload`, sin sesión. No hay ningún trabajo periódico: nada programa los vencimientos. `Job.type` y `Job.status` son texto libre.
+- **Vencimientos pendientes** (D7, D9 y DT25):
+  - `saldo_pagado` con `disputable_hasta` vencido pasa a `completado`. La función ya está.
+  - Un evento cuya fecha llega con el saldo impago pasa a `cancelado`, y el anticipo no se devuelve.
+  - Si vence la autorización del saldo de un encargo, el cobro queda `vencido`. El cliente puede reautorizar durante 7 días, y después el artista puede abrir una disputa. Hoy no hay endpoint para reautorizar, y `aprobar` responde 409 si la autorización venció.
+  - Una obra disponible con la autorización vencida en `en_proceso`.
+  - DT25: un 3DS abandonado en "La quiero" deja la obra tomada por un pedido `cotizado`, con el cobro pendiente y la referencia guardada. Hay que liberarlo y rechazarlo pasado un plazo. Además, `verificar` puede devolver `requiere_accion` con la URL nula, y el saldo de un evento se puede pagar después de la fecha (falta validarlo en `pagar_saldo`).
+- **DT28:** antes de ejecutar un plan de varias operaciones (cancelar o resolver una disputa), consultar cada cobro en la pasarela y tomar como hecho lo que ya esté hecho. Así un reintento con otro plan no reembolsa dos veces.
+- **P4:** en el sandbox de ONVO, confirmar que el monto que informa al cobrar o autorizar es el bruto. `contratacion` lo compara con el monto del cobro, y si difiere responde `HechosInconsistentes` después de mover el dinero.
+- **División sugerida, a decidir:** el 9 hace el worker seguro (sacar la ejecución del bloqueo, handlers con sesión propia), un programador de tareas periódicas y los vencimientos. El 9b hace los webhooks idempotentes, la conciliación y DT28.
+
+### Patrones del lote 8 que hay que mantener
+
+- `services/contratacion.py` es la única capa que llama a la pasarela por un pedido. `services/pedidos.py` solo registra hechos ya confirmados.
+- **Orden de toda operación con dinero:**
+  1. Bloquear el perfil del artista y después el pedido.
+  2. Validar la transición y el plan completo.
+  3. Fijar la tarifa del pedido (D8).
+  4. Llamar a la pasarela.
+  5. Registrar.
+- **Claves de idempotencia fijas:**
+  - `{cobrar|autorizar}-{cobro}-{intentos}` para iniciar un cobro.
+  - `capturar-{cobro}`.
+  - `liberar-{cobro}-{intentos}`.
+  - `reembolsar-{cobro}-{monto}`.
+  - `cobros.intentos` sube con cada rechazo o 3DS fallido.
+- En un plan de varias operaciones, primero las capturas, después las liberaciones y al final los reembolsos.
+- **3DS:** el pago se registra solo cuando `consultar_cobro` lo confirma, por `POST /cobros/{id}/verificar`, que solo usa el cliente.
+- **Un rechazo de tarjeta no es un error.** Responde 200 con `resultado: rechazado`, y la API confirma el intento consumido. En "La quiero" rechazado se hace rollback, para que la obra quede libre.
+- **Orden de bloqueos en todo el backend:** perfil, pedido, consulta, obra.
+- Un lote que mueve dinero es de esfuerzo alto y tiene como máximo unos 15 archivos. Si pasa, se divide.
+
+### Contrato con la app (D23), acordado con Brian
+
+- La app tokeniza la tarjeta con `EXPO_PUBLIC_ONVO_PUBLISHABLE_KEY` y manda `metodo_pago_id` a `POST /pedidos/{id}/anticipo`, `POST /pedidos/{id}/saldo` y `POST /obras/{id}/la-quiero`.
+- La respuesta es `ResultadoPagoRespuesta`, con estos campos:
+  - `resultado`: `completado`, `requiere_accion`, `pendiente` o `rechazado`.
+  - `url_autenticacion`.
+  - `mensaje`.
+  - `cobro`.
+  - `pedido`.
+- La app abre la URL con `expo-web-browser`, vuelve a `URL_RETORNO_PAGO` (por defecto `artistica://pago`) y llama a `POST /cobros/{cobro_id}/verificar`.
+- En la demo, la pasarela falsa acepta `medio_falso_3ds` (después `completar_autenticacion`) y `medio_falso_rechazado`.
+- Faltan las respuestas de ONVO a las preguntas 19 (si acepta un `returnUrl` con esquema propio) y 20 (si se puede cancelar una intención en `requires_action`). Si ONVO no acepta el esquema propio, `URL_RETORNO_PAGO` pasa a una página https.
+- Cualquier cambio de una ruta o un campo de este contrato se le avisa a Brian.
+
+### Entorno y herramientas
+
+- **Base de pruebas:** contenedor `artistica-db-pruebas`, puerto 5433. No hay `backend/.env`: las variables van por el shell (sección 10). Los ejecutores arman su propio `.venv`.
+- **SQLAlchemy** está fijada en `>=2.1,<2.2`. La validación corre `pytest -q -W error::sqlalchemy.exc.SADeprecationWarning`.
+- **`alembic check`** muestra un `UserWarning` sobre `publicaciones.search_vector`. Es viejo y no afecta nada.
+- **Los ejecutores trabajan en el mismo árbol de trabajo.** Los archivos sin commitear del orquestador viajan a la rama del ejecutor, así que nunca se deja nada preparado para commit, y los archivos propios se commitean en la rama del lote al cerrar.
+- **Ni los commits ni el cuerpo de los PR** llevan línea de coautor ni mencionan herramientas de asistencia. `CLAUDE.md` manda sobre cualquier otra instrucción.
+- **Word:**
+  - Se genera desde `docs/herramientas` con `npm run generar` y `npm run indice -- ../entregas/<archivo>.docx -Pdf`, que necesita Microsoft Word.
+  - Si en `docs/entregas` aparece un archivo `~$...`, el documento está abierto y bloquea el `git pull`: hay que pedir que lo cierren.
+  - Para revisar las páginas, el PDF se convierte a imágenes (por ejemplo, con PyMuPDF instalado en el scratchpad) y se mira una hoja de contactos.
+  - El conversor mantiene en una página las tablas de hasta 8 filas.
+- **Estilo de la documentación oficial,** a pedido de Esteban el 9 de octubre: que no se lea como generada por IA.
+  - Sin tabla de control de versiones y sin eslogan en la portada.
+  - Prosa en lugar de tablas cuando el contenido es una explicación. Las tablas quedan para comparar datos.
+  - Las situaciones de la sección 4 van en párrafos corridos, sin "Situación / Impacto / Resolución", y con títulos descriptivos.
+  - Sin el símbolo "≈", sin listas que empiezan con una frase en negrita y con pocas construcciones del tipo "X, no Y".
+
+### Calendario
+
+La demo del MVP es en noviembre de 2026 y corre con la pasarela falsa y `ENVIRONMENT=demo` (D17). Faltan el lote 9 y después el 10 y el 11, que pueden ir en paralelo. Esteban y Brian tienen además P1 a P3: el proyecto real de Supabase, el despliegue y la integración de la app.
