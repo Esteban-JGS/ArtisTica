@@ -19,6 +19,7 @@ from datetime import date, datetime
 from decimal import Decimal
 
 from sqlalchemy import ColumnElement, and_, case, func, or_, select, update
+from sqlalchemy.dialects.postgresql import distinct_on
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.exceptions import (
@@ -139,7 +140,7 @@ async def _ultimos_mensajes(
     stmt = (
         select(Mensaje)
         .where(Mensaje.consulta_id.in_(ids))
-        .distinct(Mensaje.consulta_id)
+        .ext(distinct_on(Mensaje.consulta_id))
         .order_by(
             Mensaje.consulta_id.desc(), Mensaje.created_at.desc(), Mensaje.id.desc()
         )
@@ -156,7 +157,7 @@ async def _no_leidos(
         .where(Mensaje.consulta_id.in_(ids), _no_leido(usuario.id))
         .group_by(Mensaje.consulta_id)
     )
-    return dict((await session.execute(stmt)).tuples().all())
+    return dict((await session.execute(stmt)).all())
 
 
 async def _detallar(

@@ -112,7 +112,7 @@ async def totales_por_publicacion(
         .where(Comentario.publicacion_id.in_(publicacion_ids), _visible())
         .group_by(Comentario.publicacion_id)
     )
-    return dict(filas.tuples().all())
+    return dict(filas.all())
 
 
 # Detalle de una pagina, con un numero fijo de consultas
@@ -135,7 +135,7 @@ async def _me_gusta(
         .where(MeGustaComentario.comentario_id.in_(ids))
         .group_by(MeGustaComentario.comentario_id)
     )
-    totales: dict[uuid.UUID, int] = dict(filas.tuples().all())
+    totales: dict[uuid.UUID, int] = dict(filas.all())
     if usuario is None:
         return totales, None
     mias = await session.execute(
@@ -159,7 +159,7 @@ async def _primeras_respuestas(
         )
         .group_by(Comentario.respuesta_a_id)
     )
-    totales: dict[uuid.UUID, int] = dict(filas.tuples().all())
+    totales: dict[uuid.UUID, int] = dict(filas.all())
     numeradas = (
         select(
             Comentario,
