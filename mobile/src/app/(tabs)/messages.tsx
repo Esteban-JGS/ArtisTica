@@ -5,6 +5,7 @@ import { Pressable, Text, TextInput, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 
 import { AppBackground, useCorkScroll } from '@/components/app-background';
+import { GlassBackdrop } from '@/components/glass-header';
 import { Avatar } from '@/components/avatar';
 import { StatusBadge } from '@/components/status-badge';
 import {
@@ -50,6 +51,8 @@ function EmptyState({ icon, text }: { icon: keyof typeof Ionicons.glyphMap; text
 
 export default function MensajesScreen() {
   const { scrollY, onScroll } = useCorkScroll();
+  // Alto real del encabezado flotante: cambia al abrir la busqueda.
+  const [headerHeight, setHeaderHeight] = useState(0);
   const { tab: tabParam } = useLocalSearchParams<{ tab?: string }>();
   const tab: Tab = tabParam === 'chats' || tabParam === 'notificaciones' ? tabParam : 'comisiones';
   const setTab = (next: Tab) => router.setParams({ tab: next });
@@ -90,56 +93,10 @@ export default function MensajesScreen() {
   return (
     <View className="flex-1 bg-sand-100">
       <AppBackground scrollY={scrollY} />
-      <View className="flex-row items-center justify-between px-5 pb-3 pt-14">
-        <Text className="font-serif text-3xl italic text-ink">Mensajes</Text>
-        <Pressable
-          onPress={toggleSearch}
-          accessibilityRole="button"
-          accessibilityLabel={searching ? 'Cerrar búsqueda' : 'Buscar'}
-          className="h-10 w-10 items-center justify-center rounded-full bg-sand-50">
-          <Ionicons name={searching ? 'close' : 'search'} size={18} color={colors.ink.DEFAULT} />
-        </Pressable>
-      </View>
-
-      {searching && (
-        <View className="mx-5 mb-3 flex-row items-center gap-2 rounded-full bg-sand-50 px-4 py-2.5">
-          <Ionicons name="search" size={16} color={colors.stone[700]} />
-          <TextInput
-            value={query}
-            onChangeText={setQuery}
-            autoFocus
-            placeholder="Buscar por nombre o encargo"
-            placeholderTextColor={colors.stone[700]}
-            className="flex-1 text-sm text-ink"
-          />
-        </View>
-      )}
-
-      <View className="mx-5 mb-4 flex-row rounded-full bg-ink p-1">
-        {tabs.map((item) => (
-          <Pressable
-            key={item.id}
-            onPress={() => setTab(item.id)}
-            className={
-              tab === item.id
-                ? 'flex-1 flex-row items-center justify-center gap-1.5 rounded-full bg-sand-50 py-2'
-                : 'flex-1 flex-row items-center justify-center gap-1.5 py-2'
-            }>
-            <Text className={tab === item.id ? 'text-sm font-semibold text-ink' : 'text-sm text-sand-200'}>
-              {item.label}
-            </Text>
-            {item.count > 0 && (
-              <View className="h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1">
-                <Text className="text-[10px] font-bold text-sand-50">{item.count}</Text>
-              </View>
-            )}
-          </Pressable>
-        ))}
-      </View>
-
       <Animated.ScrollView
         onScroll={onScroll}
         scrollEventThrottle={16}
+        contentContainerStyle={{ paddingTop: headerHeight }}
         contentContainerClassName="px-5 pb-32"
         keyboardShouldPersistTaps="handled">
         {tab === 'chats' &&
@@ -274,6 +231,59 @@ export default function MensajesScreen() {
             </View>
           ))}
       </Animated.ScrollView>
+
+      <View
+        pointerEvents="box-none"
+        style={{ position: 'absolute', top: 0, left: 0, right: 0 }}
+        onLayout={(event) => setHeaderHeight(event.nativeEvent.layout.height)}>
+        <GlassBackdrop scrollY={scrollY} />
+        <View className="flex-row items-center justify-between px-5 pb-3 pt-14">
+          <Text className="font-serif text-3xl italic text-ink">Mensajes</Text>
+          <Pressable
+            onPress={toggleSearch}
+            accessibilityRole="button"
+            accessibilityLabel={searching ? 'Cerrar búsqueda' : 'Buscar'}
+            className="h-10 w-10 items-center justify-center rounded-full bg-sand-50">
+            <Ionicons name={searching ? 'close' : 'search'} size={18} color={colors.ink.DEFAULT} />
+          </Pressable>
+        </View>
+
+        {searching && (
+          <View className="mx-5 mb-3 flex-row items-center gap-2 rounded-full bg-sand-50 px-4 py-2.5">
+            <Ionicons name="search" size={16} color={colors.stone[700]} />
+            <TextInput
+              value={query}
+              onChangeText={setQuery}
+              autoFocus
+              placeholder="Buscar por nombre o encargo"
+              placeholderTextColor={colors.stone[700]}
+              className="flex-1 text-sm text-ink"
+            />
+          </View>
+        )}
+
+        <View className="mx-5 mb-4 flex-row rounded-full bg-ink p-1">
+          {tabs.map((item) => (
+            <Pressable
+              key={item.id}
+              onPress={() => setTab(item.id)}
+              className={
+                tab === item.id
+                  ? 'flex-1 flex-row items-center justify-center gap-1.5 rounded-full bg-sand-50 py-2'
+                  : 'flex-1 flex-row items-center justify-center gap-1.5 py-2'
+              }>
+              <Text className={tab === item.id ? 'text-sm font-semibold text-ink' : 'text-sm text-sand-200'}>
+                {item.label}
+              </Text>
+              {item.count > 0 && (
+                <View className="h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1">
+                  <Text className="text-[10px] font-bold text-sand-50">{item.count}</Text>
+                </View>
+              )}
+            </Pressable>
+          ))}
+        </View>
+      </View>
     </View>
   );
 }

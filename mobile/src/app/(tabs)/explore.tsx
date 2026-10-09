@@ -6,8 +6,9 @@ import { Image, Pressable, ScrollView, Text, TextInput, View } from 'react-nativ
 import Animated from 'react-native-reanimated';
 
 import { AppBackground, useCorkScroll } from '@/components/app-background';
+import { GlassBackdrop } from '@/components/glass-header';
 import { type Post, usePostsStore } from '@/stores/posts-store';
-import { colors } from '@/theme';
+import { colors, NOTE_SHADOW } from '@/theme';
 
 // FlashList expone getScrollableNode, asi que Reanimated le engancha el
 // scroll en el hilo de UI igual que a un ScrollView y el corcho no se atrasa.
@@ -54,6 +55,9 @@ function openArtwork(post: Post) {
 
 export default function ExplorarScreen() {
   const { scrollY, onScroll } = useCorkScroll();
+  // Alto real del encabezado flotante: cambia al mostrar el filtro de
+  // abiertos, y la lista lo deja libre arriba.
+  const [headerHeight, setHeaderHeight] = useState(0);
   const posts = usePostsStore((state) => state.posts);
   const [category, setCategory] = useState('Todos');
   const [query, setQuery] = useState('');
@@ -73,7 +77,50 @@ export default function ExplorarScreen() {
   return (
     <View className="flex-1 bg-sand-100">
       <AppBackground scrollY={scrollY} />
-      <View className="gap-3 px-5 pb-3 pt-14">
+      <AnimatedFlashList
+        onScroll={onScroll}
+        scrollEventThrottle={16}
+        data={artworks}
+        numColumns={2}
+        keyExtractor={(item) => item.id}
+        contentContainerClassName="px-4 pb-32"
+        ListHeaderComponent={<View style={{ height: headerHeight }} />}
+        ListEmptyComponent={
+          <View className="mx-1 mt-2 items-center rounded-2xl bg-sand-50 py-12" style={NOTE_SHADOW}>
+            <Text className="text-sm text-stone-700">No encontramos nada con esos filtros.</Text>
+          </View>
+        }
+        renderItem={({ item }) => (
+          <Pressable
+            onPress={() => openArtwork(item)}
+            accessibilityLabel={`Obra de ${item.name}`}
+            className="m-1 flex-1 overflow-hidden rounded-2xl">
+            <Image source={{ uri: item.image }} className="aspect-square w-full" />
+            {NEW_TALENT.includes(item.name) && (
+              <View className="absolute left-2 top-2 rounded-full bg-sand-50/90 px-2 py-0.5">
+                <Text className="text-[10px] font-semibold text-sage">Nuevo talento</Text>
+              </View>
+            )}
+            {item.acceptsCommissions && (
+              <View className="absolute right-2 top-2 h-6 w-6 items-center justify-center rounded-full bg-gold">
+                <Ionicons name="cash-outline" size={13} color={colors.ink.DEFAULT} />
+              </View>
+            )}
+            <View className="absolute inset-x-0 bottom-0 bg-ink/45 px-2.5 py-1.5">
+              <Text className="text-xs font-semibold text-sand-50" numberOfLines={1}>
+                {item.name}
+              </Text>
+            </View>
+          </Pressable>
+        )}
+      />
+
+      <View
+        pointerEvents="box-none"
+        className="gap-3 px-5 pb-3 pt-14"
+        style={{ position: 'absolute', top: 0, left: 0, right: 0 }}
+        onLayout={(event) => setHeaderHeight(event.nativeEvent.layout.height)}>
+        <GlassBackdrop scrollY={scrollY} />
         <View className="flex-row items-center gap-2 rounded-full bg-sand-50 px-4 py-3">
           <Ionicons name="search" size={18} color={colors.stone[700]} />
           <TextInput
@@ -121,43 +168,6 @@ export default function ExplorarScreen() {
           ))}
         </ScrollView>
       </View>
-
-      <AnimatedFlashList
-        onScroll={onScroll}
-        scrollEventThrottle={16}
-        data={artworks}
-        numColumns={2}
-        keyExtractor={(item) => item.id}
-        contentContainerClassName="px-4 pb-32"
-        ListEmptyComponent={
-          <View className="items-center py-16">
-            <Text className="text-sm text-stone-700">No encontramos nada con esos filtros.</Text>
-          </View>
-        }
-        renderItem={({ item }) => (
-          <Pressable
-            onPress={() => openArtwork(item)}
-            accessibilityLabel={`Obra de ${item.name}`}
-            className="m-1 flex-1 overflow-hidden rounded-2xl">
-            <Image source={{ uri: item.image }} className="aspect-square w-full" />
-            {NEW_TALENT.includes(item.name) && (
-              <View className="absolute left-2 top-2 rounded-full bg-sand-50/90 px-2 py-0.5">
-                <Text className="text-[10px] font-semibold text-sage">Nuevo talento</Text>
-              </View>
-            )}
-            {item.acceptsCommissions && (
-              <View className="absolute right-2 top-2 h-6 w-6 items-center justify-center rounded-full bg-gold">
-                <Ionicons name="cash-outline" size={13} color={colors.ink.DEFAULT} />
-              </View>
-            )}
-            <View className="absolute inset-x-0 bottom-0 bg-ink/45 px-2.5 py-1.5">
-              <Text className="text-xs font-semibold text-sand-50" numberOfLines={1}>
-                {item.name}
-              </Text>
-            </View>
-          </Pressable>
-        )}
-      />
     </View>
   );
 }

@@ -8,6 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppBackground, useCorkScroll } from '@/components/app-background';
 import { Avatar } from '@/components/avatar';
+import { GlassHeader, useGlassHeaderOffset } from '@/components/glass-header';
 import { StatusBadge } from '@/components/status-badge';
 import {
   artistNetOf,
@@ -139,6 +140,7 @@ function Stars({ value, onChange }: { value: number; onChange?: (stars: number) 
 
 export default function ComisionScreen() {
   const { scrollY, onScroll } = useCorkScroll();
+  const headerOffset = useGlassHeaderOffset();
   const { id } = useLocalSearchParams<{ id: string }>();
   const commission = useCommissionsStore((state) => state.commissions.find((item) => item.id === id));
   const rejectQuote = useCommissionsStore((state) => state.rejectQuote);
@@ -237,20 +239,11 @@ export default function ComisionScreen() {
   return (
     <View className="flex-1 bg-sand-100">
       <AppBackground scrollY={scrollY} />
-      <SafeAreaView edges={['top', 'bottom']} className="flex-1">
-        <View className="flex-row items-center justify-between px-5 py-3">
-          <Pressable onPress={() => router.back()} hitSlop={8} accessibilityLabel="Volver">
-            <Ionicons name="chevron-back" size={24} color={colors.ink.DEFAULT} />
-          </Pressable>
-          <Text className="text-base font-semibold text-ink">{isClient ? 'Tu pedido' : 'Encargo recibido'}</Text>
-          <Pressable onPress={openChat} hitSlop={8} accessibilityLabel="Abrir chat">
-            <Ionicons name="chatbubble-ellipses-outline" size={22} color={colors.ink.DEFAULT} />
-          </Pressable>
-        </View>
-
+      <SafeAreaView edges={['bottom']} className="flex-1">
         <Animated.ScrollView
           onScroll={onScroll}
           scrollEventThrottle={16}
+          contentContainerStyle={{ paddingTop: headerOffset }}
           contentContainerClassName="gap-4 px-5 pb-6"
           showsVerticalScrollIndicator={false}>
           <View style={NOTE_SHADOW} className="gap-3 rounded-2xl bg-sand-50 p-4">
@@ -342,6 +335,16 @@ export default function ComisionScreen() {
 
         {action && <View className="border-t border-sand-300 bg-sand-100 px-5 pb-2 pt-3">{action}</View>}
       </SafeAreaView>
+
+      <GlassHeader scrollY={scrollY}>
+        <Pressable onPress={() => router.back()} hitSlop={8} accessibilityLabel="Volver">
+          <Ionicons name="chevron-back" size={24} color={colors.ink.DEFAULT} />
+        </Pressable>
+        <Text className="text-base font-semibold text-ink">{isClient ? 'Tu pedido' : 'Encargo recibido'}</Text>
+        <Pressable onPress={openChat} hitSlop={8} accessibilityLabel="Abrir chat">
+          <Ionicons name="chatbubble-ellipses-outline" size={22} color={colors.ink.DEFAULT} />
+        </Pressable>
+      </GlassHeader>
     </View>
   );
 }

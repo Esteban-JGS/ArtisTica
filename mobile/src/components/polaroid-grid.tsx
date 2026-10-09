@@ -30,6 +30,11 @@ const SINGLE_COLUMN_WIDTH = 0.84;
 const TILTS = [-2.4, 1.6, -1.1, 2.2, -1.8, 0.9, 2.6, -0.7, 1.3];
 const TILT_SCALE: Record<Columns, number> = { 1: 0.6, 2: 1, 3: 1.2 };
 const DROPS = [0, 7, 3, 9, 2, 6, 4, 0, 8];
+// La letra no crece con la foto: mismo tamano en una o dos columnas, y
+// hasta dos lineas para que la frase se lea. En tres columnas la franja
+// queda muy chica y la foto va sin texto, como muchas polaroids reales.
+const CAPTION_SIZE = 16;
+const CAPTION_LINE = 19;
 
 function ColumnsGlyph({ count, color }: { count: Columns; color: string }) {
   return (
@@ -64,8 +69,6 @@ function Polaroid({
   const drop = columns === 1 ? 0 : DROPS[index % DROPS.length];
   const tapeWidth = width * 0.36;
   const tapeHeight = Math.min(Math.max(width * 0.1, 12), 26);
-  // En tres columnas la franja de abajo queda muy chica para escribir.
-  const captionSize = columns === 1 ? 22 : columns === 2 ? 15 : 0;
 
   return (
     <Pressable
@@ -93,12 +96,12 @@ function Polaroid({
             borderColor: 'rgba(32,29,26,0.14)',
           }}
         />
-        {captionSize > 0 && item.caption ? (
+        {columns < 3 && item.caption ? (
           <View style={{ height: bottom, justifyContent: 'center' }}>
             <Text
-              numberOfLines={1}
+              numberOfLines={2}
               className="text-center font-serif italic text-ink-700"
-              style={{ fontSize: captionSize }}>
+              style={{ fontSize: CAPTION_SIZE, lineHeight: CAPTION_LINE }}>
               {item.caption}
             </Text>
           </View>

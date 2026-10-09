@@ -21,8 +21,10 @@ export const PILL_SHADOW = {
 };
 
 // Papel sobre corcho: una sombra corta y firme que marca el borde, mas
-// una larga y suave que lo despega del tablero. Con boxShadow, porque la
-// elevation de Android da una sombra gris pareja que se ve plastica.
+// una suave que lo despega del tablero. Con boxShadow, porque la
+// elevation de Android da una sombra gris pareja que se ve plastica. La
+// segunda se mantiene corta: con mas desplazamiento, Android la dibuja
+// casi sin difuminar y parece un canto del papel.
 export const NOTE_SHADOW = {
-  boxShadow: '0px 1px 2px rgba(48,28,12,0.40), 0px 8px 16px rgba(48,28,12,0.28)',
+  boxShadow: '0px 1px 2px rgba(48,28,12,0.32), 0px 3px 10px rgba(48,28,12,0.20)',
 };

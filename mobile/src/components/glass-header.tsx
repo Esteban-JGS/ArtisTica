@@ -17,33 +17,41 @@ export function useGlassHeaderOffset() {
   return top + GLASS_HEADER_HEIGHT;
 }
 
-// Encabezado que flota sobre el contenido. Arriba de todo es
-// transparente y deja ver el corcho; al bajar aparece un vidrio y el
-// contenido pasa por debajo difuminado, en vez de cortarse en seco.
-export function GlassHeader({ scrollY, children }: { scrollY: SharedValue<number>; children: ReactNode }) {
-  const { top } = useSafeAreaInsets();
-
+// Vidrio que aparece al bajar. Arriba de todo es transparente y deja ver
+// el corcho; con scroll se vuelve opaco y el contenido pasa por debajo
+// difuminado, en vez de cortarse en seco. Llena a su contenedor, que
+// tiene que flotar sobre la lista.
+export function GlassBackdrop({ scrollY }: { scrollY: SharedValue<number> }) {
   const backdropStyle = useAnimatedStyle(() => ({
     opacity: interpolate(scrollY.value, [0, FADE_DISTANCE], [0, 1], Extrapolation.CLAMP),
   }));
 
   return (
+    <Animated.View
+      pointerEvents="none"
+      style={[
+        StyleSheet.absoluteFill,
+        { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: 'rgba(32,29,26,0.18)' },
+        backdropStyle,
+      ]}>
+      <LiquidGlassView
+        glassType="clear"
+        glassTintColor={colors.sand[50]}
+        glassOpacity={0.85}
+        isInteractive={false}
+        style={StyleSheet.absoluteFill}
+      />
+    </Animated.View>
+  );
+}
+
+// Encabezado de una fila (volver, titulo, accion) sobre GlassBackdrop.
+export function GlassHeader({ scrollY, children }: { scrollY: SharedValue<number>; children: ReactNode }) {
+  const { top } = useSafeAreaInsets();
+
+  return (
     <View pointerEvents="box-none" style={{ position: 'absolute', top: 0, left: 0, right: 0 }}>
-      <Animated.View
-        pointerEvents="none"
-        style={[
-          StyleSheet.absoluteFill,
-          { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: 'rgba(32,29,26,0.18)' },
-          backdropStyle,
-        ]}>
-        <LiquidGlassView
-          glassType="clear"
-          glassTintColor={colors.sand[50]}
-          glassOpacity={0.85}
-          isInteractive={false}
-          style={StyleSheet.absoluteFill}
-        />
-      </Animated.View>
+      <GlassBackdrop scrollY={scrollY} />
       <View
         className="flex-row items-center justify-between px-5"
         style={{ paddingTop: top, height: top + GLASS_HEADER_HEIGHT }}>
