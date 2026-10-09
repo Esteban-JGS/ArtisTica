@@ -142,11 +142,11 @@ Consecuencia: las respuestas pendientes de la pasarela cambian configuración o,
 
 ---
 
-## 4. Estado real del repositorio (8 de octubre de 2026, lote 8c)
+## 4. Estado real del repositorio (9 de octubre de 2026, lote 8 completo)
 
 El detalle vive en `orquestacion/BITACORA.md` (estado de lotes, deuda, pendientes) y en la sección 5 de `docs/ArtisTica_Documentacion_Oficial.md`. Esta es la foto para orientarse.
 
-**Backend:** unos 80 módulos y 10,400 líneas en `backend/src`, 431 pruebas contra un Postgres real, 9 migraciones encadenadas (cabeza `d3e4f5a6b7c8`), lint con 29 familias de reglas de Ruff. El CI corre además `.github/scripts/reglas-del-repositorio.sh` (commits sin coautores ni menciones, archivos sin guiones largos ni medios) y sube y baja la última migración con `alembic check`.
+**Backend:** unos 83 módulos y 13,000 líneas en `backend/src`, 442 pruebas contra un Postgres real, 9 migraciones encadenadas (cabeza `d3e4f5a6b7c8`), lint con 29 familias de reglas de Ruff. El CI corre además `.github/scripts/reglas-del-repositorio.sh` (commits sin coautores ni menciones, archivos sin guiones largos ni medios) y sube y baja la última migración con `alembic check`.
 
 | Capa | Qué hay |
 |---|---|
@@ -154,12 +154,12 @@ El detalle vive en `orquestacion/BITACORA.md` (estado de lotes, deuda, pendiente
 | `src/services/` | perfiles, medios, catálogo, publicaciones, feed, social, comentarios, búsqueda, consultas, paginación por cursor, pedidos y contratación (la única capa que llama a la pasarela por un pedido). Hacen `flush`, nunca `commit` |
 | `src/payments/` | Contrato, pasarela falsa completa y adaptador de ONVO probado solo con transporte simulado |
 | `src/storage/` | Contrato, almacenamiento falso y adaptador de Supabase probado solo con transporte simulado |
-| `src/api/v1/` | perfiles, medios, catálogo, publicaciones y feed, social, comentarios, búsqueda, consultas, pedidos |
+| `src/api/v1/` | perfiles, medios, catálogo, publicaciones y feed, social, comentarios, búsqueda, consultas, pedidos, moderación |
 | `src/workers/` | El loop de la cola funciona con reintentos. **Los cuatro handlers son relleno** (miniaturas, embeddings, estilos, moderación) |
 
-**Hecho:** toda la parte social (perfiles, planes, onboarding de la pasarela, imágenes, obras, servicios, publicaciones, Seguidos, Explorar con nuevos talentos, seguidores, me gusta, comentarios y búsqueda), las consultas con su chat, los pedidos con sus cobros y 3DS, y el archivo final en un bucket privado. Deuda abierta: DT23 a DT27, con lote asignado en la bitácora.
+**Hecho:** toda la parte social (perfiles, planes, onboarding de la pasarela, imágenes, obras, servicios, publicaciones, Seguidos, Explorar con nuevos talentos, seguidores, me gusta, comentarios y búsqueda), las consultas con su chat, los pedidos con sus cobros y 3DS, el archivo final en un bucket privado y la resolución de disputas por moderación. Deuda abierta: DT25, DT27 y DT28, con lote asignado en la bitácora.
 
-**Falta:** resolución de disputas (8d), avisos de pago y vencimientos (9), métricas (10), moderación y trabajos reales del worker con IA (11). Además, los pendientes P1 a P15 de la bitácora: nada corre todavía contra Supabase ni ONVO reales, no hay backend desplegado y la app usa datos de ejemplo.
+**Falta:** avisos de pago y vencimientos (9), métricas (10), moderación y trabajos reales del worker con IA (11). Además, los pendientes P1 a P15 de la bitácora: nada corre todavía contra Supabase ni ONVO reales, no hay backend desplegado y la app usa datos de ejemplo.
 
 ---
 
