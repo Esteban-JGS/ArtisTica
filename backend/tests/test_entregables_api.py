@@ -261,6 +261,51 @@ async def test_8c_09_un_entregable_no_va_a_una_obra_ni_a_una_publicacion(
     assert r.status_code == 201, r.text
 
 
+# DT26
+
+
+async def test_8d_10_medio_privado_sin_url_publica(
+    cliente, autenticar_como, sesion_api, pasarela_falsa, almacenamiento_falso
+):
+    s, http = sesion_api, cliente
+    escena = await encargo(
+        http, autenticar_como, s, pasarela_falsa, hasta="saldo_pagado"
+    )
+    autenticar_como(escena.artista.id)
+
+    r = await pedir_subida(http, escena.pedido_id)
+    privada = r.json()
+    almacenamiento_falso.simular_subida(
+        privada["bucket"], privada["ruta"], CONTENIDO, PNG
+    )
+    r = await http.post(f"{API}/medios/{privada['medio_id']}/confirmar")
+    assert r.status_code == 200, r.text
+    assert r.json()["subido"] is True
+    assert r.json()["url"] is None
+    assert r.json()["miniatura_url"] is None
+    # Tampoco con miniatura
+    privado = await medio_db(s, privada["medio_id"])
+    privado.thumbnail_path = f"{privado.storage_path}.miniatura.jpg"
+    await s.flush()
+    r = await http.get(f"{API}/medios/{privada['medio_id']}")
+    assert r.status_code == 200, r.text
+    assert r.json()["url"] is None
+    assert r.json()["miniatura_url"] is None
+
+    r = await http.post(
+        f"{API}/medios", json={"content_type": PNG, "tamano_bytes": len(CONTENIDO)}
+    )
+    assert r.status_code == 201, r.text
+    publica = r.json()
+    assert publica["bucket"] == settings.BUCKET_MEDIOS
+    almacenamiento_falso.simular_subida(
+        publica["bucket"], publica["ruta"], CONTENIDO, PNG
+    )
+    r = await http.post(f"{API}/medios/{publica['medio_id']}/confirmar")
+    assert r.status_code == 200, r.text
+    assert publica["ruta"] in r.json()["url"]
+
+
 # 10. Configuracion
 
 

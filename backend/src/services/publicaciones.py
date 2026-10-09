@@ -68,7 +68,7 @@ async def _me_gusta(
         .where(Reaccion.publicacion_id.in_(ids), es_me_gusta)
         .group_by(Reaccion.publicacion_id)
     )
-    totales: dict[uuid.UUID, int] = dict(filas.tuples().all())
+    totales: dict[uuid.UUID, int] = dict(filas.all())
     if usuario is None:
         return totales, None
     mias = await session.execute(

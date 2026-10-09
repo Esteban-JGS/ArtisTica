@@ -45,6 +45,8 @@ const FUENTE = "Arial";
 const PT = (puntos) => puntos * 2;
 const TAM_TEXTO = PT(12);
 const TAM_TABLA = PT(10);
+// Las tablas de hasta estas filas, encabezado incluido, se mantienen en una pagina
+const FILAS_TABLA_JUNTA = 8;
 const TAM_PIE = PT(9);
 const INTERLINEADO = 276; // 1.15 lineas
 
@@ -106,6 +108,8 @@ function tabla(filas) {
                 children: [
                   new Paragraph({
                     spacing: { after: 0, line: 240 },
+                    // Una tabla corta no se parte entre paginas; una larga si, para no dejar huecos
+                    keepNext: filas.length <= FILAS_TABLA_JUNTA && i < filas.length - 1,
                     children: tramos(texto, { size: TAM_TABLA, bold: i === 0 ? true : undefined }),
                   }),
                 ],

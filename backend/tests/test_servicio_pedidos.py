@@ -137,7 +137,10 @@ async def _encargo_pagado(session, captura: datetime) -> Pedido:
     await servicio.iniciar_trabajo(session, pedido_id=pedido.id)
     media = await _media(session, await _recargar(session, Profile, pedido.artista_id))
     await servicio.entregar_vista_previa(
-        session, pedido_id=pedido.id, media_asset_id=media.id
+        session,
+        pedido_id=pedido.id,
+        media_asset_id=media.id,
+        bucket_publico=settings.BUCKET_MEDIOS,
     )
     await servicio.registrar_saldo_autorizado(
         session,
@@ -188,7 +191,11 @@ async def test_07_camino_completo_de_un_encargo(async_session):
     await servicio.iniciar_trabajo(s, pedido_id=pedido.id)
     media = await _media(s, artista)
     await servicio.entregar_vista_previa(
-        s, pedido_id=pedido.id, media_asset_id=media.id, nota="Primera version"
+        s,
+        pedido_id=pedido.id,
+        media_asset_id=media.id,
+        nota="Primera version",
+        bucket_publico=settings.BUCKET_MEDIOS,
     )
     # D24: entregar no cambia el estado; lo cambia el saldo autorizado
     assert (await _recargar(s, Pedido, pedido.id)).estado is EstadoPedido.EN_PROCESO
@@ -591,7 +598,10 @@ async def test_8b_02_entregar_vista_previa_exige_un_medio_valido(async_session):
 
     async def _entregar(media_id):
         return await servicio.entregar_vista_previa(
-            s, pedido_id=pedido.id, media_asset_id=media_id
+            s,
+            pedido_id=pedido.id,
+            media_asset_id=media_id,
+            bucket_publico=settings.BUCKET_MEDIOS,
         )
 
     ajeno = await _media(s, await _perfil(s))

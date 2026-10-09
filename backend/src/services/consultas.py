@@ -19,6 +19,7 @@ from datetime import date, datetime
 from decimal import Decimal
 
 from sqlalchemy import ColumnElement, and_, case, func, or_, select, update
+from sqlalchemy.dialects.postgresql import distinct_on
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.exceptions import (
@@ -41,6 +42,7 @@ from src.models import (
     EstadoObra,
     Mensaje,
     Obra,
+    Pedido,
     Profile,
     RolPerfil,
     Servicio,
@@ -61,6 +63,14 @@ ESTADOS_EN_CURSO = (EstadoConsulta.ABIERTA, EstadoConsulta.COTIZADA)
 class MensajeDetalle:
     mensaje: Mensaje
     es_mio: bool
+
+
+@dataclass(frozen=True)
+class MensajeConRemitente:
+    """Para moderacion, que no es parte de la consulta."""
+
+    mensaje: Mensaje
+    remitente: Profile
 
 
 @dataclass(frozen=True)
@@ -139,7 +149,7 @@ async def _ultimos_mensajes(
     stmt = (
         select(Mensaje)
         .where(Mensaje.consulta_id.in_(ids))
-        .distinct(Mensaje.consulta_id)
+        .ext(distinct_on(Mensaje.consulta_id))
         .order_by(
             Mensaje.consulta_id.desc(), Mensaje.created_at.desc(), Mensaje.id.desc()
         )
@@ -156,7 +166,7 @@ async def _no_leidos(
         .where(Mensaje.consulta_id.in_(ids), _no_leido(usuario.id))
         .group_by(Mensaje.consulta_id)
     )
-    return dict((await session.execute(stmt)).tuples().all())
+    return dict((await session.execute(stmt)).all())
 
 
 async def _detallar(
@@ -500,9 +510,35 @@ async def bandeja(
 async def resumen_no_leidos(session: AsyncSession, usuario: Profile) -> tuple[int, int]:
     """Cuantas consultas tienen algo sin leer y cuantos mensajes, en una consulta."""
     stmt = (
-        select(func.count(func.distinct(Mensaje.consulta_id)), func.count(Mensaje.id))
+        select(func.count(Mensaje.consulta_id.distinct()), func.count(Mensaje.id))
         .join(Consulta, Consulta.id == Mensaje.consulta_id)
         .where(_participa(usuario.id), _no_leido(usuario.id))
     )
     consultas, mensajes = (await session.execute(stmt)).one()
     return consultas, mensajes
+
+
+# Lectura para moderacion. Sin control de participante: la API exige un admin.
+
+
+async def mensajes_para_moderacion(
+    session: AsyncSession, pedido_id: uuid.UUID, parametros: ParametrosPagina
+) -> tuple[list[MensajeConRemitente], str | None]:
+    """El chat de la consulta del pedido, del mas viejo al mas nuevo."""
+    consulta_id = (
+        await session.execute(select(Pedido.consulta_id).where(Pedido.id == pedido_id))
+    ).scalar_one_or_none()
+    if consulta_id is None:
+        raise ResourceNotFound("Pedido no encontrado")
+    stmt = select(Mensaje).where(Mensaje.consulta_id == consulta_id)
+    mensajes, siguiente = await traer_pagina(
+        session, stmt, Mensaje, parametros, ascendente=True
+    )
+    if not mensajes:
+        return [], siguiente
+    ids = {m.remitente_id for m in mensajes}
+    filas = await session.execute(select(Profile).where(Profile.id.in_(ids)))
+    perfiles = {p.id: p for p in filas.scalars()}
+    return [
+        MensajeConRemitente(m, perfiles[m.remitente_id]) for m in mensajes
+    ], siguiente

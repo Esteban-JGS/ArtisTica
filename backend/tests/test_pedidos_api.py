@@ -699,7 +699,10 @@ async def test_8b_13_listado_sin_n_mas_1(
             await servicio_pedidos.iniciar_trabajo(s, pedido_id=pedido.id)
             imagen = await medio(s, artista_)
             await servicio_pedidos.entregar_vista_previa(
-                s, pedido_id=pedido.id, media_asset_id=imagen.id
+                s,
+                pedido_id=pedido.id,
+                media_asset_id=imagen.id,
+                bucket_publico=settings.BUCKET_MEDIOS,
             )
         await s.flush()
         contador = 0

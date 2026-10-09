@@ -575,6 +575,6 @@ async def test_7_17_rls_sin_politicas(sesion_api):
             "WHERE relname IN ('consultas', 'mensajes') AND relkind = 'r'"
         )
     )
-    assert dict(filas.tuples().all()) == {"consultas": True, "mensajes": True}
+    assert dict(filas.all()) == {"consultas": True, "mensajes": True}
     politicas = await sesion_api.execute(text("SELECT count(*) FROM pg_policies"))
     assert politicas.scalar_one() == 0

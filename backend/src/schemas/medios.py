@@ -72,19 +72,21 @@ class MedioRespuesta(BaseModel):
 
     @classmethod
     def desde(cls, medio: MediaAsset, almacenamiento: Almacenamiento) -> Self:
+        """Sin URL fuera del bucket publico: el privado se descarga firmado."""
         subido = medio.subido_en is not None
+        publico = medio.bucket == settings.BUCKET_MEDIOS
         return cls(
             id=medio.id,
             estado=medio.estado,
             subido=subido,
             url=(
                 almacenamiento.url_publica(medio.bucket, medio.storage_path)
-                if subido
+                if publico and subido
                 else None
             ),
             miniatura_url=(
                 almacenamiento.url_publica(medio.bucket, medio.thumbnail_path)
-                if medio.thumbnail_path
+                if publico and medio.thumbnail_path
                 else None
             ),
             content_type=medio.content_type,
