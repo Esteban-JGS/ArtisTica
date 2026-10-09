@@ -422,7 +422,7 @@ async def iniciar_trabajo(session: AsyncSession, *, pedido_id: uuid.UUID) -> Ped
 
 
 async def _medio_para_entregar(
-    session: AsyncSession, pedido: Pedido, media_asset_id: uuid.UUID, bucket: str | None
+    session: AsyncSession, pedido: Pedido, media_asset_id: uuid.UUID, bucket: str
 ) -> MediaAsset:
     """El medio del artista, subido, suelto, sin entregar y en `bucket`."""
     # Bloqueado: no se cruza con su borrado ni con otra entrega del mismo medio
@@ -444,7 +444,7 @@ async def _medio_para_entregar(
         raise ReglaDeNegocioViolada(
             "El medio esta asociado a una obra o una publicacion"
         )
-    if bucket is not None and medio.bucket != bucket:
+    if medio.bucket != bucket:
         raise ReglaDeNegocioViolada("El medio no esta en el bucket que corresponde")
     usado = await session.execute(
         select(Entregable.id).where(Entregable.media_asset_id == medio.id).limit(1)
@@ -474,14 +474,13 @@ async def entregar_vista_previa(
     *,
     pedido_id: uuid.UUID,
     media_asset_id: uuid.UUID,
+    bucket_publico: str,
     nota: str | None = None,
-    bucket_publico: str | None = None,
 ) -> Entregable:
     """Primer paso (D24): el artista sube la vista previa y el pedido sigue en
     en_proceso. Puede entregar varias, una por revision.
 
-    Con `bucket_publico`, el medio tiene que estar ahi: en el privado no se
-    veria. La API siempre lo pasa."""
+    El medio tiene que estar en `bucket_publico`: en el privado no se veria."""
     pedido = await _bloquear(session, Pedido, pedido_id)
     # Solo un encargo en proceso puede pasar a vista_previa_entregada
     dominio.validar_transicion(
