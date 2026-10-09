@@ -42,6 +42,7 @@ from src.models import (
     EstadoObra,
     Mensaje,
     Obra,
+    Pedido,
     Profile,
     RolPerfil,
     Servicio,
@@ -62,6 +63,14 @@ ESTADOS_EN_CURSO = (EstadoConsulta.ABIERTA, EstadoConsulta.COTIZADA)
 class MensajeDetalle:
     mensaje: Mensaje
     es_mio: bool
+
+
+@dataclass(frozen=True)
+class MensajeConRemitente:
+    """Para moderacion, que no es parte de la consulta."""
+
+    mensaje: Mensaje
+    remitente: Profile
 
 
 @dataclass(frozen=True)
@@ -507,3 +516,29 @@ async def resumen_no_leidos(session: AsyncSession, usuario: Profile) -> tuple[in
     )
     consultas, mensajes = (await session.execute(stmt)).one()
     return consultas, mensajes
+
+
+# Lectura para moderacion. Sin control de participante: la API exige un admin.
+
+
+async def mensajes_para_moderacion(
+    session: AsyncSession, pedido_id: uuid.UUID, parametros: ParametrosPagina
+) -> tuple[list[MensajeConRemitente], str | None]:
+    """El chat de la consulta del pedido, del mas viejo al mas nuevo."""
+    consulta_id = (
+        await session.execute(select(Pedido.consulta_id).where(Pedido.id == pedido_id))
+    ).scalar_one_or_none()
+    if consulta_id is None:
+        raise ResourceNotFound("Pedido no encontrado")
+    stmt = select(Mensaje).where(Mensaje.consulta_id == consulta_id)
+    mensajes, siguiente = await traer_pagina(
+        session, stmt, Mensaje, parametros, ascendente=True
+    )
+    if not mensajes:
+        return [], siguiente
+    ids = {m.remitente_id for m in mensajes}
+    filas = await session.execute(select(Profile).where(Profile.id.in_(ids)))
+    perfiles = {p.id: p for p in filas.scalars()}
+    return [
+        MensajeConRemitente(m, perfiles[m.remitente_id]) for m in mensajes
+    ], siguiente

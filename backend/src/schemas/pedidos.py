@@ -10,14 +10,22 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Annotated, Literal, Self
 
-from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, StringConstraints
+from pydantic import (
+    AfterValidator,
+    AwareDatetime,
+    BaseModel,
+    ConfigDict,
+    Field,
+    StringConstraints,
+)
 
 from src.domain.enums import EstadoCobro, EstadoPedido, TipoCobro, TipoPedido
 from src.domain.pedidos import Rol
-from src.models import Cobro
+from src.models import Cobro, Disputa, EstadoDisputa
 from src.schemas.catalogo import Monto
 from src.schemas.medios import ImagenPublica
 from src.schemas.social import PerfilResumido
+from src.services.consultas import MensajeConRemitente
 from src.services.contratacion import Resultado, ResultadoPago
 from src.services.pedidos import (
     EntregableFinal,
@@ -101,6 +109,38 @@ class NuevaDisputa(BaseModel):
     motivo: Texto2000
 
 
+class ReembolsoOrdenado(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    cobro_id: uuid.UUID
+    # Que no supere lo reembolsable lo valida el dominio (409)
+    monto: Annotated[Decimal, Field(gt=0, max_digits=12, decimal_places=2)]
+
+
+def _sin_cobros_repetidos(
+    reembolsos: list[ReembolsoOrdenado],
+) -> list[ReembolsoOrdenado]:
+    if len({r.cobro_id for r in reembolsos}) != len(reembolsos):
+        raise ValueError("Un cobro aparece mas de una vez en los reembolsos")
+    return reembolsos
+
+
+class ResolucionDisputa(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    destino: Literal[EstadoPedido.COMPLETADO, EstadoPedido.CANCELADO]
+    resolucion: Texto2000
+    # Un pedido tiene a lo sumo dos cobros
+    reembolsos: Annotated[
+        list[ReembolsoOrdenado],
+        Field(max_length=2),
+        AfterValidator(_sin_cobros_repetidos),
+    ] = []
+
+    def reembolsos_por_cobro(self) -> dict[uuid.UUID, Decimal]:
+        return {r.cobro_id: r.monto for r in self.reembolsos}
+
+
 # Salida
 
 
@@ -172,12 +212,39 @@ class DescargaRespuesta(BaseModel):
         return cls(url=descarga.url, expira_en=descarga.expira_en)
 
 
+class DisputaRespuesta(BaseModel):
+    estado: EstadoDisputa
+    motivo: str
+    abierta_por: PerfilResumido
+    created_at: datetime
+    resolucion: str | None
+    resuelta_en: datetime | None
+
+    @classmethod
+    def desde(cls, disputa: Disputa, detalle: PedidoDetalle) -> Self:
+        # La abre siempre una de las dos partes
+        abierta_por = (
+            detalle.cliente
+            if disputa.abierta_por_id == detalle.cliente.id
+            else detalle.artista
+        )
+        return cls(
+            estado=disputa.estado,
+            motivo=disputa.motivo,
+            abierta_por=PerfilResumido.desde(abierta_por),
+            created_at=disputa.created_at,
+            resolucion=disputa.resolucion,
+            resuelta_en=disputa.resuelta_en,
+        )
+
+
 class PedidoRespuesta(BaseModel):
     id: uuid.UUID
     consulta_id: uuid.UUID
     tipo: TipoPedido
     estado: EstadoPedido
-    soy: Rol
+    # Nulo cuando mira moderacion
+    soy: Rol | None
     cliente: PerfilResumido
     artista: PerfilResumido
     descripcion: str
@@ -197,6 +264,7 @@ class PedidoRespuesta(BaseModel):
     cobros: list[CobroRespuesta]
     vistas_previas: list[VistaPreviaRespuesta]
     finales: list[FinalRespuesta]
+    disputa: DisputaRespuesta | None
 
     @classmethod
     def desde(cls, detalle: PedidoDetalle, almacenamiento: Almacenamiento) -> Self:
@@ -228,6 +296,9 @@ class PedidoRespuesta(BaseModel):
                 for v in detalle.vistas_previas
             ],
             finales=[FinalRespuesta.desde(f) for f in detalle.finales],
+            disputa=None
+            if detalle.disputa is None
+            else DisputaRespuesta.desde(detalle.disputa, detalle),
         )
 
 
@@ -254,4 +325,23 @@ class ResultadoPagoRespuesta(BaseModel):
             pedido=None
             if resultado.pedido is None
             else PedidoRespuesta.desde(resultado.pedido, almacenamiento),
+        )
+
+
+class MensajeModeracion(BaseModel):
+    """Un mensaje del chat de la consulta, como lo ve moderacion."""
+
+    remitente: PerfilResumido
+    texto: str
+    aviso_contacto: bool
+    created_at: datetime
+
+    @classmethod
+    def desde(cls, detalle: MensajeConRemitente) -> Self:
+        mensaje = detalle.mensaje
+        return cls(
+            remitente=PerfilResumido.desde(detalle.remitente),
+            texto=mensaje.texto,
+            aviso_contacto=mensaje.aviso_contacto,
+            created_at=mensaje.created_at,
         )

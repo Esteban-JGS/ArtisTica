@@ -78,11 +78,12 @@ class PedidoDetalle:
     pedido: Pedido
     cliente: Profile
     artista: Profile
-    # Quien mira
-    soy: Rol
+    # Quien mira. Nulo cuando mira moderacion
+    soy: Rol | None
     cobros: list[Cobro]
     vistas_previas: list[VistaPrevia]
     finales: list[EntregableFinal]
+    disputa: Disputa | None
 
 
 # Carga y bloqueo
@@ -870,34 +871,74 @@ async def _entregables_de(
     return vistas, finales
 
 
-async def detallar(
-    session: AsyncSession, pedidos: Sequence[Pedido], usuario: Profile
+async def _disputas_de(
+    session: AsyncSession, ids: list[uuid.UUID]
+) -> dict[uuid.UUID, Disputa]:
+    stmt = select(Disputa).where(Disputa.pedido_id.in_(ids))
+    return {d.pedido_id: d for d in (await session.execute(stmt)).scalars()}
+
+
+async def _detallar(
+    session: AsyncSession, pedidos: Sequence[Pedido], usuario: Profile | None
 ) -> list[PedidoDetalle]:
-    """Perfiles, cobros y entregables de una pagina entera, sin N+1."""
+    """Perfiles, cobros, entregables y disputa de una pagina entera, sin N+1.
+    Sin usuario mira moderacion: `soy` queda nulo."""
     if not pedidos:
         return []
     ids = [p.id for p in pedidos]
     perfiles = await _perfiles(session, pedidos)
     cobros = await _cobros_de(session, ids)
     vistas, finales = await _entregables_de(session, ids)
+    disputas = await _disputas_de(session, ids)
     return [
         PedidoDetalle(
             pedido=p,
             cliente=perfiles[p.cliente_id],
             artista=perfiles[p.artista_id],
-            soy=dominio.rol_en_pedido(usuario.id, p.cliente_id, p.artista_id),
+            soy=None
+            if usuario is None
+            else dominio.rol_en_pedido(usuario.id, p.cliente_id, p.artista_id),
             cobros=cobros.get(p.id, []),
             vistas_previas=vistas.get(p.id, []),
             finales=finales.get(p.id, []),
+            disputa=disputas.get(p.id),
         )
         for p in pedidos
     ]
+
+
+async def detallar(
+    session: AsyncSession, pedidos: Sequence[Pedido], usuario: Profile
+) -> list[PedidoDetalle]:
+    return await _detallar(session, pedidos, usuario)
 
 
 async def detallar_uno(
     session: AsyncSession, pedido: Pedido, usuario: Profile
 ) -> PedidoDetalle:
     return (await detallar(session, [pedido], usuario))[0]
+
+
+async def pedido_existente(session: AsyncSession, pedido_id: uuid.UUID) -> Pedido:
+    """Sin bloquear y sin control de participante: solo para moderacion."""
+    pedido = (
+        await session.execute(select(Pedido).where(Pedido.id == pedido_id))
+    ).scalar_one_or_none()
+    if pedido is None:
+        raise ResourceNotFound(NO_ENCONTRADO)
+    return pedido
+
+
+async def disputa_del_pedido(
+    session: AsyncSession, pedido_id: uuid.UUID
+) -> Disputa | None:
+    """Releida de la base. Quien la cambia ya bloqueo el pedido."""
+    stmt = (
+        select(Disputa)
+        .where(Disputa.pedido_id == pedido_id)
+        .execution_options(populate_existing=True)
+    )
+    return (await session.execute(stmt)).scalar_one_or_none()
 
 
 async def pedido_visible(
@@ -940,3 +981,39 @@ async def listar(
         stmt = stmt.where(Pedido.consulta_id == consulta_id)
     pedidos, siguiente = await traer_pagina(session, stmt, Pedido, parametros)
     return await detallar(session, pedidos, usuario), siguiente
+
+
+# Lectura para moderacion. Sin control de participante: la API exige un admin.
+
+
+async def detalle_para_moderacion(
+    session: AsyncSession, pedido_id: uuid.UUID
+) -> PedidoDetalle:
+    pedido = await pedido_existente(session, pedido_id)
+    return (await _detallar(session, [pedido], None))[0]
+
+
+async def disputas_abiertas(
+    session: AsyncSession, parametros: ParametrosPagina
+) -> tuple[list[PedidoDetalle], str | None]:
+    """Los pedidos en disputa, de la disputa mas vieja a la mas nueva. El cursor
+    va sobre la fecha de la disputa."""
+    stmt = (
+        select(Disputa)
+        .join(Pedido, Pedido.id == Disputa.pedido_id)
+        .where(
+            Disputa.estado == EstadoDisputa.ABIERTA,
+            Pedido.estado == EstadoPedido.EN_DISPUTA,
+        )
+    )
+    disputas, siguiente = await traer_pagina(
+        session, stmt, Disputa, parametros, ascendente=True
+    )
+    if not disputas:
+        return [], siguiente
+    filas = await session.execute(
+        select(Pedido).where(Pedido.id.in_([d.pedido_id for d in disputas]))
+    )
+    por_id = {p.id: p for p in filas.scalars()}
+    pedidos = [por_id[d.pedido_id] for d in disputas]
+    return await _detallar(session, pedidos, None), siguiente

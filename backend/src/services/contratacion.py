@@ -19,6 +19,7 @@ almacenamiento, los buckets y la vigencia de la descarga.
 
 import enum
 import uuid
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import datetime
 from decimal import Decimal
@@ -42,11 +43,13 @@ from src.models import (
     Cobro,
     Consulta,
     EstadoCobro,
+    EstadoDisputa,
     EstadoPedido,
     MediaAsset,
     Obra,
     Pedido,
     Profile,
+    RolPerfil,
     TipoCobro,
     TipoEntregable,
     TipoPedido,
@@ -881,6 +884,104 @@ async def abrir_disputa(
         session, pedido_id=pedido.id, actor_id=usuario.id, motivo=motivo, ahora=ahora
     )
     return await pedidos.detallar_uno(session, pedido, usuario)
+
+
+# Primero lo que puede fallar por una regla del negocio, como una autorizacion
+# vencida: asi no se reembolsa ni se libera nada de un plan que no se completa
+_ORDEN_RESOLUCION = (
+    Accion.CAPTURAR,
+    Accion.LIBERAR_AUTORIZACION,
+    Accion.REEMBOLSAR,
+)
+_VENCIDA_EN_DISPUTA = (
+    "La autorizacion vencio: no se puede completar capturando; resolver como "
+    "cancelado o con reembolso"
+)
+
+
+async def resolver_disputa(
+    session: AsyncSession,
+    pasarela: PasarelaDePagos,
+    admin: Profile,
+    pedido_id: uuid.UUID,
+    *,
+    destino: EstadoPedido,
+    resolucion: str,
+    reembolsos: Mapping[uuid.UUID, Decimal],
+    ahora: datetime,
+    politicas: PoliticasPedido,
+) -> PedidoDetalle:
+    """Moderacion cierra la disputa: ejecuta el plan en la pasarela y despues
+    lo registra.
+
+    Si una llamada falla a mitad de camino, la excepcion sube y no se registra
+    nada. Las claves fijas hacen que el reintento no capture, libere ni
+    reembolse dos veces.
+    """
+    if destino not in (EstadoPedido.COMPLETADO, EstadoPedido.CANCELADO):
+        raise ReglaDeNegocioViolada("Una disputa se resuelve completada o cancelada")
+    if admin.rol is not RolPerfil.ADMIN:
+        raise ActorNoAutorizado("Solo moderacion resuelve una disputa")
+    ctx = _Contexto(session, pasarela, admin, ahora, politicas)
+    visto = await pedidos.pedido_existente(session, pedido_id)
+    artista, pedido = await _bloquear(ctx, visto)
+    disputa = await pedidos.disputa_del_pedido(session, pedido.id)
+    if disputa is None or disputa.estado is not EstadoDisputa.ABIERTA:
+        raise InvalidStateTransition("El pedido no tiene una disputa abierta")
+    cobros = await pedidos.cobros_del_pedido(session, pedido.id)
+    plan = dominio.planear_resolucion(
+        pedido.tipo, pedido.estado, destino, cobros, reembolsos
+    )
+    por_id = {c.id: c for c in cobros}
+    for accion in plan.acciones:
+        cobro = por_id[accion.cobro_id]
+        hacia = dominio.ESTADO_TRAS_ACCION[accion.accion]
+        if hacia is not None:
+            dominio.validar_transicion_cobro(cobro.estado, hacia)
+        if accion.accion in _ORDEN_RESOLUCION and cobro.referencia_pasarela is None:
+            raise HechosInconsistentes(f"El {cobro.tipo} no tiene referencia de pago")
+
+    # Fuera del plan, que trata al pendiente como CANCELAR sin pasarela
+    await _soltar_intentos_en_espera(ctx, cobros)
+    capturados: set[uuid.UUID] = set()
+    liberados: set[uuid.UUID] = set()
+    hechos_reembolsos: dict[uuid.UUID, Decimal] = {}
+    acciones = sorted(
+        (a for a in plan.acciones if a.accion in _ORDEN_RESOLUCION),
+        key=lambda a: _ORDEN_RESOLUCION.index(a.accion),
+    )
+    for accion in acciones:
+        cobro = por_id[accion.cobro_id]
+        if accion.accion is Accion.CAPTURAR:
+            await _capturar(ctx, artista, pedido, cobro, _VENCIDA_EN_DISPUTA)
+            capturados.add(cobro.id)
+        elif accion.accion is Accion.LIBERAR_AUTORIZACION:
+            await pasarela.liberar_autorizacion(
+                cobro.referencia_pasarela, clave_idempotencia=_clave_liberacion(cobro)
+            )
+            liberados.add(cobro.id)
+        elif accion.monto is not None:
+            await pasarela.reembolsar(
+                cobro.referencia_pasarela,
+                monto=accion.monto,
+                clave_idempotencia=_clave_reembolso(cobro, accion.monto),
+            )
+            hechos_reembolsos[cobro.id] = accion.monto
+
+    await pedidos.resolver_disputa(
+        session,
+        pedido_id=pedido.id,
+        destino=destino,
+        resolucion=resolucion,
+        admin_id=admin.id,
+        hechos=HechosPasarela(
+            liberados=frozenset(liberados),
+            capturados=frozenset(capturados),
+            reembolsos=hechos_reembolsos,
+        ),
+        ahora=ahora,
+    )
+    return await pedidos.detalle_para_moderacion(session, pedido.id)
 
 
 # Verificacion despues del 3DS
