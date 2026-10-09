@@ -142,24 +142,24 @@ Consecuencia: las respuestas pendientes de la pasarela cambian configuración o,
 
 ---
 
-## 4. Estado real del repositorio (8 de octubre de 2026, lote 8)
+## 4. Estado real del repositorio (8 de octubre de 2026, lote 8b)
 
 El detalle vive en `orquestacion/BITACORA.md` (estado de lotes, deuda, pendientes) y en la sección 5 de `docs/ArtisTica_Documentacion_Oficial.md`. Esta es la foto para orientarse.
 
-**Backend:** unos 80 módulos y 10,400 líneas en `backend/src`, 389 pruebas contra un Postgres real, 8 migraciones encadenadas (cabeza `c2d3e4f5a6b7`), lint con 29 familias de reglas de Ruff. El CI corre además `.github/scripts/reglas-del-repositorio.sh` (commits sin coautores ni menciones, archivos sin guiones largos ni medios) y sube y baja la última migración con `alembic check`.
+**Backend:** unos 80 módulos y 10,400 líneas en `backend/src`, 419 pruebas contra un Postgres real, 9 migraciones encadenadas (cabeza `d3e4f5a6b7c8`), lint con 29 familias de reglas de Ruff. El CI corre además `.github/scripts/reglas-del-repositorio.sh` (commits sin coautores ni menciones, archivos sin guiones largos ni medios) y sube y baja la última migración con `alembic check`.
 
 | Capa | Qué hay |
 |---|---|
 | `src/domain/` | Reglas puras: pedidos (máquina de estados y planes de cobro), políticas, perfiles, catálogo, medios, feed, comentarios, enums. No importa SQLAlchemy ni FastAPI |
-| `src/services/` | perfiles, medios, catálogo, publicaciones, feed, social, comentarios, búsqueda, consultas, paginación por cursor y **pedidos (sin endpoints todavía)**. Hacen `flush`, nunca `commit` |
+| `src/services/` | perfiles, medios, catálogo, publicaciones, feed, social, comentarios, búsqueda, consultas, paginación por cursor, pedidos y contratación (la única capa que llama a la pasarela por un pedido). Hacen `flush`, nunca `commit` |
 | `src/payments/` | Contrato, pasarela falsa completa y adaptador de ONVO probado solo con transporte simulado |
 | `src/storage/` | Contrato, almacenamiento falso y adaptador de Supabase probado solo con transporte simulado |
-| `src/api/v1/` | perfiles, medios, catálogo, publicaciones y feed, social, comentarios, búsqueda, consultas |
+| `src/api/v1/` | perfiles, medios, catálogo, publicaciones y feed, social, comentarios, búsqueda, consultas, pedidos |
 | `src/workers/` | El loop de la cola funciona con reintentos. **Los cuatro handlers son relleno** (miniaturas, embeddings, estilos, moderación) |
 
-**Hecho:** toda la parte social (perfiles, planes, onboarding de la pasarela, imágenes, obras, servicios, publicaciones, Seguidos, Explorar con nuevos talentos, seguidores, me gusta, comentarios y búsqueda), las consultas con su chat y toda la deuda técnica pagada.
+**Hecho:** toda la parte social (perfiles, planes, onboarding de la pasarela, imágenes, obras, servicios, publicaciones, Seguidos, Explorar con nuevos talentos, seguidores, me gusta, comentarios y búsqueda), las consultas con su chat, los pedidos con sus cobros y 3DS. Deuda abierta: DT23 a DT25, con lote asignado en la bitácora.
 
-**Falta:** pedidos y cobros (lotes 8 y 9), métricas (10), moderación y trabajos reales del worker con IA (11). Además, los pendientes P1 a P15 de la bitácora: nada corre todavía contra Supabase ni ONVO reales, no hay backend desplegado y la app usa datos de ejemplo.
+**Falta:** entregables privados y disputas (8c), avisos de pago y vencimientos (9), métricas (10), moderación y trabajos reales del worker con IA (11). Además, los pendientes P1 a P15 de la bitácora: nada corre todavía contra Supabase ni ONVO reales, no hay backend desplegado y la app usa datos de ejemplo.
 
 ---
 
