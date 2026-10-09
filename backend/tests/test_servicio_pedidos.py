@@ -5,7 +5,7 @@ from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
 import pytest
-from sqlalchemy import select
+from sqlalchemy import event, select
 from sqlalchemy.exc import IntegrityError
 
 from src.core.config import settings
@@ -14,6 +14,8 @@ from src.core.exceptions import (
     FueraDePlazo,
     HechosInconsistentes,
     ObraNoDisponible,
+    ReglaDeNegocioViolada,
+    ResourceNotFound,
 )
 from src.domain.pedidos import HechosPasarela
 from src.domain.politicas import PoliticasPedido
@@ -21,6 +23,7 @@ from src.models import (
     Cobro,
     Consulta,
     Disputa,
+    Entregable,
     EstadoCobro,
     EstadoConsulta,
     EstadoDisputa,
@@ -80,12 +83,14 @@ async def _obra(session, artista, precio=Decimal("15000.00")) -> Obra:
     return obra
 
 
-async def _media(session, artista) -> MediaAsset:
+async def _media(session, artista, *, subido=True, **kw) -> MediaAsset:
     media = MediaAsset(
         propietario_id=artista.id,
         tipo="imagen",
         storage_path=f"previas/{uuid.uuid4()}.jpg",
         estado=EstadoMedia.PROCESADO,
+        subido_en=T0 if subido else None,
+        **kw,
     )
     session.add(media)
     await session.flush()
@@ -131,10 +136,12 @@ async def _encargo_pagado(session, captura: datetime) -> Pedido:
     )
     await servicio.iniciar_trabajo(session, pedido_id=pedido.id)
     media = await _media(session, await _recargar(session, Profile, pedido.artista_id))
-    await servicio.registrar_vista_previa(
+    await servicio.entregar_vista_previa(
+        session, pedido_id=pedido.id, media_asset_id=media.id
+    )
+    await servicio.registrar_saldo_autorizado(
         session,
         pedido_id=pedido.id,
-        media_asset_id=media.id,
         referencia_pasarela=f"s{pedido.id}",
         autorizado_hasta=captura + timedelta(days=5),
         ahora=captura - timedelta(hours=1),
@@ -180,13 +187,20 @@ async def test_07_camino_completo_de_un_encargo(async_session):
     )
     await servicio.iniciar_trabajo(s, pedido_id=pedido.id)
     media = await _media(s, artista)
-    await servicio.registrar_vista_previa(
+    await servicio.entregar_vista_previa(
+        s, pedido_id=pedido.id, media_asset_id=media.id, nota="Primera version"
+    )
+    # D24: entregar no cambia el estado; lo cambia el saldo autorizado
+    assert (await _recargar(s, Pedido, pedido.id)).estado is EstadoPedido.EN_PROCESO
+    await servicio.registrar_saldo_autorizado(
         s,
         pedido_id=pedido.id,
-        media_asset_id=media.id,
         referencia_pasarela="sal-7",
         autorizado_hasta=T0 + timedelta(days=6),
         ahora=T0 + timedelta(days=1),
+    )
+    assert (await _recargar(s, Pedido, pedido.id)).estado is (
+        EstadoPedido.VISTA_PREVIA_ENTREGADA
     )
     assert (await _cobros(s, pedido))[TipoCobro.SALDO].estado is (
         EstadoCobro.AUTORIZADO
@@ -557,3 +571,98 @@ async def test_cliente_cancela_evento_con_reembolso_parcial(async_session):
     cobros = await _cobros(s, pedido)
     assert {c.estado for c in cobros.values()} == {EstadoCobro.REEMBOLSADO}
     assert sum(c.monto_reembolsado for c in cobros.values()) == Decimal("20000.00")
+
+
+# Lote 8b: vista previa en dos pasos (D24) y orden de bloqueos
+
+
+async def _encargo_en_proceso(session) -> tuple[Pedido, Profile]:
+    pedido = await _encargo_cotizado(session)
+    await servicio.registrar_anticipo_capturado(
+        session, pedido_id=pedido.id, referencia_pasarela=f"a{pedido.id}", ahora=T0
+    )
+    await servicio.iniciar_trabajo(session, pedido_id=pedido.id)
+    return pedido, await _recargar(session, Profile, pedido.artista_id)
+
+
+async def test_8b_02_entregar_vista_previa_exige_un_medio_valido(async_session):
+    s = async_session
+    pedido, artista = await _encargo_en_proceso(s)
+
+    async def _entregar(media_id):
+        return await servicio.entregar_vista_previa(
+            s, pedido_id=pedido.id, media_asset_id=media_id
+        )
+
+    ajeno = await _media(s, await _perfil(s))
+    with pytest.raises(ResourceNotFound):
+        await _entregar(ajeno.id)
+    with pytest.raises(ResourceNotFound):
+        await _entregar(uuid.uuid4())
+    with pytest.raises(ReglaDeNegocioViolada):
+        await _entregar((await _media(s, artista, subido=False)).id)
+    with pytest.raises(ReglaDeNegocioViolada):
+        await _entregar((await _media(s, artista, deleted_at=T0)).id)
+    obra = await _obra(s, artista)
+    with pytest.raises(ReglaDeNegocioViolada):
+        await _entregar((await _media(s, artista, obra_id=obra.id)).id)
+
+    usado = await _media(s, artista)
+    await _entregar(usado.id)
+    with pytest.raises(ReglaDeNegocioViolada):
+        await _entregar(usado.id)
+    # Una por revision: otra vista previa con otro medio sigue en proceso
+    await _entregar((await _media(s, artista)).id)
+    assert (await _recargar(s, Pedido, pedido.id)).estado is EstadoPedido.EN_PROCESO
+    previas = await s.scalars(
+        select(Entregable).where(Entregable.pedido_id == pedido.id)
+    )
+    assert len(list(previas)) == 2
+
+
+async def test_8b_02_saldo_autorizado_sin_vista_previa(async_session):
+    s = async_session
+    pedido, _ = await _encargo_en_proceso(s)
+    with pytest.raises(ReglaDeNegocioViolada):
+        await servicio.registrar_saldo_autorizado(
+            s,
+            pedido_id=pedido.id,
+            referencia_pasarela="sin-previa",
+            autorizado_hasta=T0 + timedelta(days=5),
+            ahora=T0,
+        )
+    saldo = (await _cobros(s, pedido))[TipoCobro.SALDO]
+    assert saldo.estado is EstadoCobro.PENDIENTE
+    assert saldo.referencia_pasarela is None
+
+
+async def test_8b_03_cotizar_bloquea_el_perfil_antes_que_la_consulta(
+    async_session, test_db
+):
+    s = async_session
+    artista, cliente = await _perfil(s), await _perfil(s)
+    consulta = await _consulta(s, cliente, artista)
+    bloqueos: list[str] = []
+
+    def _anotar(_conn, _cursor, sentencia, *_args) -> None:
+        if "FOR UPDATE" in sentencia:
+            bloqueos.append(sentencia)
+
+    event.listen(test_db.sync_engine, "before_cursor_execute", _anotar)
+    try:
+        await servicio.crear_pedido_desde_cotizacion(
+            s,
+            consulta_id=consulta.id,
+            tipo=TipoPedido.ENCARGO,
+            descripcion="Retrato",
+            monto_total=Decimal("10000.00"),
+            pasarela=PASARELA,
+            ahora=T0,
+            politicas=POLITICAS,
+        )
+    finally:
+        event.remove(test_db.sync_engine, "before_cursor_execute", _anotar)
+
+    assert len(bloqueos) >= 2
+    assert "FROM profiles" in bloqueos[0]
+    assert "FROM consultas" in bloqueos[1]

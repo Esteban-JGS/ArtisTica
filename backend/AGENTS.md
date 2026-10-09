@@ -62,6 +62,12 @@ Arranque y planes, opcionales:
 | `ESTUDIO_AUTOSERVICIO` | `true` | Permite pasarse a Estudio sin cobro. Apagado en produccion |
 | `DB_PUERTO_LOCAL` | `5432` | Solo compose: puerto del host donde se publica la base |
 
+Pagos, opcionales:
+
+| Variable | Defecto | Para que |
+|---|---|---|
+| `URL_RETORNO_PAGO` | `artistica://pago` | A donde vuelve la app despues del 3DS. Si ONVO no acepta el esquema propio, una pagina https |
+
 Consultas, opcionales:
 
 | Variable | Defecto | Para que |
