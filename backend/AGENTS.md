@@ -11,12 +11,14 @@ Todos se corren desde `backend/`, con el entorno virtual activo (`.venv\Scripts\
 | Formato | `ruff format .` (verificar con `ruff format --check .`) |
 | Migracion | `alembic upgrade head` |
 | Pruebas | `pytest` |
-| Preparar el bucket de medios | `python -m src.storage.supabase` |
+| Preparar los buckets | `python -m src.storage.supabase` |
 
-`python -m src.storage.supabase` crea el bucket `BUCKET_MEDIOS` en Supabase
-Storage, o lo actualiza si existe: publico para lectura, con el limite de
-tamano y los tipos de imagen permitidos. Es idempotente y necesita
-`SUPABASE_SERVICE_KEY`. Se corre a mano, una vez por proyecto de Supabase.
+`python -m src.storage.supabase` crea en Supabase Storage dos buckets, o los
+actualiza si existen, con el limite de tamano y los tipos de imagen
+permitidos: `BUCKET_MEDIOS`, publico para lectura, y `BUCKET_ENTREGABLES`,
+privado, para los archivos finales que solo salen con URL firmada. Imprime una
+linea por bucket. Es idempotente y necesita `SUPABASE_SERVICE_KEY`. Se corre a
+mano, una vez por proyecto de Supabase.
 
 ## Base de pruebas local
 
@@ -51,6 +53,8 @@ Almacenamiento de medios, todas opcionales:
 | `ALMACENAMIENTO` | `falso` | `falso` (en memoria) o `supabase`. `supabase` exige `SUPABASE_SERVICE_KEY`; `falso` no arranca con `ENVIRONMENT=production` |
 | `ALMACENAMIENTO_TIMEOUT_SEGUNDOS` | `15` | Espera por solicitud a Storage |
 | `BUCKET_MEDIOS` | `medios` | Bucket publico de la galeria |
+| `BUCKET_ENTREGABLES` | `entregables` | Bucket privado de los archivos finales. Distinto de `BUCKET_MEDIOS` |
+| `DESCARGA_FIRMADA_SEGUNDOS` | `600` | Vigencia de la URL firmada de un archivo final. Entre 60 y 3600 |
 | `MEDIO_TAMANO_MAXIMO_BYTES` | `5242880` | Tamano maximo de una imagen (5 MB) |
 | `MEDIOS_PENDIENTES_MAXIMOS` | `20` | Subidas sin confirmar por artista |
 

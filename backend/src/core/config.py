@@ -42,6 +42,10 @@ class Settings(BaseSettings):
     ALMACENAMIENTO: str = "falso"
     ALMACENAMIENTO_TIMEOUT_SEGUNDOS: int = 15
     BUCKET_MEDIOS: str = "medios"
+    # Privado (D12): los archivos finales solo salen con URL firmada
+    BUCKET_ENTREGABLES: str = "entregables"
+    # Vigencia de la URL firmada para descargar un archivo final
+    DESCARGA_FIRMADA_SEGUNDOS: int = Field(default=600, ge=60, le=3600)
     MEDIO_TAMANO_MAXIMO_BYTES: int = 5 * 1024 * 1024
     MEDIOS_PENDIENTES_MAXIMOS: int = 20
 
@@ -112,6 +116,9 @@ class Settings(BaseSettings):
             )
             if tamano < self.EXPLORAR_CADA_N
         )
+        # Un archivo final en el bucket publico se descargaria sin pagar
+        if self.BUCKET_ENTREGABLES.strip() == self.BUCKET_MEDIOS.strip():
+            errores.append("BUCKET_ENTREGABLES tiene que ser distinto de BUCKET_MEDIOS")
         if errores:
             raise ValueError("; ".join(errores))
         return self

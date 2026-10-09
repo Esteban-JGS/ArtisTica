@@ -4,7 +4,8 @@ Todo lo que depende de la API de Storage vive en el bloque de mapeo de abajo.
 Cada entrada lleva su fuente o POR_CONFIRMAR. Si Supabase cambia algo, se
 corrige ese bloque y nada mas.
 
-Preparar el bucket de medios (crea o actualiza, es idempotente):
+Preparar el bucket publico de medios y el privado de entregables (crea o
+actualiza, es idempotente):
 
     python -m src.storage.supabase
 """
@@ -22,6 +23,7 @@ from pydantic import SecretStr
 from src.storage.contrato import (
     AlmacenamientoNoDisponible,
     CredencialesAlmacenamiento,
+    DescargaFirmada,
     ErrorAlmacenamiento,
     InfoObjeto,
     SubidaFirmada,
@@ -90,6 +92,15 @@ RUTA_BORRAR = "/object/{bucket}"
 CAMPO_PREFIJOS = "prefixes"
 # [js] getPublicUrl(): `${url}/object/public/{bucket}/{ruta}`, sin autenticar
 RUTA_PUBLICA = "/object/public/{bucket}/{ruta}"
+
+# Firmar descarga, para el bucket privado de entregables
+# Consultado el 2026-10-08.
+# [api] src/http/routes/object/getSignedURL.ts: POST /sign/:bucket/* bajo el
+# prefijo /object, con cuerpo { expiresIn } en segundos
+RUTA_FIRMAR_DESCARGA = "/object/sign/{bucket}/{ruta}"
+CAMPO_EXPIRA = "expiresIn"
+# [api] getSignedURL.ts responde { signedURL }, relativa a /storage/v1
+CAMPO_URL_FIRMADA_DESCARGA = "signedURL"
 
 # Buckets
 # [api] src/http/routes/bucket/getBucket.ts: GET /bucket/:bucketId
@@ -244,18 +255,40 @@ class AlmacenamientoSupabase:
     def url_publica(self, bucket: str, ruta: str) -> str:
         return self._url_base + _ruta(RUTA_PUBLICA, bucket, ruta)
 
+    async def firmar_descarga(
+        self, bucket: str, ruta: str, *, segundos: int
+    ) -> DescargaFirmada:
+        if segundos <= 0:
+            raise ValueError("La descarga firmada necesita segundos positivos")
+        expira_en = self._reloj() + timedelta(seconds=segundos)
+        respuesta = await self._solicitar(
+            "POST",
+            _ruta(RUTA_FIRMAR_DESCARGA, bucket, ruta),
+            json_cuerpo={CAMPO_EXPIRA: segundos},
+        )
+        datos = _json_o_nada(respuesta) or {}
+        relativa = datos.get(CAMPO_URL_FIRMADA_DESCARGA)
+        if not isinstance(relativa, str) or not relativa.startswith("/"):
+            raise ErrorAlmacenamiento("Storage respondio la firma de descarga sin url")
+        return DescargaFirmada(url=self._url_base + relativa, expira_en=expira_en)
+
     # Administracion
 
     async def preparar_bucket(
-        self, bucket: str, *, tamano_maximo: int, tipos: Sequence[str]
+        self,
+        bucket: str,
+        *,
+        tamano_maximo: int,
+        tipos: Sequence[str],
+        publico: bool = True,
     ) -> str:
-        """Crea el bucket publico o lo actualiza. Devuelve "creado" o "actualizado".
+        """Crea el bucket o lo actualiza. Devuelve "creado" o "actualizado".
 
         Supabase hace cumplir el limite y los tipos en cada subida, tambien en
-        las firmadas.
+        las firmadas. Un bucket privado solo se lee con una URL firmada.
         """
         reglas = {
-            CAMPO_BUCKET_PUBLICO: True,
+            CAMPO_BUCKET_PUBLICO: publico,
             CAMPO_BUCKET_LIMITE: tamano_maximo,
             CAMPO_BUCKET_TIPOS: list(tipos),
         }
@@ -382,23 +415,28 @@ def desde_config(config: Any) -> AlmacenamientoSupabase:
     )
 
 
-async def _preparar_bucket_medios() -> None:
+async def _preparar_buckets() -> None:
     from src.core.config import settings  # noqa: PLC0415  evita el ciclo con config
     from src.domain.medios import TIPOS_PERMITIDOS  # noqa: PLC0415  idem
 
+    # La galeria es publica; los entregables solo salen con URL firmada (D12)
+    buckets = ((settings.BUCKET_MEDIOS, True), (settings.BUCKET_ENTREGABLES, False))
     almacenamiento = desde_config(settings)
     try:
-        resultado = await almacenamiento.preparar_bucket(
-            settings.BUCKET_MEDIOS,
-            tamano_maximo=settings.MEDIO_TAMANO_MAXIMO_BYTES,
-            tipos=sorted(TIPOS_PERMITIDOS),
-        )
+        for bucket, publico in buckets:
+            resultado = await almacenamiento.preparar_bucket(
+                bucket,
+                tamano_maximo=settings.MEDIO_TAMANO_MAXIMO_BYTES,
+                tipos=sorted(TIPOS_PERMITIDOS),
+                publico=publico,
+            )
+            visibilidad = "publico" if publico else "privado"
+            print(  # noqa: T201  es la salida del comando de consola
+                f"Bucket {bucket} ({visibilidad}): {resultado}"
+            )
     finally:
         await almacenamiento.cerrar()
-    print(  # noqa: T201  es la salida del comando de consola
-        f"Bucket {settings.BUCKET_MEDIOS}: {resultado}"
-    )
 
 
 if __name__ == "__main__":
-    asyncio.run(_preparar_bucket_medios())
+    asyncio.run(_preparar_buckets())

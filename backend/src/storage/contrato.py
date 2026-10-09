@@ -24,6 +24,13 @@ class SubidaFirmada:
 
 
 @dataclass(frozen=True, kw_only=True)
+class DescargaFirmada:
+    # Sensible: cualquiera con ella descarga el objeto privado. Nunca a logs.
+    url: str = field(repr=False)
+    expira_en: datetime
+
+
+@dataclass(frozen=True, kw_only=True)
 class InfoObjeto:
     tamano_bytes: int
     content_type: str | None
@@ -46,6 +53,13 @@ class Almacenamiento(Protocol):
     async def borrar(self, bucket: str, rutas: Sequence[str]) -> None: ...
 
     def url_publica(self, bucket: str, ruta: str) -> str: ...
+
+    async def firmar_descarga(
+        self, bucket: str, ruta: str, *, segundos: int
+    ) -> DescargaFirmada:
+        """URL de descarga de corta duracion, para un bucket privado.
+        `segundos` tiene que ser positivo; si no, ValueError."""
+        ...
 
 
 class ErrorAlmacenamiento(Exception):
