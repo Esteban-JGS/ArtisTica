@@ -341,6 +341,14 @@ Con un pedido promedio de US$150, una tarifa promedio de 7% y 300 suscriptores d
 
 **Resolución.** La aplicación registra la tarjeta directamente con ONVO y solo envía a la API un identificador, de modo que los datos de la tarjeta nunca pasan por los servidores de ArtísTica. Si el banco pide la verificación, la API devuelve la dirección donde el cliente se autentica, y al volver consulta el resultado con ONVO antes de dar el pago por hecho. La pasarela simulada reproduce el caso para las pruebas y la demostración.
 
+#### Cobros duplicados al reintentar un pago
+
+**Situación.** Un pago puede fallar a medias: la pasarela cobra, pero la respuesta no llega o el registro en la base de datos falla. También puede rechazarse y el cliente reintentar con otra tarjeta.
+
+**Impacto.** Si cada reintento se tratara como un pago nuevo, el cliente podría pagar dos veces el mismo anticipo. Si se tratara como el mismo, no podría cambiar de tarjeta.
+
+**Resolución.** Cada intento de pago lleva un identificador fijo que la pasarela reconoce: repetir el mismo intento devuelve el resultado anterior en lugar de cobrar otra vez. Un rechazo cuenta como intento terminado, así que el siguiente pago con otra tarjeta usa un identificador nuevo. Ninguna operación llama a la pasarela antes de validar que el pedido está en el estado correcto.
+
 #### Feed de Seguidos en la aplicación
 
 **Situación.** El prototipo del feed de Seguidos mostraba publicaciones de cuentas que la persona no seguía, en el mismo orden que Para ti.
@@ -377,7 +385,8 @@ Con un pedido promedio de US$150, una tarifa promedio de 7% y 300 suscriptores d
 | Backend: seguidores y me gusta | Completo, con contadores que nunca alteran el orden del feed |
 | Backend: comentarios y búsqueda | Completo: comentarios con un nivel de respuestas y búsqueda de publicaciones y artistas |
 | Backend: consultas y chat | Completo: bandeja, mensajes no leídos, aviso por datos de contacto y límite para cuentas nuevas |
-| Endpoints de negocio e integración con la aplicación | En desarrollo: toda la parte social disponible (perfiles, planes, imágenes, obras, servicios, publicaciones, feed, seguidores, me gusta, comentarios y búsqueda) y las consultas con su chat. Faltan los pedidos y los cobros |
+| Backend: pedidos y cobros | Completo para los tres tipos de pedido, con pagos verificados por la pasarela y sin cobros duplicados al reintentar |
+| Endpoints de negocio e integración con la aplicación | En desarrollo: toda la parte social disponible (perfiles, planes, imágenes, obras, servicios, publicaciones, feed, seguidores, me gusta, comentarios y búsqueda), las consultas con su chat y los pedidos con sus cobros. Faltan el archivo final privado, la resolución de disputas y los avisos de pago |
 
 ### 5.2 Backend
 
@@ -393,11 +402,12 @@ Con un pedido promedio de US$150, una tarifa promedio de 7% y 300 suscriptores d
 | Publicaciones y feed | Publicaciones con texto, imágenes y una obra opcional, nunca con precio; feed Seguidos en orden cronológico y Explorar filtrado por categorías con cuota de nuevos talentos |
 | Seguidores y me gusta | Seguir artistas, contadores y listas de seguidores, y me gusta en publicaciones. Los contadores se muestran pero no ordenan ningún feed |
 | Comentarios y búsqueda | Comentarios con un nivel de respuestas y me gusta, que no admiten teléfonos ni WhatsApp; búsqueda de publicaciones en español y de artistas por nombre, siempre por recencia |
+| Pedidos y cobros | El artista cotiza desde la consulta y el cliente paga el anticipo; en un encargo, el artista entrega vistas previas, el cliente autoriza el saldo al verlas y se cobra cuando aprueba; en un evento, el saldo se cobra antes de la fecha; una obra disponible se reserva con el total autorizado y se cobra al despachar con número de guía. Incluye contraoferta, rechazo, cancelación con las políticas de reembolso y apertura de disputas. Cada pago se confirma con la pasarela antes de registrarse |
 | Consultas y chat | El cliente abre una consulta sobre un servicio, una obra o en general, y conversa con el artista en ese hilo. Bandeja ordenada por el último mensaje, conteo de no leídos, y un aviso visible para ambas partes cuando un mensaje menciona un teléfono, WhatsApp o SINPE, sin bloquearlo. Una cuenta con menos de 7 días abre como máximo 5 consultas cada 24 horas |
 
 Indicadores al cierre del avance:
 
-- 389 pruebas automatizadas.
+- 419 pruebas automatizadas.
 - Ningún saldo almacenado en la base de datos: ArtísTica no custodia dinero.
 - Montos calculados con aritmética decimal exacta.
 
@@ -419,7 +429,7 @@ Todo el recorrido funciona con datos de ejemplo; las pantallas todavía no se co
 
 | Área | Pendiente |
 |---|---|
-| Contratación | Pedidos y cobros en la API, recepción de avisos de pago y seguimiento de las autorizaciones que vencen |
+| Contratación | Archivo final en almacenamiento privado, resolución de disputas por moderación, recepción de avisos de pago y seguimiento de las autorizaciones que vencen |
 | Pago desde la aplicación | Formulario de tarjeta que envía los datos directo a la pasarela y solo comparte con la API el identificador que esta devuelve, más la verificación adicional del banco (3D Secure) cuando la tarjeta la pida |
 | Pasarela real | Enviar las consultas técnicas a ONVO, obtener acceso a su entorno de pruebas y probar el adaptador contra ese entorno |
 | Inteligencia artificial | Elegir el proveedor. Lo requieren la detección de contenido sospechoso de ser generado por IA, la clasificación de estilos y la búsqueda por similitud, que hoy solo tienen su estructura |
