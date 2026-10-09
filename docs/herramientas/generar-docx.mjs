@@ -122,7 +122,7 @@ function tabla(filas) {
 
 const salto = () => new Paragraph({ children: [new PageBreak()] });
 
-// Titulo de nivel 1 que no entra al indice: Control de versiones e Índice
+// Titulo de nivel 1 que no entra al indice: el Índice
 const tituloSinIndice = (texto, pageBreakBefore) =>
   new Paragraph({
     pageBreakBefore,
@@ -139,7 +139,7 @@ function portada(lineas) {
       bloque.push(
         new Paragraph({
           alignment: AlignmentType.CENTER,
-          spacing: { before: 2800, after: 200 },
+          spacing: { before: 2800, after: 1800 },
           children: [new TextRun({ text: t.slice(2), size: PT(32), bold: true, color: TERRACOTA })],
         }),
       );

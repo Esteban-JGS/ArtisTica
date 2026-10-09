@@ -163,7 +163,7 @@ Cosas que ningún lote cubre y que hay que resolver antes de la integración, la
 | P12 | Borrar la cuenta y los datos personales | No hay forma de borrar una cuenta. Apple exige poder hacerlo desde la app para publicarla, y la Ley 8968 de protección de datos de Costa Rica da derecho a suprimirlos. Además `profiles.id` no tiene llave foránea a `auth.users`: borrar el usuario en Supabase no borra su perfil | Antes de publicar en las tiendas | Orquestador |
 | P13 | El worker ejecuta cada job dentro de la transacción que bloquea la fila con `FOR UPDATE` | Un job lento, por ejemplo una llamada a un proveedor de IA, retiene una conexión y el bloqueo todo ese tiempo. Además las miniaturas no se generan, así que todo medio queda en estado `pendiente` | Lote 9, que reescribe el worker, y lote 11 para las miniaturas | Orquestador |
 | P14 | Entorno de producción separado y copias de seguridad | El Maestro pide un proyecto de Supabase para desarrollo y otro para producción. No hay ninguno de los dos, ni política de respaldo | Antes de producción | Esteban |
-| P15 | Documentación del III avance | El Word del II avance se regeneró el 9 de octubre con el lote 8 completo (18 páginas, 442 pruebas). El Markdown se mantiene al día, pero el Word hay que regenerarlo para cada entrega | Al cerrar el próximo avance | Orquestador |
+| P15 | Documentación del III avance | El Word del II avance se regeneró el 9 de octubre con el lote 8 completo y la forma revisada para que se lea como un documento académico (17 páginas, 442 pruebas). El Markdown se mantiene al día, pero el Word hay que regenerarlo para cada entrega | Al cerrar el próximo avance | Orquestador |
 
 ## Preguntas abiertas que bloquean diseño
 
