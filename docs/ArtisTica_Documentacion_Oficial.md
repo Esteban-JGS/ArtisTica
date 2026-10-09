@@ -201,6 +201,7 @@ Nunca aparecen en Seguidos, siempre llevan la etiqueta "Promocionado" y en Explo
 | Cliente cancela un evento | Más de 30 días antes: se devuelve 100%. De 7 a 30 días: 50%. Menos de 7 días: nada |
 | Cliente cancela un encargo | Sin costo antes del anticipo. Después, el anticipo no se devuelve |
 | Artista cancela o incumple | Se devuelve el 100% de lo cobrado |
+| Disputa | Moderación decide si el pedido se completa o se cancela, y puede ordenar la devolución total o parcial de lo cobrado, anticipo incluido |
 | Evento que llega con el saldo sin pagar | Se trata como cancelación del cliente con menos de 7 días |
 
 Todas las reglas son configurables sin modificar el código.
@@ -357,6 +358,14 @@ Con un pedido promedio de US$150, una tarifa promedio de 7% y 300 suscriptores d
 
 **Resolución.** Los archivos finales van a un almacenamiento privado separado. Solo el artista puede subirlos, y solo después de que el cliente pagó el saldo. Para descargarlos, el cliente o el artista piden a la API un enlace firmado que vence a los diez minutos; nadie más puede obtenerlo.
 
+#### Una resolución de disputa que falla a medias
+
+**Situación.** Resolver una disputa puede exigir varias operaciones en la pasarela: cobrar el saldo autorizado, liberar otra autorización y devolver parte del anticipo. Cualquiera puede fallar, por ejemplo porque la autorización ya venció.
+
+**Impacto.** Si la devolución se hacía primero y después fallaba el cobro, el cliente recibía su dinero de vuelta sin que la disputa quedara resuelta.
+
+**Resolución.** Se ejecuta primero lo que puede fallar por una regla del negocio (cobrar lo autorizado), después las liberaciones y al final las devoluciones, y la resolución se registra solo cuando todas terminaron. Cada operación lleva un identificador fijo, así que repetir la misma resolución no cobra ni devuelve dos veces.
+
 #### Feed de Seguidos en la aplicación
 
 **Situación.** El prototipo del feed de Seguidos mostraba publicaciones de cuentas que la persona no seguía, en el mismo orden que Para ti.
@@ -381,20 +390,13 @@ Con un pedido promedio de US$150, una tarifa promedio de 7% y 300 suscriptores d
 
 | Componente | Estado |
 |---|---|
-| Aplicación: pantallas y diseño | Avanzado: el flujo completo de un encargo se puede recorrer con datos de ejemplo |
-| Backend: base ejecutable e integración continua | Completo |
-| Backend: esquema de base de datos | Completo para el MVP |
-| Backend: reglas de pedidos y cobros | Completo y probado |
-| Backend: capa de pagos | Completa, con pasarela simulada, adaptador de ONVO y verificación 3D Secure del banco |
-| Backend: identidad, roles y planes | Completo y probado |
-| Backend: almacenamiento de imágenes | Completo, con almacenamiento simulado y adaptador de Supabase |
-| Backend: obras y servicios | Completo, con los límites del plan Taller |
-| Backend: publicaciones y feed | Completo: Seguidos cronológico y Explorar con cuota de nuevos talentos |
-| Backend: seguidores y me gusta | Completo, con contadores que nunca alteran el orden del feed |
-| Backend: comentarios y búsqueda | Completo: comentarios con un nivel de respuestas y búsqueda de publicaciones y artistas |
-| Backend: consultas y chat | Completo: bandeja, mensajes no leídos, aviso por datos de contacto y límite para cuentas nuevas |
-| Backend: pedidos y cobros | Completo para los tres tipos de pedido, con pagos verificados por la pasarela y sin cobros duplicados al reintentar |
-| Endpoints de negocio e integración con la aplicación | En desarrollo: toda la parte social disponible (perfiles, planes, imágenes, obras, servicios, publicaciones, feed, seguidores, me gusta, comentarios y búsqueda), las consultas con su chat y los pedidos con sus cobros y el archivo final. Faltan la resolución de disputas por moderación y los avisos de pago |
+| Aplicación móvil: pantallas y diseño | Avanzado: el flujo completo de un encargo se puede recorrer con datos de ejemplo |
+| Backend: base, datos e integración continua | Completo: proyecto ejecutable, esquema de datos del MVP y validación automática de cada cambio |
+| Backend: parte social | Completa: perfiles y planes, imágenes, obras y servicios, publicaciones, feed, seguidores, me gusta, comentarios y búsqueda |
+| Backend: contratación y pagos | Completa: consultas y chat, los tres tipos de pedido, cobros con verificación 3D Secure, archivo final privado y disputas resueltas por moderación |
+| Backend: avisos de pago y vencimientos | Pendiente |
+| Backend: métricas, moderación de contenido y trabajos con IA | Pendiente |
+| Integración de la aplicación con la API | Pendiente: la aplicación todavía usa datos de ejemplo |
 
 ### 5.2 Backend
 
@@ -411,11 +413,12 @@ Con un pedido promedio de US$150, una tarifa promedio de 7% y 300 suscriptores d
 | Seguidores y me gusta | Seguir artistas, contadores y listas de seguidores, y me gusta en publicaciones. Los contadores se muestran pero no ordenan ningún feed |
 | Comentarios y búsqueda | Comentarios con un nivel de respuestas y me gusta, que no admiten teléfonos ni WhatsApp; búsqueda de publicaciones en español y de artistas por nombre, siempre por recencia |
 | Pedidos y cobros | El artista cotiza desde la consulta y el cliente paga el anticipo; en un encargo, el artista entrega vistas previas, el cliente autoriza el saldo al verlas y se cobra cuando aprueba; en un evento, el saldo se cobra antes de la fecha; una obra disponible se reserva con el total autorizado y se cobra al despachar con número de guía. Incluye contraoferta, rechazo, cancelación con las políticas de reembolso y apertura de disputas. Cada pago se confirma con la pasarela antes de registrarse. Una vez pagado el encargo, el artista entrega el archivo final en almacenamiento privado, y solo las dos partes lo descargan con un enlace que vence a los diez minutos |
+| Disputas | Moderación ve las disputas abiertas, de la más antigua a la más reciente, con el pedido y el chat de la consulta como evidencia. Al resolver, la API ejecuta en la pasarela lo que decide (cobrar lo autorizado, liberarlo o devolver lo cobrado) y recién después registra la resolución |
 | Consultas y chat | El cliente abre una consulta sobre un servicio, una obra o en general, y conversa con el artista en ese hilo. Bandeja ordenada por el último mensaje, conteo de no leídos, y un aviso visible para ambas partes cuando un mensaje menciona un teléfono, WhatsApp o SINPE, sin bloquearlo. Una cuenta con menos de 7 días abre como máximo 5 consultas cada 24 horas |
 
 Indicadores al cierre del avance:
 
-- 431 pruebas automatizadas.
+- 442 pruebas automatizadas.
 - Ningún saldo almacenado en la base de datos: ArtísTica no custodia dinero.
 - Montos calculados con aritmética decimal exacta.
 
@@ -437,7 +440,7 @@ Todo el recorrido funciona con datos de ejemplo; las pantallas todavía no se co
 
 | Área | Pendiente |
 |---|---|
-| Contratación | Resolución de disputas por moderación, recepción de avisos de pago y seguimiento de las autorizaciones que vencen |
+| Contratación | Recepción de avisos de pago y seguimiento de las autorizaciones que vencen |
 | Pago desde la aplicación | Formulario de tarjeta que envía los datos directo a la pasarela y solo comparte con la API el identificador que esta devuelve, más la verificación adicional del banco (3D Secure) cuando la tarjeta la pida |
 | Pasarela real | Enviar las consultas técnicas a ONVO, obtener acceso a su entorno de pruebas y probar el adaptador contra ese entorno |
 | Inteligencia artificial | Elegir el proveedor. Lo requieren la detección de contenido sospechoso de ser generado por IA, la clasificación de estilos y la búsqueda por similitud, que hoy solo tienen su estructura |
@@ -452,7 +455,7 @@ La demostración de noviembre usa la pasarela simulada, que reproduce autorizaci
 
 | Riesgo | Mitigación |
 |---|---|
-| Plazo: quedan cuatro etapas de backend y la integración | Las promociones ya salieron del MVP; si hace falta, Explorar queda solo por categorías |
+| Plazo: quedan tres etapas de backend y la integración | Las promociones ya salieron del MVP; si hace falta, Explorar queda solo por categorías |
 | ONVO no responde a tiempo | La demostración no depende de ONVO |
 | El proveedor de IA no se define a tiempo | La moderación funciona con reportes y revisión humana; el clasificador solo marca contenido para esa revisión, así que su ausencia no bloquea la demostración |
 | La integración llega tarde | Los endpoints se construyen en el orden en que la aplicación los necesita |
