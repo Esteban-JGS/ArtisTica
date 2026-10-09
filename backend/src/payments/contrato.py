@@ -9,6 +9,7 @@ tiene que tratarlo como el caso mas desfavorable.
 """
 
 import enum
+import re
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -22,6 +23,8 @@ CENTIMO = Decimal("0.01")
 CIEN = Decimal("100")
 # Default inmutable para los metadatos opcionales
 SIN_METADATOS: Mapping[str, str] = MappingProxyType({})
+# Esquema segun RFC 3986, "://" y algo despues, sin espacios
+_URL_CON_ESQUEMA = re.compile(r"[A-Za-z][A-Za-z0-9+.\-]*://\S+")
 
 
 class MetodoPago(enum.StrEnum):
@@ -41,6 +44,8 @@ class EstadoOperacion(enum.StrEnum):
     AUTORIZADO = "autorizado"
     CAPTURADO = "capturado"
     LIBERADO = "liberado"
+    # El cliente tiene que autenticarse (3DS). Todavia no se movio dinero
+    REQUIERE_ACCION = "requiere_accion"
 
 
 class EstadoCobroPasarela(enum.StrEnum):
@@ -108,6 +113,8 @@ class SolicitudCobro:
     metadatos: Mapping[str, str] = field(default_factory=dict)
     # Medio de pago tokenizado en el cliente. Nunca datos de tarjeta en claro.
     medio_pago_id: str | None = None
+    # A donde vuelve el cliente despues de autenticarse (3DS)
+    url_retorno: str | None = None
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -119,6 +126,14 @@ class ResultadoCobro:
     monto: Decimal
     autorizado_hasta: datetime | None = None
     capturado_en: datetime | None = None
+    # Solo con REQUIERE_ACCION, y en ese caso nunca nula. Sensible: se le da
+    # solo al cliente que paga, nunca a logs
+    url_autenticacion: str | None = field(default=None, repr=False)
+
+    def __post_init__(self) -> None:
+        requiere = self.estado is EstadoOperacion.REQUIERE_ACCION
+        if requiere != (self.url_autenticacion is not None):
+            raise ValueError("url_autenticacion va solo y siempre con REQUIERE_ACCION")
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -133,6 +148,9 @@ class ConsultaCobro:
     monto_reembolsado: Decimal | None  # None si el proveedor no lo informa
     autorizado_hasta: datetime | None
     metadatos: Mapping[str, str]
+    # Con REQUIERE_ACCION, si el proveedor la informa. Sensible como la de
+    # ResultadoCobro
+    url_autenticacion: str | None = field(default=None, repr=False)
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -183,9 +201,26 @@ class PasarelaDePagos(Protocol):
         self, cuenta_id: str, tarifa_porcentaje: Decimal
     ) -> None: ...
 
-    async def cobrar(self, solicitud: SolicitudCobro) -> ResultadoCobro: ...
+    async def cobrar(self, solicitud: SolicitudCobro) -> ResultadoCobro:
+        """Cobra en un paso.
 
-    async def autorizar(self, solicitud: SolicitudCobro) -> ResultadoCobro: ...
+        Devuelve `CAPTURADO`, o `REQUIERE_ACCION` con la referencia y
+        `url_autenticacion` si el banco pide 3DS. En ese caso el cobro todavia
+        no movio dinero: quien llama manda al cliente a la URL y sigue con
+        `consultar_cobro(referencia)` hasta ver `CAPTURADO`, `FALLIDO` o
+        `LIBERADO`. Que el cliente vuelva no prueba que se haya pagado.
+        """
+        ...
+
+    async def autorizar(self, solicitud: SolicitudCobro) -> ResultadoCobro:
+        """Autoriza para capturar despues.
+
+        Devuelve `AUTORIZADO`, o `REQUIERE_ACCION` con la referencia y
+        `url_autenticacion` si el banco pide 3DS. En ese caso el cobro todavia
+        no movio dinero: quien llama sigue con `consultar_cobro(referencia)`
+        hasta ver `AUTORIZADO`, `FALLIDO` o `LIBERADO`.
+        """
+        ...
 
     async def capturar(
         self,
@@ -254,6 +289,16 @@ def validar_referencia(referencia: object) -> str:
     return referencia
 
 
+def validar_url_retorno(url: object) -> str:
+    """Con esquema (`https://` o uno propio como `artistica://`), sin espacios."""
+    if not isinstance(url, str) or not _URL_CON_ESQUEMA.fullmatch(url):
+        raise SolicitudInvalida(
+            "La url de retorno necesita un esquema, no puede ser vacia ni tener "
+            "espacios"
+        )
+    return url
+
+
 def validar_solicitud(
     solicitud: SolicitudCobro, capacidades: Capacidades, *, diferida: bool
 ) -> None:
@@ -263,6 +308,8 @@ def validar_solicitud(
     if not solicitud.cuenta_conectada_id or not solicitud.moneda:
         raise SolicitudInvalida("Faltan la cuenta conectada o la moneda")
     validar_metadatos(solicitud.metadatos)
+    if solicitud.url_retorno is not None:
+        validar_url_retorno(solicitud.url_retorno)
     if solicitud.metodo not in capacidades.metodos:
         raise OperacionNoSoportada(f"Metodo no soportado: {solicitud.metodo}")
     if diferida and solicitud.metodo not in capacidades.autorizacion_diferida:
